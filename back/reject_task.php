@@ -11,7 +11,7 @@ $additional_tasks = $data->additionalTasks;
 $result = $mysqli->query("UPDATE appointments 
 SET status_id = 4, end_date = NOW()
 WHERE status_id = 1
-AND id = $appointment_id");
+AND id = $main_appointment_id");
 
 $additional_appointments_id = [];
 
