@@ -113,6 +113,8 @@ function appoint_next_task($mysqli, $next_task_id, $debug, &$logs) {
     
                 if ($is_enough_time && $is_period_not_completed) {
 
+                    appoint_additional_tasks($mysqli, $next_task_id, $debug, $logs);
+
                     $logs .= "Назначаю задание с id $next_task_id \n";
                         
                     if (!$debug) {
@@ -326,6 +328,8 @@ function appoint_postponed_task($mysqli, $nearest_task_start_time, $debug, &$log
 
     if ($postponed_can_be_appointed && $postponed_appointment_id) {
 
+        appoint_additional_tasks($mysqli, $postponed_appointment_id, $debug, $logs);
+
         $logs .= "Назначаю задание $postponed_appointment_id \n";
 
         if (!$debug) {
@@ -357,7 +361,8 @@ function get_appointments_count_sql() {
             FROM periods p
             GROUP BY p.type_id, p.task_id
         ) pt ON pt.task_id = a.task_id
-        WHERE DATE(a.start_date) = CURDATE() AND pt.type_id = 1
+        WHERE a.status_id IN (2, 8)
+        AND DATE(a.start_date) = CURDATE() AND pt.type_id = 1
             OR WEEK(a.start_date, 1) = WEEK(CURDATE(), 1) AND pt.type_id = 2
             OR MONTH(a.start_date) = MONTH(CURDATE()) AND pt.type_id = 3
             OR YEAR(a.start_date) = YEAR(CURDATE()) AND pt.type_id = 4
@@ -374,7 +379,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs) 
         pc.periods_count, 
         ac.appointments_count, 
         t.duration, 
-        al.start_date, 
+        a.start_date, 
         t.cooldown,
         p.type_id        
     FROM (
@@ -384,8 +389,8 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs) 
         $appointments_count
     ) ac ON pc.task_id = ac.task_id
     JOIN tasks t ON pc.task_id = t.id
-    LEFT JOIN appointments al ON al.task_id = t.id
-    LEFT JOIN periods p ON p.task_id = t.id
+    LEFT JOIN appointments a ON a.task_id = t.id
+    JOIN periods p ON p.task_id = t.id
     WHERE (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
     AND t.duration < TIMESTAMPDIFF(MINUTE, current_time(), TIME('$nearest_task_start_time'))
     AND NOT EXISTS (
@@ -393,17 +398,18 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs) 
     )
     AND t.active = 1
     AND t.deleted = 0
-    AND (DATE_FORMAT(al.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
-        OR DATE_FORMAT(al.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
-        OR DATE_FORMAT(al.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
-        OR DATE_FORMAT(al.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
-        OR al.start_date IS NULL
+    AND status_id IN (2, 8)
+    AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
+        OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
+        OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
+        OR DATE_FORMAT(a.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
+        OR a.start_date IS NULL
         OR p.type_id = 5
         OR t.cooldown = 0)
     AND (DAY(CURDATE()) IN (SELECT day FROM periods WHERE task_id = t.id) 
         OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-    AND (al.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id) 
-        OR al.start_date IS NULL)
+    AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id) 
+        OR a.start_date IS NULL)
     AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)");
 
     $logs .= "Составляю пул доступных заданий\n";
@@ -500,7 +506,10 @@ function appoint_dated_task($mysqli, $nearest_task_start_time, $debug, &$logs) {
 
         $task_id = $tasks_id_filtered[0];
 
-        $logs .= "Это задание с id $task_id \n";        
+        $logs .= "Это задание с id $task_id \n";   
+        
+        appoint_additional_tasks($mysqli, $task_id, $debug, $logs);
+
         $logs .= "Назначаю задание $task_id \n";        
         
         if (!$debug) {
@@ -580,6 +589,9 @@ function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs) {
 
     $result = $mysqli->query("SELECT at.additional_task_id
         FROM additional_tasks at
+        JOIN tasks t ON t.id = at.additional_task_id
+        JOIN periods p ON p.task_id = at.additional_task_id
+        LEFT JOIN appointments a ON a.task_id = at.additional_task_id
         LEFT JOIN (
             $periods_count
         ) pc on pc.task_id = at.additional_task_id
@@ -587,7 +599,22 @@ function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs) {
             $appointments_count
         ) ac on ac.task_id = at.additional_task_id
         WHERE at.main_task_id = $main_task_id
-            AND (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)");
+        AND (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
+        AND t.active = 1
+        AND t.deleted = 0
+        AND status_id IN (2, 8)
+        AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
+            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
+            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
+            OR DATE_FORMAT(a.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
+            OR a.start_date IS NULL
+            OR p.type_id = 5
+            OR t.cooldown = 0)
+        AND (DAY(CURDATE()) IN (SELECT day FROM periods WHERE task_id = t.id) 
+            OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
+        AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id) 
+            OR a.start_date IS NULL)
+        AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)");
 
     $tasks_id = [];
 
