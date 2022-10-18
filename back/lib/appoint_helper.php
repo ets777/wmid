@@ -272,9 +272,9 @@ function appoint_time_task($mysqli, $debug, &$logs) {
 
     if ($nearest_task_can_be_appointed && $nearest_task_id && $nearest_task_start_time) {
 
+        appoint_additional_tasks($mysqli, $nearest_task_id, $debug, $logs);
+        
         $logs .= "Назначаю задание на время\n";
-
-        appoint_additional_tasks($mysqli, $nearest_task_id);
 
         if (!$debug) {
 
@@ -420,7 +420,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs) 
 
         $logs .= "Назначаю задание с id $random_task_id \n";
 
-        appoint_additional_tasks($mysqli, $random_task_id);
+        appoint_additional_tasks($mysqli, $random_task_id, $debug, $logs);
         
         if (!$debug) {
             $result = $mysqli->query("INSERT INTO appointments
@@ -527,7 +527,7 @@ function save_logs($mysqli, $debug, $logs) {
     if ($debug) {
         echo "<pre>$logs</pre>";
     } else {
-        $result = $mysqli->query("INSERT INTO logs
+        $mysqli->query("INSERT INTO logs
         (action, text)
         VALUES
         ('appoint_task', '$logs')");
@@ -568,7 +568,9 @@ function filter_tasks($mysqli, $result) {
     return $tasks_id_filtered;
 }
 
-function appoint_additional_tasks($mysqli, $main_task_id) {
+function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs) {
+    $logs .= "Ищу дополнительные задания\n";
+
     $periods_count = get_periods_count_sql();
     $appointments_count = get_appointments_count_sql();
     $insert_sql = "INSERT INTO appointments
@@ -587,12 +589,23 @@ function appoint_additional_tasks($mysqli, $main_task_id) {
         WHERE at.main_task_id = $main_task_id
             AND (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)");
 
+    $tasks_id = [];
+
     while ($row = $result->fetch_row()) {
         $task_id = $row[0];
+        $tasks_id[] = $task_id;
         $inserts[] = "(NOW(), 7, $task_id)";
     }
 
-    if (count($inserts) > 0) {
+    if (count($tasks_id)) {
+        $tasks_id_str = implode(",", $tasks_id);
+
+        $logs .= "Найдены дополнительные задания: $tasks_id_str\n";
+    } else {
+        $logs .= "Дополнительных заданий не найдено\n";
+    }
+
+    if (count($inserts) > 0 && !$debug) {
         $insert_sql .= implode(",", $inserts);
         $result = $mysqli->query($insert_sql);
     } 
