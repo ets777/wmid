@@ -361,7 +361,7 @@ function get_appointments_count_sql() {
             FROM periods p
             GROUP BY p.type_id, p.task_id
         ) pt ON pt.task_id = a.task_id
-        WHERE a.status_id IN (2, 8)
+        WHERE a.status_id IN (2, 3, 5, 8)
         AND DATE(a.start_date) = CURDATE() AND pt.type_id = 1
             OR WEEK(a.start_date, 1) = WEEK(CURDATE(), 1) AND pt.type_id = 2
             OR MONTH(a.start_date) = MONTH(CURDATE()) AND pt.type_id = 3
@@ -398,7 +398,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs) 
     )
     AND t.active = 1
     AND t.deleted = 0
-    AND status_id IN (2, 8)
+    AND a.status_id IN (2, 3, 5, 8)
     AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
         OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
         OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
@@ -602,7 +602,7 @@ function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs) {
         AND (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
         AND t.active = 1
         AND t.deleted = 0
-        AND status_id IN (2, 8)
+        AND a.status_id IN (2, 3, 5, 8)
         AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
             OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
             OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
