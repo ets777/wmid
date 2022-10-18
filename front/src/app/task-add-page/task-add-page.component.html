@@ -1,0 +1,251 @@
+<form [formGroup]="addTaskForm" (ngSubmit)="onSubmit()">
+
+  <h3>Добавить задание</h3>
+
+  <div>
+    <mat-form-field>
+      <mat-label>Текст задания</mat-label>
+      <input matInput type="text" formControlName="text">
+    </mat-form-field>
+  </div>
+
+  <div>
+    <mat-form-field>
+      <mat-label>Категория</mat-label>
+      <mat-select name="categories" formControlName="categoryId">
+        <mat-option *ngFor="let category of categories" [value]="category.id">
+          {{category.name}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div>
+    <mat-form-field>
+      <mat-label>Предыдущее задание</mat-label>
+      <mat-select name="prevTaskId" formControlName="prevTaskId">
+        <mat-option *ngFor="let task of tasks" [value]="task.id">
+          {{task.text}} (id: {{task.id}})
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div>
+    <mat-form-field>
+      <mat-label>Следующее задание</mat-label>
+      <mat-select name="nextTaskId" formControlName="nextTaskId">
+        <mat-option *ngFor="let task of tasks" [value]="task.id">
+          {{task.text}} (id: {{task.id}})
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div>
+    <mat-form-field>
+      <mat-label>Разброс (мин.)</mat-label>
+      <input matInput type="text" formControlName="offset">
+    </mat-form-field>
+  </div>
+
+  <div>
+    <mat-form-field>
+      <mat-label>Продолжительность (мин.)</mat-label>
+      <input matInput type="text" formControlName="duration">
+    </mat-form-field>
+  </div>
+
+  <div *ngIf="addTaskForm.value.periodId > 0 && addTaskForm.value.periodId < 5">
+    <mat-form-field>
+      <mat-label>
+        Перерыв 
+        <span *ngIf="addTaskForm.value.periodId == 1">(часы)</span>
+        <span *ngIf="addTaskForm.value.periodId == 2">(дни)</span>
+        <span *ngIf="addTaskForm.value.periodId == 3">(недели)</span>
+        <span *ngIf="addTaskForm.value.periodId == 4">(месяцы)</span>
+      </mat-label>
+      <input matInput type="text" formControlName="cooldown">
+    </mat-form-field>
+  </div>
+
+  <div>
+    <mat-form-field>
+      <mat-label>Перерыв до следующего задания (часы)</mat-label>
+      <input matInput type="text" formControlName="nextTaskBreak">
+    </mat-form-field>
+  </div>
+
+  <div>
+    <mat-checkbox color="primary" formControlName="active">Активно</mat-checkbox>
+  </div>
+
+  <div>
+    <mat-form-field>
+      <mat-label>Периодичность</mat-label>
+      <mat-select name="periods" formControlName="periodId" (selectionChange)="onPeriodChange($event.value)">
+        <mat-option *ngFor="let period of periods" [value]="period.id">
+          {{period.name}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div *ngIf="addTaskForm.value.periodId == 1" formArrayName="daily">
+      <div *ngFor="let period of getPeriod('daily').controls; let i = index" [formGroupName]="i">
+
+        <mat-form-field>
+          <mat-label>Часы</mat-label>
+          <input matInput type="text" formControlName="hour">
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Минуты</mat-label>
+          <input matInput type="text" formControlName="minute">
+        </mat-form-field>
+        <button *ngIf="i == 0" mat-mini-fab color="primary" (click)="addDaily()" type="button">
+          +
+        </button>
+        <button *ngIf="i > 0" mat-mini-fab color="warn" (click)="removeDaily(i)" type="button">
+          -
+        </button>
+
+      </div>
+    </div>
+
+    <div *ngIf="addTaskForm.value.periodId == 2" [formGroup]="weeklyFormGroup">
+      <div>
+        <mat-slide-toggle color="primary" formControlName="byWeekdays">По дням недели</mat-slide-toggle>
+      </div>
+
+      <div *ngIf="!byWeekdays()">
+        <mat-form-field>
+          <mat-label>Количество раз в неделю</mat-label>
+          <input matInput type="number" formControlName="periods">
+        </mat-form-field>
+      </div>
+
+      <div *ngIf="byWeekdays()">
+        <mat-checkbox color="primary" formControlName="monday">Понедельник</mat-checkbox>
+        <mat-checkbox color="primary" formControlName="thuesday">Вторник</mat-checkbox>
+        <mat-checkbox color="primary" formControlName="wednesday">Среда</mat-checkbox>
+        <mat-checkbox color="primary" formControlName="thursday">Четверг</mat-checkbox>
+        <mat-checkbox color="primary" formControlName="friday">Пятница</mat-checkbox>
+        <mat-checkbox color="primary" formControlName="saturday">Суббота</mat-checkbox>
+        <mat-checkbox color="primary" formControlName="sunday">Воскресение</mat-checkbox>
+        <mat-form-field>
+          <mat-label>Часы</mat-label>
+          <input matInput type="text" formControlName="hour">
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Минуты</mat-label>
+          <input matInput type="text" formControlName="minute">
+        </mat-form-field>
+      </div>
+
+    </div>
+
+    <div *ngIf="addTaskForm.value.periodId == 3" formArrayName="monthly">
+      <div *ngFor="let period of getPeriod('monthly').controls; let i = index" [formGroupName]="i">
+        <mat-form-field>
+          <mat-label>Число</mat-label>
+          <input matInput type="text" formControlName="day">
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Часы</mat-label>
+          <input matInput type="text" formControlName="hour">
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Минуты</mat-label>
+          <input matInput type="text" formControlName="minute">
+        </mat-form-field>
+        <button *ngIf="i == 0" mat-mini-fab color="primary" (click)="addMonthly()" type="button">
+          +
+        </button>
+        <button *ngIf="i > 0" mat-mini-fab color="warn" (click)="removeMonthly(i)" type="button">
+          -
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="addTaskForm.value.periodId == 4" formArrayName="yearly">
+      <button mat-mini-fab color="primary" (click)="addYearly()" type="button">
+        +
+      </button>
+      <div *ngFor="let period of getPeriod('yearly').controls; let i = index" [formGroupName]="i">
+        <mat-form-field>
+          <mat-label>Число</mat-label>
+          <input matInput type="text" formControlName="day">
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Месяц</mat-label>
+          <mat-select name="periods" formControlName="month" (selectionChange)="onPeriodChange($event.value)">
+            <mat-option [value]="1">Январь</mat-option>
+            <mat-option [value]="2">Февраль</mat-option>
+            <mat-option [value]="3">Март</mat-option>
+            <mat-option [value]="4">Апрель</mat-option>
+            <mat-option [value]="5">Май</mat-option>
+            <mat-option [value]="6">Июнь</mat-option>
+            <mat-option [value]="7">Июль</mat-option>
+            <mat-option [value]="8">Август</mat-option>
+            <mat-option [value]="9">Сентябрь</mat-option>
+            <mat-option [value]="10">Октябрь</mat-option>
+            <mat-option [value]="11">Ноябрь</mat-option>
+            <mat-option [value]="12">Декабрь</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Часы</mat-label>
+          <input matInput type="text" formControlName="hour">
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Минуты</mat-label>
+          <input matInput type="text" formControlName="minute">
+        </mat-form-field>
+        <button mat-mini-fab color="warn" (click)="removeYearly(i)" type="button">
+          -
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="addTaskForm.value.periodId == 5" [formGroup]="onceFormGroup">
+    <mat-form-field>
+      <mat-label>Дата</mat-label>
+      <input matInput [matDatepicker]="dp" formControlName="date">
+      <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
+      <mat-datepicker #dp></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div formArrayName="growth">
+    <button mat-mini-fab color="primary" (click)="addGrowth()" type="button">
+      +
+    </button>
+    Добавить развитие
+    <div *ngFor="let growth of getGrowth().controls; let i = index" [formGroupName]="i">
+      <mat-form-field>
+        <mat-label>Тип развития</mat-label>
+        <mat-select name="growthTypes" formControlName="typeId">
+          <mat-option *ngFor="let growthType of growthTypes" [value]="growthType.id">
+            {{growthType.name}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Цель</mat-label>
+        <input matInput type="text" formControlName="goal">
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Шаг</mat-label>
+        <input matInput type="text" formControlName="step">
+      </mat-form-field>
+      <button mat-mini-fab color="warn" (click)="removeGrowth(i)" type="button">
+        -
+      </button>
+    </div>
+  </div>
+
+  <div>
+    <button mat-raised-button color="primary" type="submit">Добавить</button>
+  </div>
+
+</form>

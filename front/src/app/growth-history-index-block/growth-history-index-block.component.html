@@ -1,0 +1,10 @@
+<h2>История развития</h2>
+
+<div *ngFor="let growth of growthHistory">
+    <b>{{growth.date | date:'dd.MM.yyyy'}}</b> - 
+    <span *ngIf="growth.type == 1">Временное изменение ({{growth.value}})</span>
+    <span *ngIf="growth.type == 2">Числовое изменение</span>
+    <span *ngIf="growth.type == 4">Изменение периодичности</span>
+    <span *ngIf="!growth.type">Активация</span>
+    "{{growth.task}}"
+</div>

@@ -1,0 +1,9 @@
+back/lib/db.php
+front/node_modules
+front/dist
+front/.angular
+/*.txt
+/*.ico
+/*.html
+/*.js
+/*.css
