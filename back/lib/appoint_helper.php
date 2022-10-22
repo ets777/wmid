@@ -133,7 +133,7 @@ function appoint_next_task($mysqli, $next_task_id, $debug, &$logs) {
                 $logs .= "Назначаю задание с id $next_task_id с отсрочкой в $next_task_break ч.\n";
 
                 if (!$debug) {
-                    $result = insert_appointment($mysqli, $next_task_id, 5, (int)$next_task_break);
+                    $result = insert_appointment($mysqli, $next_task_id, 3, (int)$next_task_break);
                 }
 
                 return false;
@@ -304,7 +304,7 @@ function appoint_postponed_task($mysqli, $nearest_task_start_time, $debug, &$log
     FROM appointments a
     JOIN tasks t
     ON t.id = a.task_id
-    WHERE a.status_id IN (3, 5)
+    WHERE a.status_id = 3
         AND NOW() > a.start_date
     ORDER BY a.start_date ASC 
     LIMIT 1");
@@ -353,7 +353,9 @@ function get_periods_count_sql() {
         GROUP BY p.task_id";
 }
 
-function get_appointments_count_sql() {
+function get_appointments_count_sql($statuses) {
+    $statuses_str = implode(",", $statuses);
+
     return "SELECT a.task_id, COUNT(*) appointments_count
         FROM appointments a
         JOIN (
@@ -361,18 +363,18 @@ function get_appointments_count_sql() {
             FROM periods p
             GROUP BY p.type_id, p.task_id
         ) pt ON pt.task_id = a.task_id
-        WHERE a.status_id IN (2, 3, 5, 8)
-        AND DATE(a.start_date) = CURDATE() AND pt.type_id = 1
+        WHERE a.status_id IN ($statuses_str)
+        AND (DATE(a.start_date) = CURDATE() AND pt.type_id = 1
             OR WEEK(a.start_date, 1) = WEEK(CURDATE(), 1) AND pt.type_id = 2
             OR MONTH(a.start_date) = MONTH(CURDATE()) AND pt.type_id = 3
             OR YEAR(a.start_date) = YEAR(CURDATE()) AND pt.type_id = 4
-            OR pt.type_id = 5
-        GROUP BY a.task_id, pt.type_id";
+            OR pt.type_id = 5)
+        GROUP BY a.task_id";
 }
 
 function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs) {
     $periods_count = get_periods_count_sql();
-    $appointments_count = get_appointments_count_sql();
+    $appointments_count = get_appointments_count_sql([2, 3, 8]);
 
     $result = $mysqli->query("SELECT 
         t.id, 
@@ -398,7 +400,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs) 
     )
     AND t.active = 1
     AND t.deleted = 0
-    AND a.status_id IN (2, 3, 5, 8)
+    AND (a.status_id IN (2, 3, 8) or a.status_id IS NULL)
     AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
         OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
         OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
@@ -408,7 +410,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs) 
         OR t.cooldown = 0)
     AND (DAY(CURDATE()) IN (SELECT day FROM periods WHERE task_id = t.id) 
         OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-    AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id) 
+    AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 8)) 
         OR a.start_date IS NULL)
     AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)");
 
@@ -581,17 +583,33 @@ function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs) {
     $logs .= "Ищу дополнительные задания\n";
 
     $periods_count = get_periods_count_sql();
-    $appointments_count = get_appointments_count_sql();
-    $insert_sql = "INSERT INTO appointments
-        (start_date, status_id, task_id)
-        VALUES ";
-    $inserts = [];
+    $appointments_count = get_appointments_count_sql([2, 8]);
+    
+    $inserts_sql = [];
+    $update_tasks_id = [];
 
-    $result = $mysqli->query("SELECT at.additional_task_id
+    $sql = "SELECT at.additional_task_id, a.status_id, a2.task_id IS NULL, COUNT(*)
         FROM additional_tasks at
         JOIN tasks t ON t.id = at.additional_task_id
         JOIN periods p ON p.task_id = at.additional_task_id
-        LEFT JOIN appointments a ON a.task_id = at.additional_task_id
+        LEFT JOIN appointments a ON a.task_id = at.additional_task_id 
+	        AND (a.status_id IN (2, 3, 8) OR a.status_id IS NULL)
+	        AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
+	            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
+	            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
+	            OR DATE_FORMAT(a.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
+	            OR a.start_date IS NULL
+	            OR (a.start_date < NOW() and a.status_id = 3)
+	            OR p.type_id = 5
+	            OR t.cooldown = 0)
+	        AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 8)) 
+            	OR a.start_date IS NULL)
+        LEFT JOIN (
+            SELECT task_id, status_id, COUNT(*) 
+            FROM appointments 
+            GROUP BY task_id, status_id
+        ) a2 ON a2.task_id = at.additional_task_id 
+            AND a2.status_id IN (2, 3, 8)
         LEFT JOIN (
             $periods_count
         ) pc on pc.task_id = at.additional_task_id
@@ -602,38 +620,50 @@ function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs) {
         AND (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
         AND t.active = 1
         AND t.deleted = 0
-        AND a.status_id IN (2, 3, 5, 8)
-        AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
-            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
-            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
-            OR DATE_FORMAT(a.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
-            OR a.start_date IS NULL
-            OR p.type_id = 5
-            OR t.cooldown = 0)
+        AND (a.status_id IN (2, 3, 8) OR a.status_id IS NULL)
         AND (DAY(CURDATE()) IN (SELECT day FROM periods WHERE task_id = t.id) 
             OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-        AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id) 
-            OR a.start_date IS NULL)
-        AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)");
+        AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)";
+    $result = $mysqli->query($sql);
 
-    $tasks_id = [];
+    $insert_tasks_id = [];
 
     while ($row = $result->fetch_row()) {
         $task_id = $row[0];
-        $tasks_id[] = $task_id;
-        $inserts[] = "(NOW(), 7, $task_id)";
+        $status_id = $row[1];
+
+        if ($task_id) {
+            if ((int)$status_id == 3) {
+                $update_tasks_id[] = $task_id;
+            } else {
+                $insert_tasks_id[] = $task_id;
+                $inserts_sql[] = "(NOW(), 7, $task_id)";
+            }
+        }
     }
 
-    if (count($tasks_id)) {
-        $tasks_id_str = implode(",", $tasks_id);
+    if (count($update_tasks_id) || count($insert_tasks_id)) {
+        $tasks_id_str = implode(",", array_merge($insert_tasks_id, $update_tasks_id));
 
         $logs .= "Найдены дополнительные задания: $tasks_id_str\n";
     } else {
         $logs .= "Дополнительных заданий не найдено\n";
     }
 
-    if (count($inserts) > 0 && !$debug) {
-        $insert_sql .= implode(",", $inserts);
-        $result = $mysqli->query($insert_sql);
+    if (count($inserts_sql) > 0 && !$debug) {
+        $insert_sql = implode(",", $inserts_sql);
+        
+        $mysqli->query("INSERT INTO appointments
+            (start_date, status_id, task_id)
+            VALUES 
+            $insert_sql");
+    } 
+
+    if (count($update_tasks_id) > 0 && !$debug) {
+        $updates_sql = implode(",", $update_tasks_id);
+
+        $mysqli->query("UPDATE appointments
+            SET status_id = 7, start_date = NOW()
+            WHERE task_id IN ($updates_sql) AND status_id = 3");
     } 
 }

@@ -9,7 +9,7 @@ $main_appointment_id = $data->mainTaskAppointmentId;
 $additional_tasks = $data->additionalTasks;
 
 $result = $mysqli->query("UPDATE appointments 
-SET status_id = 5, start_date = DATE(start_date) + INTERVAL 1 DAY
+SET status_id = 3, start_date = DATE(start_date) + INTERVAL 1 DAY
 WHERE status_id = 1
 AND id = $main_appointment_id");
 
