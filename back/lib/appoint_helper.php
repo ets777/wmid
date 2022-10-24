@@ -194,6 +194,8 @@ function appoint_time_task($mysqli, $debug, &$logs) {
         AND (p.day IS NULL OR p.day = DAY(CURDATE()))  
         AND (p.weekday IS NULL OR p.weekday = WEEKDAY(CURDATE()) + 1)
         AND a.id IS NULL 
+        AND t.active = 1
+        AND t.deleted = 0
     ORDER BY can_be_appointed DESC, p.start_time ASC 
     LIMIT 1");
 
@@ -623,7 +625,8 @@ function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs) {
         AND (a.status_id IN (2, 3, 8) OR a.status_id IS NULL)
         AND (DAY(CURDATE()) IN (SELECT day FROM periods WHERE task_id = t.id) 
             OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-        AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)";
+        AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
+        GROUP BY at.additional_task_id";
     $result = $mysqli->query($sql);
 
     $insert_tasks_id = [];
