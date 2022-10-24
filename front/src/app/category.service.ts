@@ -13,6 +13,6 @@ export class CategoryService {
   ) { }
 
   getCategories() {
-    return this.http.get<Category[]>(`${Config.root}/back/get_categories.php`);
+    return this.http.get<Category[]>(`${Config.getRoot()}/back/get_categories.php`);
   }
 }

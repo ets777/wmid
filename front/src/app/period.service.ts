@@ -13,6 +13,6 @@ export class PeriodService {
   ) { }
 
   getPeriods() {
-    return this.http.get<Period[]>(`${Config.root}/back/get_period_types.php`);
+    return this.http.get<Period[]>(`${Config.getRoot()}/back/get_period_types.php`);
   }
 }

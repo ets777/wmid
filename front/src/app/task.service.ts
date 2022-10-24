@@ -12,26 +12,26 @@ export class TaskService {
   constructor(private http: HttpClient) {}
 
   getAll() {
-    return this.http.get<Response>(`${Config.root}/back/get_tasks.php`);
+    return this.http.get<Response>(`${Config.getRoot()}/back/get_tasks.php`);
   }
 
   getCurrent() {
-    return this.http.get<Response>(`${Config.root}/back/get_current_task.php`);
+    return this.http.get<Response>(`${Config.getRoot()}/back/get_current_task.php`);
   }
 
   add(task: Task) {
-    return this.http.post<Response>(`${Config.root}/back/add_task.php`, task);
+    return this.http.post<Response>(`${Config.getRoot()}/back/add_task.php`, task);
   }
 
   complete(appointmentId: number, additionalTasksCompletion: AdditionalTask[]) {
-    return this.http.post<Response>(`${Config.root}/back/complete_task.php`, {
+    return this.http.post<Response>(`${Config.getRoot()}/back/complete_task.php`, {
       mainTaskAppointmentId: appointmentId,
       additionalTasks: additionalTasksCompletion,
     });
   }
 
   postpone(appointmentId: number, additionalTasksCompletion: AdditionalTask[]) {
-    return this.http.post<Response>(`${Config.root}/back/postpone_task.php`, {
+    return this.http.post<Response>(`${Config.getRoot()}/back/postpone_task.php`, {
       mainTaskAppointmentId: appointmentId,
       additionalTasks: additionalTasksCompletion,
     });
@@ -39,13 +39,13 @@ export class TaskService {
 
   appoint(lastAppointmentId?: number) {
     return this.http.post<Response>(
-      `${Config.root}/back/appoint_task.php`,
+      `${Config.getRoot()}/back/appoint_task.php`,
       lastAppointmentId
     );
   }
 
   reject(appointmentId: number, additionalTasksCompletion: AdditionalTask[]) {
-    return this.http.post<Response>(`${Config.root}/back/reject_task.php`, {
+    return this.http.post<Response>(`${Config.getRoot()}/back/reject_task.php`, {
       mainTaskAppointmentId: appointmentId,
       additionalTasks: additionalTasksCompletion,
     });

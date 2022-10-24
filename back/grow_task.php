@@ -1,9 +1,6 @@
 <?php
-require_once('./lib/init.php');
-
-header('Access-Control-Allow-Origin: *');
-
-require_once('./lib/db.php');
+require_once('/home/e/ets777/etsbox.ru/public_html/wmid/back/lib/init.php');
+require_once('/home/e/ets777/etsbox.ru/public_html/wmid/back/lib/db.php');
 
 $result = $mysqli->query('SELECT 
         t.id, 

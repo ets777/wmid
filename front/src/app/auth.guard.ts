@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import {
   Router,
   ActivatedRouteSnapshot,
@@ -26,21 +26,17 @@ export class AuthGuard implements CanActivate {
     | Promise<boolean | UrlTree>
     | boolean
     | UrlTree {
-    return this.authenticationService
-      .checkAuth()
-      .toPromise()
-      .then((a) => {
-        if (a?.success) {
-          console.log(
-            `Залогинился успешно: ${this.authenticationService.user.authKey}`
-          );
-
-          return true;
-        } else {
-          this.router.navigate(['/login']);
-
-          return false;
-        }
-      });
+    return isDevMode()
+      ? true
+      : new Observable<boolean>((obs) => {
+          this.authenticationService.checkAuth().subscribe((a) => {
+            if (a?.success) {
+              obs.next(true);
+            } else {
+              this.router.navigate(['/login']);
+              obs.next(false);
+            }
+          });
+        });
   }
 }

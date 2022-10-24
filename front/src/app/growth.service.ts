@@ -15,14 +15,14 @@ export class GrowthService {
   ) { }
 
   getGrowthTypes() {
-    return this.http.get<GrowthType[]>(`${Config.root}/back/get_growth_types.php`);
+    return this.http.get<GrowthType[]>(`${Config.getRoot()}/back/get_growth_types.php`);
   }
 
   getLastGrowth() {
-    return this.http.get<GrowthHistory[]>(`${Config.root}/back/get_last_growth.php`);
+    return this.http.get<GrowthHistory[]>(`${Config.getRoot()}/back/get_last_growth.php`);
   }
 
   getGrowthProgress() {
-    return this.http.get<GrowthProgress>(`${Config.root}/back/get_growth_progress.php`);
+    return this.http.get<GrowthProgress>(`${Config.getRoot()}/back/get_growth_progress.php`);
   }
 }

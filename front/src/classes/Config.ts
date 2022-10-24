@@ -1,4 +1,6 @@
+import { isDevMode } from '@angular/core';
 export class Config {
-    //static root: string = 'http://localhost/wmid';
-    static root: string = 'https://etsbox.ru/wmid';
+    static getRoot() {
+        return isDevMode() ? 'http://localhost/wmid' : 'https://etsbox.ru/wmid';
+    }
 }

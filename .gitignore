@@ -2,8 +2,10 @@ back/lib/db.php
 front/node_modules
 front/dist
 front/.angular
+.vscode/
 /*.txt
 /*.ico
 /*.html
 /*.js
 /*.css
+/*.map
