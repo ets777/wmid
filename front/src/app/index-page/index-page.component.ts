@@ -38,7 +38,6 @@ export class IndexPageComponent implements OnInit {
         )
         .subscribe((a) => {
           if (a?.success) {
-            this.openSnackBar('Задание успешно выполнено');
             this.appoint();
           } else {
             this.openSnackBar('Ошибка при выполнении задания');
@@ -56,7 +55,6 @@ export class IndexPageComponent implements OnInit {
         )
         .subscribe((a) => {
           if (a?.success) {
-            this.openSnackBar('Задание успешно отложено');
             this.appoint();
           } else {
             this.openSnackBar('Ошибка при откладывании задания');
@@ -68,7 +66,7 @@ export class IndexPageComponent implements OnInit {
   appoint() {
     this.taskService.appoint(this.currentTask.appointmentId).subscribe((a) => {
       if (a?.success) {
-        this.openSnackBar('Задание успешно назначено')
+        this.openSnackBar('Задание успешно назначено');
         this.getCurrent();
       } else {
         this.openSnackBar('Заданий нет');
@@ -83,7 +81,6 @@ export class IndexPageComponent implements OnInit {
         .reject(this.currentTask.appointmentId, this.additionalTasksCompletion)
         .subscribe((a) => {
           if (a?.success) {
-            this.openSnackBar('Задание успешно отменено');
             this.appoint();
           } else {
             this.openSnackBar('Ошибка при отмене задания');
@@ -131,6 +128,9 @@ export class IndexPageComponent implements OnInit {
   }
 
   openSnackBar(message: string) {
-    this.snackBar.open(message);
+    this.snackBar.open(message, undefined, {
+      duration: 2500,
+      panelClass: 'snackbar',
+    });
   }
 }
