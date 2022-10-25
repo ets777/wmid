@@ -147,16 +147,16 @@ function appoint_next_task($mysqli, $next_task_id, $debug, &$logs) {
 function appoint_time_task($mysqli, $debug, &$logs) {
     $result = $mysqli->query("SELECT 
         current_time() > p.start_time - INTERVAL t.offset MINUTE 
-        AND current_time() < p.end_time + INTERVAL t.offset MINUTE
-        AND p.start_time < p.end_time 
+        AND current_time() < IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE
+        AND p.start_time < IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE)
         OR (
             current_time() > p.start_time - INTERVAL t.offset MINUTE 
             AND current_time() < TIME('23:59:59') 
             AND current_time() > TIME('12:00:00')
-            OR current_time() < p.end_time - INTERVAL t.offset MINUTE 
+            OR current_time() < IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE 
             AND current_time() > TIME('00:00:00') 
             AND current_time() < TIME('12:00:00')
-        ) AND p.start_time > p.end_time can_be_appointed,
+        ) AND p.start_time > IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE) can_be_appointed,
         t.id,
         p.start_time,
         p.end_time,
@@ -180,15 +180,17 @@ function appoint_time_task($mysqli, $debug, &$logs) {
             AND current_time() > TIME('00:00:00') 
             AND current_time() < TIME('12:00:00')
         ) AND p.start_time > p.end_time)
-    WHERE (p.end_time > current_time() - INTERVAL t.offset MINUTE AND p.start_time < p.end_time 
+    WHERE (
+        IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE > current_time() 
+        AND p.start_time < IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE)
         OR (
             p.start_time > current_time() - INTERVAL t.offset MINUTE 
             AND current_time() < TIME ('23:59:59') 
             AND current_time() > TIME ('12:00:00')
-            OR p.end_time > current_time() - INTERVAL t.offset MINUTE 
+            OR IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE > current_time()
             AND current_time() > TIME ('00:00:00') 
             AND current_time() < TIME ('12:00:00')
-        ) AND p.start_time > p.end_time)
+        ) AND p.start_time > IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE))
         AND (p.date IS NULL OR p.date = CURDATE()) 
         AND (p.month IS NULL OR p.month = MONTH(CURDATE())) 
         AND (p.day IS NULL OR p.day = DAY(CURDATE()))  
