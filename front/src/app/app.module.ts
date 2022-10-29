@@ -22,6 +22,7 @@ import { GrowthProgressIndexBlockComponent } from './growth-progress-index-block
 import { LoginPageComponent } from './login-page/login-page.component';
 
 import { AuthGuard } from './auth.guard';
+import { GoalsIndexBlockComponent } from './goals-index-block/goals-index-block.component';
 
 @NgModule({
   imports: [
@@ -50,7 +51,8 @@ import { AuthGuard } from './auth.guard';
     TaskAddPageComponent,
     GrowthHistoryIndexBlockComponent,
     GrowthProgressIndexBlockComponent,
-    LoginPageComponent
+    LoginPageComponent,
+    GoalsIndexBlockComponent
   ],
   bootstrap: [
     AppComponent
