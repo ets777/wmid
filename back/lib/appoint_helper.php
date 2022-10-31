@@ -391,7 +391,7 @@ function get_appointments_count_sql($statuses)
 function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs)
 {
     $periods_count = get_periods_count_sql();
-    $appointments_count = get_appointments_count_sql([2, 3, 8]);
+    $appointments_count = get_appointments_count_sql([2, 3, 4, 8, 9]);
 
     $result = $mysqli->query("SELECT 
         t.id, 
@@ -418,7 +418,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs)
     AND t.active = 1
     AND t.deleted = 0
     AND (NOW() < t.end_date OR t.end_date IS NULL)
-    AND (a.status_id IN (2, 3, 8) or a.status_id IS NULL)
+    AND (a.status_id IN (2, 3, 4, 8, 9) or a.status_id IS NULL)
     AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
         OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
         OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
@@ -428,7 +428,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs)
         OR t.cooldown = 0)
     AND (DAY(CURDATE()) IN (SELECT day FROM periods WHERE task_id = t.id) 
         OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-    AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 8)) 
+    AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8, 9)) 
         OR a.start_date IS NULL)
     AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)");
 
