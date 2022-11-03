@@ -1,0 +1,28 @@
+<h2>Учёт калорий</h2>
+
+<p>Сегодня осталось: <b>{{ limit - meals[0].total }}</b></p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Завтрак</th>
+            <th>Перекус</th>
+            <th>Обед</th>
+            <th>Перекус</th>
+            <th>Ужин</th>
+            <th>Итого</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr *ngFor="let meal of meals">
+            <td>{{ meal.date| date:'dd.MM' }}</td>
+            <td>{{ meal.breakfast }}</td>
+            <td>{{ meal.snack1 }}</td>
+            <td>{{ meal.lanch }}</td>
+            <td>{{ meal.snack2 }}</td>
+            <td>{{ meal.dinner }}</td>
+            <td>{{ meal.total }}</td>
+        </tr>
+    </tbody>
+</table>

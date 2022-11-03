@@ -23,6 +23,7 @@ import { LoginPageComponent } from './login-page/login-page.component';
 
 import { AuthGuard } from './auth.guard';
 import { GoalsIndexBlockComponent } from './goals-index-block/goals-index-block.component';
+import { MealsIndexBlockComponent } from './meals-index-block/meals-index-block.component';
 
 @NgModule({
   imports: [
@@ -52,7 +53,8 @@ import { GoalsIndexBlockComponent } from './goals-index-block/goals-index-block.
     GrowthHistoryIndexBlockComponent,
     GrowthProgressIndexBlockComponent,
     LoginPageComponent,
-    GoalsIndexBlockComponent
+    GoalsIndexBlockComponent,
+    MealsIndexBlockComponent
   ],
   bootstrap: [
     AppComponent
