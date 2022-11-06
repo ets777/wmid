@@ -1,6 +1,5 @@
 <?php
-header('Access-Control-Allow-Origin: *');
-
+require_once('./lib/init.php');
 require_once('./lib/db.php');
 
 $result = $mysqli->query("SELECT 

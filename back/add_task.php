@@ -1,15 +1,10 @@
 <?php
 require_once('./lib/init.php');
-
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: *');
-
 require_once('./lib/common.php');
+require_once('./lib/db.php');
 
 $data = file_get_contents('php://input');
 $data = json_decode($data);
-
-require_once('./lib/db.php');
 
 if (empty($data->text)) die();
 
