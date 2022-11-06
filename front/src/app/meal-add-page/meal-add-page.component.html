@@ -1,0 +1,64 @@
+<form [formGroup]="addMealForm" (ngSubmit)="onSubmit()">
+    <h3>Добавить задание</h3>
+
+    <div>
+        <mat-form-field>
+            <mat-label>Дата</mat-label>
+            <input matInput [matDatepicker]="dp" formControlName="date" >
+            <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
+            <mat-datepicker #dp></mat-datepicker>
+        </mat-form-field>
+    </div>
+
+    <div>
+        <mat-form-field>
+            <mat-label>Приём пищи</mat-label>
+            <mat-select name="mealTypes" formControlName="mealTypeId">
+                <mat-option *ngFor="let mealType of mealTypes" [value]="mealType.id">
+                    {{ mealType.name }}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+
+    <div formArrayName="products">
+        <button mat-mini-fab color="primary" (click)="addProduct()" type="button">
+            +
+        </button>
+        Добавить продукт
+        <div *ngFor="let product of getProducts().controls; let i = index" [formGroupName]="i">
+            <mat-checkbox color="primary" formControlName="new">Новый</mat-checkbox>
+            <div *ngIf="!getNewCheckboxValue(i)">
+                <mat-form-field>
+                    <mat-label>Продукт</mat-label>
+                    <mat-select name="products" formControlName="id">
+                        <mat-option *ngFor="let product of products" [value]="product.id">
+                            {{ product.name }}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
+            <div *ngIf="getNewCheckboxValue(i)">
+                <mat-form-field>
+                    <mat-label>Название</mat-label>
+                    <input matInput type="text" formControlName="name">
+                </mat-form-field>
+                <mat-form-field>
+                    <mat-label>Калорийность</mat-label>
+                    <input matInput type="text" formControlName="calories">
+                </mat-form-field>
+            </div>
+            <mat-form-field>
+                <mat-label>Вес</mat-label>
+                <input matInput type="text" formControlName="weight">
+            </mat-form-field>
+            <button mat-mini-fab color="warn" (click)="removeProduct(i)" type="button">
+                -
+            </button>
+        </div>
+    </div>
+
+    <div>
+        <button mat-raised-button color="primary" type="submit">Добавить</button>
+    </div>
+</form>

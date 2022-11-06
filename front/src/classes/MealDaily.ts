@@ -1,4 +1,4 @@
-export class Meals {
+export class MealDaily {
     date: string = '';
     breakfast: number = 0;
     snack1: number = 0;

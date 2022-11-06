@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { MealsService } from '../meals.service';
-import { Meals } from 'src/classes/Meals';
+import { MealService } from '../meal.service';
+import { MealDaily } from 'src/classes/MealDaily';
 
 @Component({
   selector: 'app-meals-index-block',
@@ -9,21 +9,21 @@ import { Meals } from 'src/classes/Meals';
 })
 export class MealsIndexBlockComponent implements OnInit {
 
-  meals: Meals[] = [];
+  meals: MealDaily[] = [];
   limit: number = 0;
 
   constructor(
-    private mealsService: MealsService
+    private mealService: MealService
   ) { }
 
   ngOnInit(): void {
     this
-      .mealsService
+      .mealService
       .getLastMeals()
       .subscribe(a => this.meals = a);
 
     this
-      .mealsService
+      .mealService
       .getCalorieLimit()
       .subscribe(a => this.limit = a)
   }

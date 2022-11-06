@@ -24,6 +24,7 @@ import { LoginPageComponent } from './login-page/login-page.component';
 import { AuthGuard } from './auth.guard';
 import { GoalsIndexBlockComponent } from './goals-index-block/goals-index-block.component';
 import { MealsIndexBlockComponent } from './meals-index-block/meals-index-block.component';
+import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
 
 @NgModule({
   imports: [
@@ -42,6 +43,7 @@ import { MealsIndexBlockComponent } from './meals-index-block/meals-index-block.
     RouterModule.forRoot([
       { path: '', component: IndexPageComponent, canActivate: [AuthGuard] },
       { path: 'add-task', component: TaskAddPageComponent, canActivate: [AuthGuard] },
+      { path: 'add-meal', component: MealAddPageComponent, canActivate: [AuthGuard] },
       { path: 'login', component: LoginPageComponent },
     ])
   ],
@@ -54,7 +56,8 @@ import { MealsIndexBlockComponent } from './meals-index-block/meals-index-block.
     GrowthProgressIndexBlockComponent,
     LoginPageComponent,
     GoalsIndexBlockComponent,
-    MealsIndexBlockComponent
+    MealsIndexBlockComponent,
+    MealAddPageComponent
   ],
   bootstrap: [
     AppComponent
