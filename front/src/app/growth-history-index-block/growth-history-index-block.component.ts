@@ -19,8 +19,7 @@ export class GrowthHistoryIndexBlockComponent implements OnInit {
     this
       .growthService
       .getLastGrowth()
-      .toPromise()
-      .then(a => this.growthHistory = a);
+      .subscribe(a => this.growthHistory = a);
   }
 
 }

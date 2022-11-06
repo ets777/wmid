@@ -108,20 +108,17 @@ export class TaskAddPageComponent implements OnInit {
   ngOnInit(): void {
     this.categoryService
       .getCategories()
-      .toPromise()
-      .then((a) => (this.categories = a));
+      .subscribe(a => (this.categories = a));
 
     this.periodService
       .getPeriods()
-      .toPromise()
-      .then((a) => (this.periods = a));
+      .subscribe(a => (this.periods = a));
 
     this.updateTaskList();
 
     this.growthService
       .getGrowthTypes()
-      .toPromise()
-      .then((a) => (this.growthTypes = a));
+      .subscribe(a => (this.growthTypes = a));
 
     this.addGrowth();
   }
@@ -181,8 +178,7 @@ export class TaskAddPageComponent implements OnInit {
 
     this.taskService
       .add(task)
-      .toPromise()
-      .then((a) => {
+      .subscribe(a => {
         if (a) {
           this.addTaskForm.reset();
           this.updateTaskList();
@@ -285,7 +281,6 @@ export class TaskAddPageComponent implements OnInit {
   updateTaskList() {
     this.taskService
       .getAll()
-      .toPromise()
-      .then((a) => (this.tasks = a?.data));
+      .subscribe(a => (this.tasks = a?.data));
   }
 }

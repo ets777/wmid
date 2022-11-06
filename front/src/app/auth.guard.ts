@@ -29,7 +29,7 @@ export class AuthGuard implements CanActivate {
     return isDevMode()
       ? true
       : new Observable<boolean>((obs) => {
-          this.authenticationService.checkAuth().subscribe((a) => {
+          this.authenticationService.checkAuth().subscribe(a => {
             if (a?.success) {
               obs.next(true);
             } else {

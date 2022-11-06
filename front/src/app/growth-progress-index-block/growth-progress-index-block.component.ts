@@ -20,8 +20,7 @@ export class GrowthProgressIndexBlockComponent implements OnInit {
     this
       .growthService
       .getGrowthProgress()
-      .toPromise()
-      .then(a => {
+      .subscribe(a => {
         if (a) {
           this.growthProgress = a;
           this.percent = Math.round(this.growthProgress?.completed * 100 / this.growthProgress?.total);

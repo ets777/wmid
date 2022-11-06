@@ -13,7 +13,7 @@ export class AuthenticationService {
   login(username: string, password: string) {
     return this.http
       .post<any>(`${Config.getRoot()}/back/auth.php`, { username, password })
-      .subscribe((a) => {
+      .subscribe(a => {
         if (a && a?.success) {
           this.user = { authKey: a?.data };
         }

@@ -36,7 +36,7 @@ export class IndexPageComponent implements OnInit {
           this.currentTask.appointmentId,
           this.additionalTasksCompletion
         )
-        .subscribe((a) => {
+        .subscribe(a => {
           if (a?.success) {
             this.appoint();
           } else {
@@ -53,7 +53,7 @@ export class IndexPageComponent implements OnInit {
           this.currentTask.appointmentId,
           this.additionalTasksCompletion
         )
-        .subscribe((a) => {
+        .subscribe(a => {
           if (a?.success) {
             this.appoint();
           } else {
@@ -64,7 +64,7 @@ export class IndexPageComponent implements OnInit {
   }
 
   appoint() {
-    this.taskService.appoint(this.currentTask.appointmentId).subscribe((a) => {
+    this.taskService.appoint(this.currentTask.appointmentId).subscribe(a => {
       if (a?.success) {
         this.openSnackBar('Задание успешно назначено');
         this.getCurrent();
@@ -79,7 +79,7 @@ export class IndexPageComponent implements OnInit {
     if (this.currentTask.appointmentId && this.additionalTasksCompletion) {
       this.taskService
         .reject(this.currentTask.appointmentId, this.additionalTasksCompletion)
-        .subscribe((a) => {
+        .subscribe(a => {
           if (a?.success) {
             this.appoint();
           } else {
@@ -90,7 +90,7 @@ export class IndexPageComponent implements OnInit {
   }
 
   getCurrent() {
-    this.taskService.getCurrent().subscribe((a) => {
+    this.taskService.getCurrent().subscribe(a => {
       if (a && a.success) {
         const tasks = a.data;
 
@@ -100,7 +100,7 @@ export class IndexPageComponent implements OnInit {
 
           mainTask.additionalTasks = additionalTasks;
 
-          this.additionalTasksCompletion = additionalTasks.map((a) => {
+          this.additionalTasksCompletion = additionalTasks.map(a => {
             return {
               appointmentId: +a.appointmentId,
               completed: false,
@@ -122,7 +122,7 @@ export class IndexPageComponent implements OnInit {
 
   checkAdditionalTask(a: any, appointmentId: any) {
     const i = this.additionalTasksCompletion.findIndex(
-      (a) => a.appointmentId == appointmentId
+      a => a.appointmentId == appointmentId
     );
     this.additionalTasksCompletion[i].completed = a.checked;
   }
