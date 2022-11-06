@@ -311,7 +311,8 @@ function appoint_postponed_task($mysqli, $nearest_task_start_time, $debug, &$log
     $result = $mysqli->query("SELECT 
         TIMESTAMPDIFF(MINUTE, current_time(), TIME('$nearest_task_start_time')) > t.duration 
         OR t.duration IS NULL,
-        a.id
+        a.id,
+        t.id
         FROM appointments a
         JOIN tasks t
         ON t.id = a.task_id 
@@ -327,6 +328,7 @@ function appoint_postponed_task($mysqli, $nearest_task_start_time, $debug, &$log
 
     $postponed_can_be_appointed = ($row[0] ?? null) == '1';
     $postponed_appointment_id = $row[1] ?? null;
+    $postponed_task_id = $row[2] ?? null;
 
     $logs .= "Ищу задания в ожидании\n";
 
@@ -340,11 +342,11 @@ function appoint_postponed_task($mysqli, $nearest_task_start_time, $debug, &$log
         }
     }
 
-    if ($postponed_can_be_appointed && $postponed_appointment_id) {
+    if ($postponed_can_be_appointed && $postponed_appointment_id && $postponed_task_id) {
 
-        appoint_additional_tasks($mysqli, $postponed_appointment_id, $debug, $logs);
+        appoint_additional_tasks($mysqli, $postponed_task_id, $debug, $logs);
 
-        $logs .= "Назначаю задание $postponed_appointment_id \n";
+        $logs .= "Назначаю задание $postponed_task_id \n";
 
         if (!$debug) {
             $result = $mysqli->query("UPDATE appointments
@@ -391,7 +393,7 @@ function get_appointments_count_sql($statuses)
 function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs)
 {
     $periods_count = get_periods_count_sql();
-    $appointments_count = get_appointments_count_sql([2, 3, 4, 8, 9]);
+    $appointments_count = get_appointments_count_sql([2, 3, 4, 8]);
 
     $result = $mysqli->query("SELECT 
         t.id, 
@@ -418,7 +420,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs)
     AND t.active = 1
     AND t.deleted = 0
     AND (NOW() < t.end_date OR t.end_date IS NULL)
-    AND (a.status_id IN (2, 3, 4, 8, 9) or a.status_id IS NULL)
+    AND (a.status_id IN (2, 3, 4, 8) or a.status_id IS NULL)
     AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
         OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
         OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
@@ -428,7 +430,7 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs)
         OR t.cooldown = 0)
     AND (DAY(CURDATE()) IN (SELECT day FROM periods WHERE task_id = t.id) 
         OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-    AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8, 9)) 
+    AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8)) 
         OR a.start_date IS NULL)
     AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)");
 
