@@ -9,13 +9,13 @@ $result = $mysqli->query("SELECT
     WHEN 1 THEN 
         greatest(current_value - start_value, 0)
     WHEN 2 THEN 
-        greatest(DATEDIFF(least(date(NOW()), end_value), start_value), 0)
+        greatest(TIMESTAMPDIFF(HOUR, start_value, (least(NOW(), end_value))), 0)
     END completed,
     CASE type_id 
     WHEN 1 THEN 
         end_value - start_value
     WHEN 2 THEN 
-        DATEDIFF(end_value, start_value)
+        TIMESTAMPDIFF(HOUR, start_value, end_value)
     END goal
     FROM goals g 
     WHERE hidden = 0 
