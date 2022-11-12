@@ -432,7 +432,11 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs)
         OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
     AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8)) 
         OR a.start_date IS NULL)
-    AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)");
+    AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
+    AND ((p.weekday IS NULL OR WEEKDAY(CURDATE()) + 1 = p.weekday)
+        AND (p.day IS NULL OR DAY(CURDATE()) = p.day)
+        AND (p.month IS NULL OR MONTH(CURDATE()) = p.month)
+        AND (p.date IS NULL OR CURDATE() = p.date))");
 
     $logs .= "Составляю пул доступных заданий\n";
 
@@ -619,7 +623,11 @@ function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs)
     $inserts_sql = [];
     $update_tasks_id = [];
 
-    $sql = "SELECT at.additional_task_id, a.status_id, a2.task_id IS NULL, COUNT(*)
+    $sql = "SELECT 
+            at.additional_task_id, 
+            a2.status_id,
+            a.id IS NULL AND EXISTS (SELECT id FROM appointments WHERE task_id = t.id), 
+            COUNT(*)
         FROM additional_tasks at
         JOIN tasks t ON t.id = at.additional_task_id
         JOIN periods p ON p.task_id = at.additional_task_id
@@ -664,8 +672,9 @@ function appoint_additional_tasks($mysqli, $main_task_id, $debug, &$logs)
     while ($row = $result->fetch_row()) {
         $task_id = $row[0];
         $status_id = $row[1];
+        $can_be_appointed = !$row[2];
 
-        if ($task_id) {
+        if ($task_id && $can_be_appointed) {
             if ((int)$status_id == 3) {
                 $update_tasks_id[] = $task_id;
             } else {
