@@ -2,7 +2,7 @@
 require_once('/home/e/ets777/etsbox.ru/public_html/wmid/back/lib/init.php');
 require_once('/home/e/ets777/etsbox.ru/public_html/wmid/back/lib/db.php');
 
-$result = $mysqli->query('SELECT 
+$result = $mysqli->query("SELECT 
         t.id, 
         NULL growth_id, 
         3 type_id, 
@@ -37,10 +37,25 @@ $result = $mysqli->query('SELECT
     ) p ON t.id = p.task_id
     WHERE t.active = 1 
         AND t.deleted = 0 
-        AND (g.type_id = 1 AND DATE_FORMAT(p.start_time, "%H:%i") != g.goal
+        AND (g.type_id = 1 AND DATE_FORMAT(p.start_time, '%H:%i') != g.goal
         OR g.type_id = 2 AND ExtractNumber(t.text) != g.goal
         OR g.type_id = 4 AND p.periods_count != g.goal)
-    ORDER BY rand() LIMIT 1');
+    UNION
+    SELECT 
+        NULL, 
+        NULL,
+        NULL, 
+        0.1 step,
+        NULL,
+        NULL,
+        p.value num,
+        NULL,
+        NULL,
+        NULL
+    FROM params p
+    WHERE p.code = 'calorie_deficit'
+    AND p.value != (SELECT p2.value FROM params p2 WHERE p2.code = 'calorie_deficit_max')
+    ORDER BY rand() LIMIT 1");
 
 $row = $result->fetch_row();
 
@@ -54,8 +69,6 @@ $numeric = $row[6] ?? null;
 $active = $row[7] ?? null;
 $periods_count = $row[8] ?? null;
 $period_type_id = $row[9] ?? null;
-
-if (is_null($task_id)) exit();
 
 if ($growth_type_id == 1) {
     $result = $mysqli->query("UPDATE periods
@@ -121,8 +134,13 @@ if ($growth_type_id == 4) {
     ($task_id, $growth_id, $periods_count)");
 }
 
-$output = [];
+if (is_null($growth_type_id)) {
+    $result = $mysqli->query("UPDATE params
+        SET value = value + $growth_step
+    WHERE code = 'calorie_deficit'");
+}
 
+$output = [];
 $output['success'] = $result;
 
 echo json_encode($output);
