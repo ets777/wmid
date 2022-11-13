@@ -135,9 +135,16 @@ if ($growth_type_id == 4) {
 }
 
 if (is_null($growth_type_id)) {
-    $result = $mysqli->query("UPDATE params
-        SET value = value + $growth_step
+    $new_calorie_deficit = $numeric + $growth_step;
+
+    $mysqli->query("UPDATE params
+        SET value = $new_calorie_deficit
     WHERE code = 'calorie_deficit'");
+
+    $mysqli->query("INSERT INTO growth_history
+    (task_id, growth_id, new_value)
+    VALUES
+    (NULL, NULL, $new_calorie_deficit");
 }
 
 $output = [];
