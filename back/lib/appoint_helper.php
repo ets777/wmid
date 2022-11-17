@@ -228,6 +228,9 @@ function appoint_time_task($mysqli, $debug, &$logs)
     // если задание является частью цепочки, то ищем первое и назначаем его
     if ($nearest_task_in_chain) {
 
+        $periods_count = get_periods_count_sql();
+        $appointments_count = get_appointments_count_sql([2, 3, 4, 8]);
+
         $result = $mysqli->query("SELECT 
             current_time() > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL $nearest_task_offset MINUTE 
             AND current_time() < TIME('$nearest_task_end_time') + INTERVAL $nearest_task_offset MINUTE
@@ -256,9 +259,16 @@ function appoint_time_task($mysqli, $debug, &$logs)
                 ) t1
             JOIN tasks t2
             ON t1._id = t2.id
+            LEFT JOIN (
+                $periods_count
+            ) pc ON pc.task_id = t2.id
+            LEFT JOIN (
+                $appointments_count
+            ) ac ON pc.task_id = ac.task_id
             WHERE t2.id != $nearest_task_id 
                 AND t2.active = 1 
                 AND t2.deleted = 0
+                AND (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
                 AND (NOW() < t2.end_date OR t2.end_date IS NULL)
             ORDER BY t1.lvl DESC
         ) t3");
