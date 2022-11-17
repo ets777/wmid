@@ -446,7 +446,15 @@ function appoint_random_task($mysqli, $nearest_task_start_time, $debug, &$logs)
     AND ((p.weekday IS NULL OR WEEKDAY(CURDATE()) + 1 = p.weekday)
         AND (p.day IS NULL OR DAY(CURDATE()) = p.day)
         AND (p.month IS NULL OR MONTH(CURDATE()) = p.month)
-        AND (p.date IS NULL OR CURDATE() = p.date))");
+        AND (p.date IS NULL OR CURDATE() = p.date))
+    AND t.id NOT IN (
+    	SELECT et.excluded_task_id 
+    	FROM excluded_tasks et 
+    	LEFT JOIN appointments a2
+    	ON a2.task_id = et.task_id
+    	AND DATE(a2.start_date) = CURDATE()
+    	WHERE a2.id IS NOT NULL    	
+    )");
 
     $logs .= "Составляю пул доступных заданий\n";
 
