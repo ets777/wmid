@@ -144,7 +144,7 @@ if (is_null($growth_type_id)) {
     $mysqli->query("INSERT INTO growth_history
     (task_id, growth_id, new_value)
     VALUES
-    (NULL, NULL, $new_calorie_deficit");
+    (NULL, NULL, $new_calorie_deficit)");
 }
 
 $output = [];
