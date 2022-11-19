@@ -12,6 +12,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 
 import { AppComponent } from './app.component';
 import { TopBarComponent } from './top-bar/top-bar.component';
@@ -31,6 +32,7 @@ import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
     BrowserModule,
     HttpClientModule,
     ReactiveFormsModule,
+    MatAutocompleteModule,
     MatSelectModule,
     MatInputModule,
     BrowserAnimationsModule,

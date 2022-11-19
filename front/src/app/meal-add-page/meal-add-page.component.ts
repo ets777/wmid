@@ -13,6 +13,9 @@ import {
   MAT_DATE_LOCALE,
 } from '@angular/material/core';
 import { Meal } from 'src/classes/Meal';
+import { Observable } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
+import { FormControl } from '@angular/forms';
 
 export const MY_FORMATS = {
   parse: {
@@ -45,6 +48,8 @@ export class MealAddPageComponent implements OnInit {
   mealTypes: MealType[] = [];
   products: Product[] = [];
   addMealForm: FormGroup = this.formBuilder.group({});
+  filteredProducts: Observable<Product[]>[] = [];
+  myControl = new FormControl('');
 
   constructor(
     private formBuilder: FormBuilder,
@@ -79,10 +84,22 @@ export class MealAddPageComponent implements OnInit {
         new: false
       })
     );
+
+    const i = this.getProducts().length - 1;
+
+    this.filteredProducts.push((this.getProduct(i).get('id') as FormControl).valueChanges.pipe(
+      startWith(''),
+      map(value => {
+        const name = typeof value === 'string' ? value : value?.name;
+        return name ? this._filter(name as string) : this.products.slice();
+      }),
+    ));
+
   }
 
   removeProduct(i: number) {
     this.getProducts().removeAt(i);
+    this.filteredProducts.splice(i, 1);
   }
 
   getProducts(): FormArray {
@@ -90,7 +107,11 @@ export class MealAddPageComponent implements OnInit {
   }
 
   getNewCheckboxValue(i: number) {
-    return this.getProducts().controls[i].get('new')?.value;
+    return this.getProduct(i).get('new')?.value;
+  }
+
+  getProduct(i: number) {
+    return this.getProducts().controls[i];
   }
 
   onSubmit() {
@@ -99,6 +120,7 @@ export class MealAddPageComponent implements OnInit {
     meal.date = this.addMealForm.value.date.format('YYYY-MM-DD');
     meal.mealTypeId = this.addMealForm.value.mealTypeId;
     meal.products = this.getProducts().controls.map(a => {
+
       let product = new Product();
       let isNew = a.get('new')?.value;
 
@@ -106,7 +128,7 @@ export class MealAddPageComponent implements OnInit {
         product.calories = a.get('calories')?.value;
         product.name = a.get('name')?.value;
       } else {
-        product.id = a.get('id')?.value;
+        product.id = a.get('id')?.value.id;
       }
       product.weight = a.get('weight')?.value;
 
@@ -120,6 +142,16 @@ export class MealAddPageComponent implements OnInit {
       .subscribe(a => {
         console.log(a);
       })
+  }
+
+  displayFn(product: Product): string {
+    return product && product.name ? product.name : '';
+  }
+
+  private _filter(value: string): Product[] {
+    const filterValue = value.toLowerCase();
+
+    return this.products.filter(option => option.name?.toLowerCase().includes(filterValue));
   }
 
 }
