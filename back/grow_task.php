@@ -85,7 +85,7 @@ if ($growth_type_id == 1) {
 
 if ($growth_type_id == 2) {
     $result = $mysqli->query('UPDATE tasks
-    SET text = REPLACE(text, ExtractNumber(text), ExtractNumber(text) + ' . $growth_step . ')
+    SET text = REPLACE(text, ExtractNumber(text), CAST((ExtractNumber(text) + ' . $growth_step . ') AS UNSIGNED))
     WHERE id = ' . $task_id);
 
     $result = $mysqli->query('INSERT INTO growth_history
