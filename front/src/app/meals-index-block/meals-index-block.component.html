@@ -4,7 +4,9 @@
     <a [routerLink]="['/add-meal']">Добавить приём пищи</a>
 </div>
 
-<p>Сегодня осталось: <b>{{ limit - meals[0].total }}</b></p>
+<p *ngIf="meals.length">
+    Сегодня осталось: <b>{{ limit - meals[0].total }}</b>
+</p>
 
 <table>
     <thead>
