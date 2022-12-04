@@ -30,7 +30,7 @@ $result = $mysqli->query('INSERT INTO tasks
 ) VALUES (
     NULL, 
     "' . $data->text . '", 
-    ' . (isset($next_task_id) ? $next_task_id : 'NULL') . ', 
+    ' . (isset($next_task_id) && $next_task_id > 0 ? $next_task_id : 'NULL') . ', 
     ' . (int)$data->categoryId . ', 
     ' . (int)$data->offset . ', 
     ' . (int)$data->duration . ', 
