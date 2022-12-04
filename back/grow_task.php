@@ -108,8 +108,8 @@ if ($growth_type_id == 3) {
 if ($growth_type_id == 4) {
     if ((int)$growth_step > 0) {
 
-        $start_time = is_null($start_time) ? 'NULL' : $start_time;
-        $end_time = is_null($end_time) ? 'NULL' : $end_time;
+        $start_time = is_null($start_time) ? 'NULL' : "'$start_time'";
+        $end_time = is_null($end_time) ? 'NULL' : "'$end_time'";
 
         $result = $mysqli->query("INSERT INTO periods
         (type_id, task_id, start_time, end_time)
@@ -117,8 +117,8 @@ if ($growth_type_id == 4) {
         (
             $period_type_id, 
             $task_id, 
-            '$start_time', 
-            '$end_time'
+            $start_time, 
+            $end_time
         )");
     } else {
         $result = $mysqli->query("DELETE FROM periods
