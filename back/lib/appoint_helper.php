@@ -48,6 +48,7 @@ function appoint_next_task($mysqli, $next_task_id, $debug, &$logs)
                     OR t.next_task_id IS NULL
                 FROM periods p
                 JOIN tasks t ON t.id = $next_task_id
+                JOIN tasks tp ON p.task_id = tp.id AND tp.deleted = 0 AND tp.active = 1
                 WHERE p.start_time > current_time() 
                     AND (p.date IS NULL OR p.date = CURDATE()) 
                     AND (p.month IS NULL OR p.month = MONTH(CURDATE())) 
