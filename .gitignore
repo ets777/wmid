@@ -1,4 +1,5 @@
 back/lib/db.php
+back/vendor
 front/node_modules
 front/dist
 front/.angular
