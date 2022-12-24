@@ -18,7 +18,11 @@ BEGIN
             END IF;
             SET inti = inti + 1;
         END WHILE;
-        RETURN CAST(finNumber AS UNSIGNED);
+        IF LENGTH(finNumber) > 0 THEN
+        	RETURN CAST(finNumber AS UNSIGNED);
+        ELSE
+        	RETURN 0;
+        END IF;
     ELSE
         RETURN 0;
     END IF;    
