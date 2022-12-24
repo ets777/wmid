@@ -154,7 +154,7 @@ function appoint_next_task(
                 $query = "SELECT 
                     TIMESTAMPDIFF(
                         MINUTE, 
-                        TIME('$current_time'), 
+                        TIME(TIME('$current_time')), 
                         p.start_time - INTERVAL(
                             SELECT offset FROM tasks WHERE id = p.task_id
                         ) MINUTE
@@ -163,7 +163,7 @@ function appoint_next_task(
                 from periods p
                 JOIN tasks t ON t.id = $next_task_id
                 JOIN tasks tp ON p.task_id = tp.id AND tp.deleted = 0 AND tp.active = 1
-                WHERE p.start_time > '$current_time' 
+                WHERE p.start_time > TIME('$current_time') 
                     AND (p.date IS NULL OR p.date = '$current_date') 
                     AND (p.month IS NULL OR p.month = MONTH('$current_date')) 
                     AND (p.day IS NULL OR p.day = DAY('$current_date'))  
@@ -273,16 +273,16 @@ function appoint_time_task(
 ): Appointment_result
 {
     $query = "SELECT 
-            '$current_time' > p.start_time - INTERVAL t.offset MINUTE 
-            AND '$current_time' < IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE
+            TIME('$current_time') > p.start_time - INTERVAL t.offset MINUTE 
+            AND TIME('$current_time') < IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE
             AND p.start_time < IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE)
             OR (
-                '$current_time' > p.start_time - INTERVAL t.offset MINUTE 
-                AND '$current_time' < TIME('23:59:59') 
-                AND '$current_time' > TIME('12:00:00')
-                OR '$current_time' < IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE 
-                AND '$current_time' > TIME('00:00:00') 
-                AND '$current_time' < TIME('12:00:00')
+                TIME('$current_time') > p.start_time - INTERVAL t.offset MINUTE 
+                AND TIME('$current_time') < TIME('23:59:59') 
+                AND TIME('$current_time') > TIME('12:00:00')
+                OR TIME('$current_time') < IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE 
+                AND TIME('$current_time') > TIME('00:00:00') 
+                AND TIME('$current_time') < TIME('12:00:00')
             ) AND p.start_time > IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE) can_be_appointed,
             t.id,
             p.start_time,
@@ -300,23 +300,23 @@ function appoint_time_task(
             OR (
                 a.start_date > TIMESTAMP('$current_date', p.start_time) - INTERVAL t.offset MINUTE 
                 AND a.start_date < TIMESTAMP('$current_date', '23:59:59')
-                AND '$current_time' < TIME('23:59:59') 
-                AND '$current_time' > TIME('12:00:00')
+                AND TIME('$current_time') < TIME('23:59:59') 
+                AND TIME('$current_time') > TIME('12:00:00')
                 OR a.start_date < TIMESTAMP('$current_date', p.end_time) + INTERVAL t.offset MINUTE
                 AND a.start_date > TIMESTAMP('$current_date', '00:00:00')
-                AND '$current_time' > TIME('00:00:00') 
-                AND '$current_time' < TIME('12:00:00')
+                AND TIME('$current_time') > TIME('00:00:00') 
+                AND TIME('$current_time') < TIME('12:00:00')
             ) AND p.start_time > p.end_time)
         WHERE (
-            IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE > '$current_time' 
+            IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE > TIME('$current_time') 
             AND p.start_time < IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE)
             OR (
-                p.start_time > '$current_time' - INTERVAL t.offset MINUTE 
-                AND '$current_time' < TIME ('23:59:59') 
-                AND '$current_time' > TIME ('12:00:00')
-                OR IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE > '$current_time'
-                AND '$current_time' > TIME ('00:00:00') 
-                AND '$current_time' < TIME ('12:00:00')
+                p.start_time > TIME('$current_time') - INTERVAL t.offset MINUTE 
+                AND TIME('$current_time') < TIME ('23:59:59') 
+                AND TIME('$current_time') > TIME ('12:00:00')
+                OR IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE > TIME('$current_time')
+                AND TIME('$current_time') > TIME ('00:00:00') 
+                AND TIME('$current_time') < TIME ('12:00:00')
             ) AND p.start_time > IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE))
             AND (p.date IS NULL OR p.date = '$current_date') 
             AND (p.month IS NULL OR p.month = MONTH('$current_date')) 
@@ -358,16 +358,16 @@ function appoint_time_task(
         $appointments_count = get_appointments_count_sql([2, 3, 4, 8], $current_time, $current_date);
 
         $result = $mysqli->query("SELECT 
-            '$current_time' > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL $nearest_task_offset MINUTE 
-            AND '$current_time' < TIME('$nearest_task_end_time') + INTERVAL $nearest_task_offset MINUTE
+            TIME('$current_time') > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL $nearest_task_offset MINUTE 
+            AND TIME('$current_time') < TIME('$nearest_task_end_time') + INTERVAL $nearest_task_offset MINUTE
             AND TIME('$nearest_task_start_time') < TIME('$nearest_task_end_time')
             OR (
-                '$current_time' > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL 30 MINUTE 
-                AND '$current_time' < TIME('23:59:59') 
-                AND '$current_time' > TIME('12:00:00')
-                OR '$current_time' < TIME('$nearest_task_end_time') + INTERVAL 30 MINUTE
-                AND '$current_time' > TIME('00:00:00') 
-                AND '$current_time' < TIME('12:00:00')
+                TIME('$current_time') > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL 30 MINUTE 
+                AND TIME('$current_time') < TIME('23:59:59') 
+                AND TIME('$current_time') > TIME('12:00:00')
+                OR TIME('$current_time') < TIME('$nearest_task_end_time') + INTERVAL 30 MINUTE
+                AND TIME('$current_time') > TIME('00:00:00') 
+                AND TIME('$current_time') < TIME('12:00:00')
             ) AND TIME('$nearest_task_start_time') > TIME('$nearest_task_end_time') can_be_appointed,
             t3.id, 
             TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE
@@ -444,7 +444,7 @@ function appoint_time_task(
 function appoint_postponed_task($mysqli, $nearest_task_start_time, $mode, &$logs, $current_time, $current_date)
 {
     $result = $mysqli->query("SELECT 
-        TIMESTAMPDIFF(MINUTE, '$current_time', TIME('$nearest_task_start_time')) > t.duration 
+        TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time')) > t.duration 
         OR t.duration IS NULL,
         a.id,
         t.id
@@ -553,7 +553,7 @@ function appoint_random_task(
     LEFT JOIN appointments a ON a.task_id = t.id
     JOIN periods p ON p.task_id = t.id
     WHERE (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
-    AND t.duration < TIMESTAMPDIFF(MINUTE, '$current_time', TIME('$nearest_task_start_time'))
+    AND t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
     AND NOT EXISTS (
         SELECT * FROM tasks WHERE next_task_id = t.id
     )
@@ -669,7 +669,7 @@ function appoint_dated_task(
     FROM periods p
     JOIN tasks t ON p.task_id = t.id
     LEFT JOIN appointments a ON a.task_id = t.id AND DATE(a.start_date) = '$current_date'
-    WHERE t.duration < TIMESTAMPDIFF(MINUTE, '$current_time', TIME('$nearest_task_start_time'))
+    WHERE t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
     AND NOT EXISTS (
         SELECT * FROM tasks WHERE next_task_id = t.id
     )
