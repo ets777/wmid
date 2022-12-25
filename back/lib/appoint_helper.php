@@ -357,53 +357,55 @@ function appoint_time_task(
         $periods_count = get_periods_count_sql();
         $appointments_count = get_appointments_count_sql([2, 3, 4, 8], $current_time, $current_date);
 
-        $result = $mysqli->query("SELECT 
-            TIME('$current_time') > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL $nearest_task_offset MINUTE 
-            AND TIME('$current_time') < TIME('$nearest_task_end_time') + INTERVAL $nearest_task_offset MINUTE
-            AND TIME('$nearest_task_start_time') < TIME('$nearest_task_end_time')
-            OR (
-                TIME('$current_time') > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL 30 MINUTE 
-                AND TIME('$current_time') < TIME('23:59:59') 
-                AND TIME('$current_time') > TIME('12:00:00')
-                OR TIME('$current_time') < TIME('$nearest_task_end_time') + INTERVAL 30 MINUTE
-                AND TIME('$current_time') > TIME('00:00:00') 
-                AND TIME('$current_time') < TIME('12:00:00')
-            ) AND TIME('$nearest_task_start_time') > TIME('$nearest_task_end_time') can_be_appointed,
-            t3.id, 
-            TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE
-        FROM (
-            SELECT t1.lvl, t2.id, t2.next_task_id, t2.duration, t2.offset, t2.deleted, t2.active, t2.end_date
+        $query = "SELECT 
+                TIME('$current_time') > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL $nearest_task_offset MINUTE 
+                AND TIME('$current_time') < TIME('$nearest_task_end_time') + INTERVAL $nearest_task_offset MINUTE
+                AND TIME('$nearest_task_start_time') < TIME('$nearest_task_end_time')
+                OR (
+                    TIME('$current_time') > (TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE) - INTERVAL 30 MINUTE 
+                    AND TIME('$current_time') < TIME('23:59:59') 
+                    AND TIME('$current_time') > TIME('12:00:00')
+                    OR TIME('$current_time') < TIME('$nearest_task_end_time') + INTERVAL 30 MINUTE
+                    AND TIME('$current_time') > TIME('00:00:00') 
+                    AND TIME('$current_time') < TIME('12:00:00')
+                ) AND TIME('$nearest_task_start_time') > TIME('$nearest_task_end_time') can_be_appointed,
+                t3.id, 
+                TIME('$nearest_task_start_time') - INTERVAL SUM(t3.duration) MINUTE
             FROM (
-                SELECT
-                    @r AS _id,
-                    @l := @l + 1 AS lvl,
-                    (SELECT @r := (SELECT id FROM tasks WHERE next_task_id = t.id) FROM tasks t WHERE id = _id) AS next_task_id
-                FROM
-                    (SELECT @r := $nearest_task_id, @l := 0) vars,
-                    tasks h
-                WHERE @r IS NOT NULL
-                ) t1
-            JOIN tasks t2
-            ON t1._id = t2.id
-            LEFT JOIN (
-                $periods_count
-            ) pc ON pc.task_id = t2.id
-            LEFT JOIN (
-                $appointments_count
-            ) ac ON pc.task_id = ac.task_id
-            WHERE t2.id != $nearest_task_id 
-                AND t2.active = 1 
-                AND t2.deleted = 0
-                AND (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
-                AND (NOW() < t2.end_date OR t2.end_date IS NULL)
-            ORDER BY t1.lvl DESC
-        ) t3");
+                SELECT t1.lvl, t2.id, t2.next_task_id, t2.duration, t2.offset, t2.deleted, t2.active, t2.end_date
+                FROM (
+                    SELECT
+                        @r AS _id,
+                        @l := @l + 1 AS lvl,
+                        (SELECT @r := (SELECT id FROM tasks WHERE next_task_id = t.id) FROM tasks t WHERE id = _id) AS next_task_id
+                    FROM
+                        (SELECT @r := $nearest_task_id, @l := 0) vars,
+                        tasks h
+                    WHERE @r IS NOT NULL
+                    ) t1
+                JOIN tasks t2
+                ON t1._id = t2.id
+                LEFT JOIN (
+                    $periods_count
+                ) pc ON pc.task_id = t2.id
+                LEFT JOIN (
+                    $appointments_count
+                ) ac ON pc.task_id = ac.task_id
+                WHERE t2.id != $nearest_task_id 
+                    AND t2.active = 1 
+                    AND t2.deleted = 0
+                    AND (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
+                    AND (NOW() < t2.end_date OR t2.end_date IS NULL)
+                ORDER BY t1.lvl DESC
+            ) t3";
+
+        $result = $mysqli->query($query);
 
         $row = $result->fetch_row();
 
-        $nearest_task_can_be_appointed = ($row[0] ?? null) == '1';
-        $nearest_task_id = $row[1] ?? null;
-        $nearest_task_start_time = $row[2] ?? null;
+        $nearest_task_can_be_appointed = $row[0] ? $row[0] == '1' : $nearest_task_can_be_appointed;
+        $nearest_task_id = $row[1] ?? $nearest_task_id;
+        $nearest_task_start_time = $row[2] ?? $nearest_task_start_time;
 
         $logs .= "Так как задание находится в цепочке, то ищем первое задание этой цепочки\n";
 
@@ -535,61 +537,62 @@ function appoint_random_task(
     $periods_count = get_periods_count_sql();
     $appointments_count = get_appointments_count_sql([2, 3, 4, 8], $current_time, $current_date);
 
-    $result = $mysqli->query("SELECT 
-        t.id, 
-        pc.periods_count, 
-        ac.appointments_count, 
-        t.duration, 
-        a.start_date, 
-        t.cooldown,
-        p.type_id        
-    FROM (
-        $periods_count
-    ) pc 
-    LEFT JOIN (
-        $appointments_count
-    ) ac ON pc.task_id = ac.task_id
-    JOIN tasks t ON pc.task_id = t.id
-    LEFT JOIN appointments a ON a.task_id = t.id
-    JOIN periods p ON p.task_id = t.id
-    WHERE (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
-    AND t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
-    AND NOT EXISTS (
-        SELECT * FROM tasks WHERE next_task_id = t.id
-    )
-    AND t.active = 1
-    AND t.deleted = 0
-    AND (NOW() < t.end_date OR t.end_date IS NULL)
-    AND (a.status_id IN (2, 3, 4, 8) or a.status_id IS NULL)
-    AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
-        OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
-        OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
-        OR DATE_FORMAT(a.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
-        OR a.start_date IS NULL
-        OR p.type_id = 5
-        OR t.cooldown = 0)
-    AND (DAY('$current_date') IN (SELECT day FROM periods WHERE task_id = t.id) 
-        OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-    AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8)) 
-        OR a.start_date IS NULL)
-    AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
-    AND ((p.weekday IS NULL OR WEEKDAY('$current_date') + 1 = p.weekday)
-        AND (p.day IS NULL OR DAY('$current_date') = p.day)
-        AND (p.month IS NULL OR MONTH('$current_date') = p.month)
-        AND (p.date IS NULL OR '$current_date' = p.date))
-    AND t.id NOT IN (
-    	SELECT et.excluded_task_id 
-    	FROM excluded_tasks et 
-    	LEFT JOIN appointments a2
-    	ON a2.task_id = et.task_id
-    	AND DATE(a2.start_date) = '$current_date'
-    	WHERE a2.id IS NOT NULL    	
-    )");
+    $query = "SELECT 
+            t.id, 
+            pc.periods_count, 
+            ac.appointments_count, 
+            t.duration, 
+            a.start_date, 
+            t.cooldown,
+            p.type_id        
+        FROM (
+            $periods_count
+        ) pc 
+        LEFT JOIN (
+            $appointments_count
+        ) ac ON pc.task_id = ac.task_id
+        JOIN tasks t ON pc.task_id = t.id
+        LEFT JOIN appointments a ON a.task_id = t.id
+        JOIN periods p ON p.task_id = t.id
+        WHERE (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
+        AND t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
+        AND NOT EXISTS (
+            SELECT * FROM tasks WHERE next_task_id = t.id
+        )
+        AND t.active = 1
+        AND t.deleted = 0
+        AND (NOW() < t.end_date OR t.end_date IS NULL)
+        AND (a.status_id IN (2, 3, 4, 8) or a.status_id IS NULL)
+        AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
+            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
+            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
+            OR DATE_FORMAT(a.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
+            OR a.start_date IS NULL
+            OR p.type_id = 5
+            OR t.cooldown = 0)
+        AND (DAY('$current_date') IN (SELECT day FROM periods WHERE task_id = t.id) 
+            OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
+        AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8)) 
+            OR a.start_date IS NULL)
+        AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
+        AND ((p.weekday IS NULL OR WEEKDAY('$current_date') + 1 = p.weekday)
+            AND (p.day IS NULL OR DAY('$current_date') = p.day)
+            AND (p.month IS NULL OR MONTH('$current_date') = p.month)
+            AND (p.date IS NULL OR '$current_date' = p.date))
+        AND t.id NOT IN (
+            SELECT et.excluded_task_id 
+            FROM excluded_tasks et 
+            LEFT JOIN appointments a2
+            ON a2.task_id = et.task_id
+            AND DATE(a2.start_date) = '$current_date'
+            WHERE a2.id IS NOT NULL    	
+        )";
+
+    $result = $mysqli->query($query);
 
     $logs .= "Составляю пул доступных заданий\n";
 
     $tasks_id_filtered = filter_tasks($mysqli, $result);
-
     $task_list = implode(',', $tasks_id_filtered);
 
     $logs .= "Получился такой список: $task_list \n";
