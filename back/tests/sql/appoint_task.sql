@@ -1,40 +1,40 @@
 -- Проверка назначения следующего задания
 INSERT INTO `tasks` (`id`, `text`, `next_task_id`, `next_task_break`, `creation_date`, `end_date`, `category_id`, `offset`, `duration`, `active`, `deleted`, `cooldown`) VALUES
-(1, 'Задание 1 (ежедневное, есть следующее)', 2, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0),
-(2, 'Задание 2 (ежедневное, есть предыдущее)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0);
+(1, 'Задание 1 (разовое, есть следующее)', 2, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0),
+(2, 'Задание 2 (разовое, есть предыдущее)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0);
 
 INSERT INTO `periods` (`id`, `type_id`, `task_id`, `start_time`, `end_time`, `weekday`, `day`, `month`, `date`) VALUES
-(1, 1, 1, NULL, NULL, NULL, NULL, NULL, NULL),
-(2, 1, 2, NULL, NULL, NULL, NULL, NULL, NULL);
+(1, 5, 1, NULL, NULL, NULL, NULL, NULL, NULL),
+(2, 5, 2, NULL, NULL, NULL, NULL, NULL, NULL);
 
 INSERT INTO `appointments` (`id`, `start_date`, `end_date`, `status_id`, `task_id`) VALUES
 (1, '2000-01-01 06:00:00', '2000-01-01 06:01:00', 2, 1);
 
 -- Проверка назначения следующего задания с промежуточными удалённым и неактивным
 INSERT INTO `tasks` (`id`, `text`, `next_task_id`, `next_task_break`, `creation_date`, `end_date`, `category_id`, `offset`, `duration`, `active`, `deleted`, `cooldown`) VALUES
-(3, 'Задание 3 (ежедневное, есть следующее неактивное)', 4, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0),
-(4, 'Задание 4 (ежедневное, есть следующее удалённое)', 5, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 0, 0, 0),
-(5, 'Задание 5 (ежедневное, есть следующее)', 6, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 0, 1, 0),
-(6, 'Задание 6 (ежедневное, есть предыдущее)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0);
+(3, 'Задание 3 (разовое, есть следующее неактивное)', 4, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0),
+(4, 'Задание 4 (разовое, есть следующее удалённое)', 5, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 0, 0, 0),
+(5, 'Задание 5 (разовое, есть следующее)', 6, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 0, 1, 0),
+(6, 'Задание 6 (разовое, есть предыдущее)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0);
 
 INSERT INTO `periods` (`id`, `type_id`, `task_id`, `start_time`, `end_time`, `weekday`, `day`, `month`, `date`) VALUES
-(3, 1, 3, NULL, NULL, NULL, NULL, NULL, NULL),
-(4, 1, 4, NULL, NULL, NULL, NULL, NULL, NULL),
-(5, 1, 5, NULL, NULL, NULL, NULL, NULL, NULL),
-(6, 1, 6, NULL, NULL, NULL, NULL, NULL, NULL);
+(3, 5, 3, NULL, NULL, NULL, NULL, NULL, NULL),
+(4, 5, 4, NULL, NULL, NULL, NULL, NULL, NULL),
+(5, 5, 5, NULL, NULL, NULL, NULL, NULL, NULL),
+(6, 5, 6, NULL, NULL, NULL, NULL, NULL, NULL);
 
 INSERT INTO `appointments` (`id`, `start_date`, `end_date`, `status_id`, `task_id`) VALUES
 (2, '2000-01-01 06:01:00', '2000-01-01 06:02:00', 2, 3);
 
 -- Проверка назначения следующего задания с наличием задания на время
 INSERT INTO `tasks` (`id`, `text`, `next_task_id`, `next_task_break`, `creation_date`, `end_date`, `category_id`, `offset`, `duration`, `active`, `deleted`, `cooldown`) VALUES
-(7, 'Задание 7 (ежедневное, есть следующее)', 8, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 10, 1, 0, 0),
-(8, 'Задание 8 (ежедневное, есть предыдущее)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 10, 1, 0, 0),
+(7, 'Задание 7 (разовое, есть следующее)', 8, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 10, 1, 0, 0),
+(8, 'Задание 8 (разовое, есть предыдущее)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 10, 1, 0, 0),
 (9, 'Задание 9 (разовое, со временем)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, 10, 10, 1, 0, 0);
 
 INSERT INTO `periods` (`id`, `type_id`, `task_id`, `start_time`, `end_time`, `weekday`, `day`, `month`, `date`) VALUES
-(7, 1, 7, NULL, NULL, NULL, NULL, NULL, NULL),
-(8, 1, 8, NULL, NULL, NULL, NULL, NULL, NULL),
+(7, 5, 7, NULL, NULL, NULL, NULL, NULL, NULL),
+(8, 5, 8, NULL, NULL, NULL, NULL, NULL, NULL),
 (9, 5, 9, '07:00:00', NULL, NULL, NULL, NULL, '2000-01-01');
 
 INSERT INTO `appointments` (`id`, `start_date`, `end_date`, `status_id`, `task_id`) VALUES
@@ -53,6 +53,46 @@ INSERT INTO `appointments` (`id`, `start_date`, `end_date`, `status_id`, `task_i
 (4, '2000-01-01 07:00:00', '2000-01-01 07:01:00', 2, 10),
 (5, '2000-01-03 07:00:00', '2000-01-03 07:01:00', 2, 10),
 (6, '2000-01-03 06:00:00', '2000-01-03 06:01:00', 2, 11);
+
+-- Проверка назначения следующего задания при наличии в цепочке задания на время
+INSERT INTO `tasks` (`id`, `text`, `next_task_id`, `next_task_break`, `creation_date`, `end_date`, `category_id`, `offset`, `duration`, `active`, `deleted`, `cooldown`) VALUES
+(12, 'Задание 12 (разовое, есть следующее)', 13, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0),
+(13, 'Задание 13 (разовое, есть следующее)', 14, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0),
+(14, 'Задание 14 (разовое, со временем, есть предыдущее)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0);
+
+INSERT INTO `periods` (`id`, `type_id`, `task_id`, `start_time`, `end_time`, `weekday`, `day`, `month`, `date`) VALUES
+(12, 1, 12, NULL, NULL, NULL, NULL, NULL, NULL),
+(13, 1, 13, NULL, NULL, NULL, NULL, NULL, NULL),
+(14, 1, 14, '07:00:00', NULL, NULL, NULL, NULL, '2000-01-02');
+
+INSERT INTO `appointments` (`id`, `start_date`, `end_date`, `status_id`, `task_id`) VALUES
+(7, '2000-01-02 06:58:00', '2000-01-02 06:59:00', 2, 12);
+
+-- Проверка назначения следующего задания после полуночи при наличии в цепочке задания на время
+INSERT INTO `tasks` (`id`, `text`, `next_task_id`, `next_task_break`, `creation_date`, `end_date`, `category_id`, `offset`, `duration`, `active`, `deleted`, `cooldown`) VALUES
+(15, 'Задание 15 (разовое, есть следующее)', 16, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0),
+(16, 'Задание 16 (разовое, есть следующее)', 17, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0),
+(17, 'Задание 17 (разовое, со временем, есть предыдущее)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 1, 1, 0, 0);
+
+INSERT INTO `periods` (`id`, `type_id`, `task_id`, `start_time`, `end_time`, `weekday`, `day`, `month`, `date`) VALUES
+(15, 1, 15, NULL, NULL, NULL, NULL, NULL, NULL),
+(16, 1, 16, NULL, NULL, NULL, NULL, NULL, NULL),
+(17, 1, 17, '23:59:00', NULL, NULL, NULL, NULL, '2000-01-02');
+
+INSERT INTO `appointments` (`id`, `start_date`, `end_date`, `status_id`, `task_id`) VALUES
+(8, '2000-01-02 23:58:00', '2000-01-02 23:59:00', 2, 15);
+
+-- Проверка назначения следующего задания после полуночи при наличии в цепочке задания на время
+INSERT INTO `tasks` (`id`, `text`, `next_task_id`, `next_task_break`, `creation_date`, `end_date`, `category_id`, `offset`, `duration`, `active`, `deleted`, `cooldown`) VALUES
+(18, 'Задание 18 (разовое, со временем, есть следующее)', 19, NULL, '2000-01-01 06:00:00', NULL, 1, 10, 1, 1, 0, 0),
+(19, 'Задание 19 (разовое)', NULL, NULL, '2000-01-01 06:00:00', NULL, 1, NULL, 5, 1, 0, 0);
+
+INSERT INTO `periods` (`id`, `type_id`, `task_id`, `start_time`, `end_time`, `weekday`, `day`, `month`, `date`) VALUES
+(18, 1, 18, '09:00:00', NULL, NULL, NULL, NULL, '2000-01-02'),
+(19, 1, 19, NULL, NULL, NULL, NULL, NULL, NULL);
+
+INSERT INTO `appointments` (`id`, `start_date`, `end_date`, `status_id`, `task_id`) VALUES
+(9, '2000-01-02 08:50:00', '2000-01-02 08:56:00', 2, 18);
 
 -- ///////////////////////////////////////////////////////////// --
 
