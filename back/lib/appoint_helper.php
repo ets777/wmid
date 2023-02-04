@@ -151,7 +151,7 @@ function appoint_next_task(
 
             if ($next_task_break == 0) {
                 // проверка, есть ли в цепочке задание на время
-                [$time_task_id, $task_start_time, $first_task_in_chain] = get_chain_time_task_id($mysqli, $next_task_id);
+                [$time_task_id, $task_start_time, $time_task_important, $first_task_in_chain] = get_chain_time_task($mysqli, $next_task_id);
 
                 // проверка, достаточно ли времени до ближайшего задания на время
                 if ($time_task_id && !$first_task_in_chain) {
@@ -163,7 +163,7 @@ function appoint_next_task(
                             WHERE task_id = (SELECT id from tasks WHERE next_task_id = $next_task_id)
                             ORDER BY id DESC
                             LIMIT 1
-                        ), p.start_time) is_enough_time,
+                        ), p.start_time) OR 0 = $time_task_important is_enough_time,
                         p.start_time - INTERVAL(
                             SELECT IFNULL(offset, 0) FROM tasks WHERE id = p.task_id
                         ) MINUTE nearest_task_time,
@@ -924,13 +924,13 @@ function check_chain_belonging($mysqli, $main_task_id, $verifiable_task_id)
     return !empty($row[0]);
 }
 
-function get_chain_time_task_id($mysqli, $task_id)
+function get_chain_time_task($mysqli, $task_id)
 {
     if (empty($task_id)) {
         return false;
     }
 
-    $query = "SELECT t2.id, p.start_time 
+    $query = "SELECT t2.id, p.start_time, t2.important
     FROM (
         SELECT
             @r AS _id,
@@ -952,10 +952,11 @@ function get_chain_time_task_id($mysqli, $task_id)
 
     $time_task_id = $row[0] ?? null;
     $task_start_time = $row[1] ?? null;
+    $time_task_important = $row[2] ?? null;
     $first_task_in_chain = false;
 
     if (is_null($time_task_id)) {
-        $query = "SELECT t2.id, p.start_time 
+        $query = "SELECT t2.id, p.start_time, t2.important
         FROM (
             SELECT
                 @r AS _id,
@@ -977,8 +978,9 @@ function get_chain_time_task_id($mysqli, $task_id)
 
         $time_task_id = $row[0] ?? null;
         $task_start_time = $row[1] ?? null;
+        $time_task_important = $row[2] ?? null;
         $first_task_in_chain = true;
     }
 
-    return [$time_task_id, $task_start_time, $first_task_in_chain];
+    return [$time_task_id, $task_start_time, $time_task_important, $first_task_in_chain];
 }
