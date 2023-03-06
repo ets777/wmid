@@ -788,24 +788,10 @@ function filter_tasks($mysqli, $mode, $result)
         $tasks_id[] = $row[0];
     }
 
-    // проверка, есть ли в цепочке задания на время, чтобы первое задание в таких цепочках не назначалось рандомно
     foreach ($tasks_id as $task_id) {
-
-        $query = "SELECT MAX(p.start_time) FROM (SELECT
-            @r AS _id,
-            @l := @l + 1 AS lvl,
-            (SELECT @r := (SELECT next_task_id FROM tasks WHERE id = t.id) FROM tasks t WHERE id = _id) AS next_task_id
-        FROM
-            (SELECT @r := $task_id, @l := 0) vars,
-            tasks t
-        WHERE @r IS NOT NULL) tc
-        JOIN periods p on p.task_id = tc._id
-        WHERE p.start_time IS NOT NULL";
-
-        save_logs($mysqli, $mode, 'appoint_task_sql', $query);
-        $result = $mysqli->query($query);
-
-        $row = $result->fetch_row();
+        
+        // проверка, есть ли в цепочке задания на время, чтобы первое задание в таких цепочках не назначалось рандомно
+        $row = get_chain_time_task($mysqli, $mode, $task_id);
 
         if (!$row[0]) {
             $tasks_id_filtered[] = $task_id;
