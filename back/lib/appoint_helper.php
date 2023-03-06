@@ -22,12 +22,14 @@ function appoint_task($mysqli, $mode, $current_time = null, $current_date = null
     }
 
     if ($last_appointment_id) {
-        $result = $mysqli->query("SELECT t.next_task_id, t.next_task_break
+        $query = "SELECT t.next_task_id, t.next_task_break
         FROM appointments a 
         JOIN tasks t 
         ON t.id = a.task_id 
-        WHERE a.id = $last_appointment_id");
+        WHERE a.id = $last_appointment_id";
 
+        save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+        $result = $mysqli->query($query);
         $row = $result->fetch_row();
 
         $next_task_id = $row[0] ?? '';
@@ -43,7 +45,7 @@ function appoint_task($mysqli, $mode, $current_time = null, $current_date = null
         );
 
         if ($appointed_result->appointed_task_id > 0) {
-            save_logs($mysqli, $mode, $logs);
+            save_logs($mysqli, $mode, 'appoint_task', $logs);
             return $appointed_result;
         }
     }
@@ -53,7 +55,7 @@ function appoint_task($mysqli, $mode, $current_time = null, $current_date = null
     $nearest_task_start_time = $appointed_result->nearest_task_start_time;
 
     if ($appointed_result->appointed_task_id > 0) {
-        save_logs($mysqli, $mode, $logs);
+        save_logs($mysqli, $mode, 'appoint_task', $logs);
         return $appointed_result;
     }
 
@@ -68,7 +70,7 @@ function appoint_task($mysqli, $mode, $current_time = null, $current_date = null
     );
 
     if ($appointed_result->appointed_task_id > 0) {
-        save_logs($mysqli, $mode, $logs);
+        save_logs($mysqli, $mode, 'appoint_task', $logs);
         return $appointed_result;
     }
 
@@ -83,7 +85,7 @@ function appoint_task($mysqli, $mode, $current_time = null, $current_date = null
     );
 
     if ($appointed_result->appointed_task_id > 0) {
-        save_logs($mysqli, $mode, $logs);
+        save_logs($mysqli, $mode, 'appoint_task', $logs);
         return $appointed_result;
     }
 
@@ -98,7 +100,7 @@ function appoint_task($mysqli, $mode, $current_time = null, $current_date = null
     );
 
     if ($appointed_result->appointed_task_id > 0) {
-        save_logs($mysqli, $mode, $logs);
+        save_logs($mysqli, $mode, 'appoint_task', $logs);
         return $appointed_result;
     }
 
@@ -151,10 +153,12 @@ function appoint_next_task(
 
             if ($next_task_break == 0) {
                 // проверка, есть ли в цепочке задание на время
-                [$time_task_id, $task_start_time, $time_task_important, $first_task_in_chain] = get_chain_time_task($mysqli, $next_task_id);
+                [$time_task_id, $task_start_time, $time_task_important, $first_task_in_chain] = get_chain_time_task($mysqli, $mode, $next_task_id);
 
                 // проверка, достаточно ли времени до ближайшего задания на время
                 if ($time_task_id && !$first_task_in_chain) {
+                    // если $time_task_id имеет значение, значит в цепочке есть задание на время и оно не первое (!$first_task_in_chain)
+
                     $query = "SELECT 
                         TIMESTAMP(DATE('$current_date'), TIME('$current_time')) + INTERVAL (SELECT duration FROM tasks WHERE id = $next_task_id) MINUTE 
                         < TIMESTAMP((
@@ -189,8 +193,8 @@ function appoint_next_task(
                     JOIN tasks t ON t.id = $next_task_id
                     JOIN tasks tp ON p.task_id = tp.id AND tp.deleted = 0 AND tp.active = 1
                     WHERE p.start_time > TIME('$current_time') 
-                        " . ($task_start_time ? "AND p.start_time > TIME('$task_start_time')" : "") . 
-                       "AND (p.date IS NULL OR p.date = '$current_date') 
+                        " . ($task_start_time ? "AND p.start_time > TIME('$task_start_time')" : "") .
+                        "AND (p.date IS NULL OR p.date = '$current_date') 
                         AND (p.month IS NULL OR p.month = MONTH('$current_date')) 
                         AND (p.day IS NULL OR p.day = DAY('$current_date'))  
                         AND (p.weekday IS NULL OR p.weekday = WEEKDAY('$current_date') + 1) 
@@ -198,6 +202,7 @@ function appoint_next_task(
                     LIMIT 1";
                 }
 
+                save_logs($mysqli, $mode, 'appoint_task_sql', $query);
                 $result = $mysqli->query($query);
                 $row = $result->fetch_row();
 
@@ -205,7 +210,7 @@ function appoint_next_task(
                 $nearest_task_time = $row[1] ?? null;
                 $nearest_task_id = $row[2] ?? null;
 
-                $is_common_chain = check_chain_belonging($mysqli, $nearest_task_id, $next_task_id);
+                $is_common_chain = check_chain_belonging($mysqli, $mode, $nearest_task_id, $next_task_id);
 
                 if ($is_enough_time) {
                     $logs .= "Задание можно успеть выполнить до ближайшего задания на время ($nearest_task_time)\n";
@@ -245,6 +250,7 @@ function appoint_next_task(
                         GROUP BY a.task_id
                     ) ac ON pc.task_id = ac.task_id";
 
+                save_logs($mysqli, $mode, 'appoint_task_sql', $query);
                 $result = $mysqli->query($query);
                 $row = $result->fetch_row();
 
@@ -369,6 +375,7 @@ function appoint_time_task(
         ORDER BY can_be_appointed DESC, p.start_time ASC 
         LIMIT 1";
 
+    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
     $result = $mysqli->query($query);
     $row = $result->fetch_row();
 
@@ -439,6 +446,7 @@ function appoint_time_task(
                 ORDER BY t1.lvl DESC
             ) t3";
 
+        save_logs($mysqli, $mode, 'appoint_task_sql', $query);
         $result = $mysqli->query($query);
 
         $row = $result->fetch_row();
@@ -595,44 +603,45 @@ function appoint_random_task(
         LEFT JOIN appointments a ON a.task_id = t.id
         JOIN periods p ON p.task_id = t.id
         WHERE (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
-        AND t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
-        AND NOT EXISTS (
-            SELECT * FROM tasks WHERE next_task_id = t.id
-        )
-        AND t.active = 1
-        AND t.deleted = 0
-        AND (NOW() < t.end_date OR t.end_date IS NULL)
-        AND (a.status_id IN (2, 3, 4, 8) or a.status_id IS NULL)
-        AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
-            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
-            OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
-            OR DATE_FORMAT(a.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
-            OR a.start_date IS NULL
-            OR p.type_id = 5
-            OR t.cooldown = 0)
-        AND (DAY('$current_date') IN (SELECT day FROM periods WHERE task_id = t.id) 
-            OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-        AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8)) 
-            OR a.start_date IS NULL)
-        AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
-        AND ((p.weekday IS NULL OR WEEKDAY('$current_date') + 1 = p.weekday)
-            AND (p.day IS NULL OR DAY('$current_date') = p.day)
-            AND (p.month IS NULL OR MONTH('$current_date') = p.month)
-            AND (p.date IS NULL OR '$current_date' = p.date))
-        AND t.id NOT IN (
-            SELECT et.excluded_task_id 
-            FROM excluded_tasks et 
-            LEFT JOIN appointments a2
-            ON a2.task_id = et.task_id
-            AND DATE(a2.start_date) = '$current_date'
-            WHERE a2.id IS NOT NULL    	
-        )";
+            AND t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
+            AND NOT EXISTS (
+                SELECT * FROM tasks WHERE next_task_id = t.id
+            )
+            AND t.active = 1
+            AND t.deleted = 0
+            AND (NOW() < t.end_date OR t.end_date IS NULL)
+            AND (a.status_id IN (2, 3, 4, 8) or a.status_id IS NULL)
+            AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
+                OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
+                OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
+                OR DATE_FORMAT(a.start_date, '%Y-%m-01 00:00') + INTERVAL t.cooldown MONTH < NOW() AND p.type_id = 4
+                OR a.start_date IS NULL
+                OR p.type_id = 5
+                OR t.cooldown = 0)
+            AND (DAY('$current_date') IN (SELECT day FROM periods WHERE task_id = t.id) 
+                OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
+            AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8)) 
+                OR a.start_date IS NULL)
+            AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
+            AND ((p.weekday IS NULL OR WEEKDAY('$current_date') + 1 = p.weekday)
+                AND (p.day IS NULL OR DAY('$current_date') = p.day)
+                AND (p.month IS NULL OR MONTH('$current_date') = p.month)
+                AND (p.date IS NULL OR '$current_date' = p.date))
+            AND t.id NOT IN (
+                SELECT et.excluded_task_id 
+                FROM excluded_tasks et 
+                LEFT JOIN appointments a2
+                ON a2.task_id = et.task_id
+                AND DATE(a2.start_date) = '$current_date'
+                WHERE a2.id IS NOT NULL    	
+            )";
 
+    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
     $result = $mysqli->query($query);
 
     $logs .= "Составляю пул доступных заданий\n";
 
-    $tasks_id_filtered = filter_tasks($mysqli, $result);
+    $tasks_id_filtered = filter_tasks($mysqli, $mode, $result);
     $task_list = implode(',', $tasks_id_filtered);
 
     $logs .= "Получился такой список: $task_list \n";
@@ -707,30 +716,31 @@ function appoint_dated_task(
     $current_date
 ): Appointment_result
 {
-    $result = $mysqli->query("SELECT 
-        t.id
-    FROM periods p
-    JOIN tasks t ON p.task_id = t.id
-    LEFT JOIN appointments a ON a.task_id = t.id AND DATE(a.start_date) = '$current_date'
-    WHERE t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
-    AND NOT EXISTS (
-        SELECT * FROM tasks WHERE next_task_id = t.id
-    )
-    AND t.deleted = 0
-    AND t.active = 1
-    AND (NOW() < t.end_date OR t.end_date IS NULL)
-    AND (
-        p.weekday IS NOT NULL AND WEEKDAY('$current_date') + 1 = p.weekday
-        OR p.day IS NOT NULL AND p.month IS NULL AND DAY('$current_date') = p.day
-        OR p.day IS NOT NULL AND p.month IS NOT NULL AND MONTH('$current_date') = p.month AND DAY('$current_date') = p.day
-        OR p.date IS NOT NULL AND '$current_date' = p.date
-    )
-    AND a.id IS NULL
-    LIMIT 1");
+    $query = "SELECT 
+            t.id
+        FROM periods p
+        JOIN tasks t ON p.task_id = t.id
+        LEFT JOIN appointments a ON a.task_id = t.id AND DATE(a.start_date) = '$current_date'
+        WHERE t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
+        AND NOT EXISTS (
+            SELECT * FROM tasks WHERE next_task_id = t.id
+        )
+        AND t.deleted = 0
+        AND t.active = 1
+        AND (NOW() < t.end_date OR t.end_date IS NULL)
+        AND (
+            p.weekday IS NOT NULL AND WEEKDAY('$current_date') + 1 = p.weekday
+            OR p.day IS NOT NULL AND p.month IS NULL AND DAY('$current_date') = p.day
+            OR p.day IS NOT NULL AND p.month IS NOT NULL AND MONTH('$current_date') = p.month AND DAY('$current_date') = p.day
+            OR p.date IS NOT NULL AND '$current_date' = p.date
+        )
+        AND a.id IS NULL
+        LIMIT 1";
+    $result = $mysqli->query($query);
 
     $logs .= "Ищу задания с датой\n";
 
-    $tasks_id_filtered = filter_tasks($mysqli, $result);
+    $tasks_id_filtered = filter_tasks($mysqli, $mode, $result);
 
     if (count($tasks_id_filtered) > 0) {
 
@@ -755,19 +765,21 @@ function appoint_dated_task(
     return new Appointment_result();
 }
 
-function save_logs($mysqli, $mode, $logs)
+function save_logs($mysqli, $mode, $action, $logs)
 {
     if ($mode == Mode::Debug) {
         echo "<pre>$logs</pre>";
     } else {
+        $logs = addslashes($logs);
+
         $mysqli->query("INSERT INTO logs
         (action, text)
         VALUES
-        ('appoint_task', '$logs')");
+        ('$action', '$logs')");
     }
 }
 
-function filter_tasks($mysqli, $result)
+function filter_tasks($mysqli, $mode, $result)
 {
     $tasks_id = [];
     $tasks_id_filtered = [];
@@ -779,7 +791,7 @@ function filter_tasks($mysqli, $result)
     // проверка, есть ли в цепочке задания на время, чтобы первое задание в таких цепочках не назначалось рандомно
     foreach ($tasks_id as $task_id) {
 
-        $result = $mysqli->query("SELECT MAX(p.start_time) FROM (SELECT
+        $query = "SELECT MAX(p.start_time) FROM (SELECT
             @r AS _id,
             @l := @l + 1 AS lvl,
             (SELECT @r := (SELECT next_task_id FROM tasks WHERE id = t.id) FROM tasks t WHERE id = _id) AS next_task_id
@@ -788,7 +800,10 @@ function filter_tasks($mysqli, $result)
             tasks t
         WHERE @r IS NOT NULL) tc
         JOIN periods p on p.task_id = tc._id
-        WHERE p.start_time IS NOT NULL");
+        WHERE p.start_time IS NOT NULL";
+
+        save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+        $result = $mysqli->query($query);
 
         $row = $result->fetch_row();
 
@@ -852,6 +867,8 @@ function appoint_additional_tasks($mysqli, $main_task_id, $mode, &$logs, $curren
             OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
         AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
         GROUP BY at.additional_task_id";
+
+    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
     $result = $mysqli->query($query);
 
     $insert_tasks_id = [];
@@ -897,7 +914,7 @@ function appoint_additional_tasks($mysqli, $main_task_id, $mode, &$logs, $curren
     }
 }
 
-function check_chain_belonging($mysqli, $main_task_id, $verifiable_task_id)
+function check_chain_belonging($mysqli, $mode, $main_task_id, $verifiable_task_id)
 {
     if (empty($main_task_id) || empty($verifiable_task_id)) {
         return false;
@@ -918,18 +935,20 @@ function check_chain_belonging($mysqli, $main_task_id, $verifiable_task_id)
     ON t1._id = t2.id
     WHERE t2.id = $verifiable_task_id";
 
+    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
     $result = $mysqli->query($query);
     $row = $result->fetch_row();
 
     return !empty($row[0]);
 }
 
-function get_chain_time_task($mysqli, $task_id)
+function get_chain_time_task($mysqli, $mode, $task_id)
 {
     if (empty($task_id)) {
         return false;
     }
 
+    // поиск задания на время в начале цепочки
     $query = "SELECT t2.id, p.start_time, t2.important
     FROM (
         SELECT
@@ -947,6 +966,7 @@ function get_chain_time_task($mysqli, $task_id)
     ON p.task_id = t2.id 
     WHERE p.start_time IS NOT NULL";
 
+    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
     $result = $mysqli->query($query);
     $row = $result->fetch_row();
 
@@ -955,6 +975,7 @@ function get_chain_time_task($mysqli, $task_id)
     $time_task_important = $row[2] ?? null;
     $first_task_in_chain = false;
 
+    // поиск задания на время в конце цепочки
     if (is_null($time_task_id)) {
         $query = "SELECT t2.id, p.start_time, t2.important
         FROM (
@@ -972,6 +993,8 @@ function get_chain_time_task($mysqli, $task_id)
         JOIN periods p
         ON p.task_id = t2.id 
         WHERE p.start_time IS NOT NULL";
+
+        save_logs($mysqli, $mode, 'appoint_task_sql', $query);
 
         $result = $mysqli->query($query);
         $row = $result->fetch_row();
