@@ -17,6 +17,7 @@ export class IndexPageComponent implements OnInit {
     additionalTasks: [],
   };
   currentTask: Task = this.emptyTask;
+  loading: boolean = false;
 
   additionalTasksCompletion: AdditionalTask[] = [];
 
@@ -64,7 +65,11 @@ export class IndexPageComponent implements OnInit {
   }
 
   appoint() {
+    this.loading = true;
+
     this.taskService.appoint(this.currentTask.appointmentId).subscribe(a => {
+      this.loading = false;
+
       if (a?.success) {
         this.openSnackBar('Задание успешно назначено');
         this.getCurrent();

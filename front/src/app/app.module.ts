@@ -13,6 +13,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AppComponent } from './app.component';
 import { TopBarComponent } from './top-bar/top-bar.component';
@@ -42,6 +43,7 @@ import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
     MatSnackBarModule,
     MatSlideToggleModule,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
     RouterModule.forRoot([
       { path: '', component: IndexPageComponent, canActivate: [AuthGuard] },
       { path: 'add-task', component: TaskAddPageComponent, canActivate: [AuthGuard] },
