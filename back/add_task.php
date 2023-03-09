@@ -29,7 +29,7 @@ $result = $mysqli->query('INSERT INTO tasks
     cooldown
 ) VALUES (
     NULL, 
-    "' . $data->text . '", 
+    "' . addslashes($data->text) . '", 
     ' . (isset($next_task_id) && $next_task_id > 0 ? $next_task_id : 'NULL') . ', 
     ' . (int)$data->categoryId . ', 
     ' . (int)$data->offset . ', 
@@ -217,7 +217,7 @@ if (isset($data->growthData)) {
                 ' . (int)$type_id . ', 
                 ' . (int)$task_id . ', 
                 ' . (int)$step . ', 
-                "' . $goal .  '"
+                "' . addslashes($goal) .  '"
             )');
     }
 }

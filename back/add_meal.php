@@ -32,7 +32,7 @@ if (check_var($data->products)) {
                 calories
             ) VALUES (
                 NULL, 
-                "' . $product->name . '",  
+                "' . addslashes($product->name) . '",  
                 ' . (int)$product->calories . '
             )');
 
