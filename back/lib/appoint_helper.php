@@ -592,16 +592,34 @@ function appoint_random_task(
             t.duration, 
             a.start_date, 
             t.cooldown,
-            p.type_id        
-        FROM (
+            p.type_id  
+        FROM tasks t
+        LEFT JOIN appointments a 
+        ON a.task_id = t.id 
+        AND a.start_date = (
+            SELECT start_date 
+            FROM appointments 
+            WHERE task_id = t.id 
+            AND status_id IN (2, 3, 4, 8) 
+            ORDER BY start_date DESC 
+            LIMIT 1)
+        JOIN (
             $periods_count
-        ) pc 
+        ) pc ON pc.task_id = t.id
         LEFT JOIN (
             $appointments_count
-        ) ac ON pc.task_id = ac.task_id
-        JOIN tasks t ON pc.task_id = t.id
-        LEFT JOIN appointments a ON a.task_id = t.id
-        JOIN periods p ON p.task_id = t.id
+        ) ac ON ac.task_id = t.id
+        JOIN (
+            SELECT 
+                type_id, 
+                task_id
+            FROM periods 
+            WHERE ((weekday IS NULL OR WEEKDAY('$current_date') + 1 = weekday)
+                AND (day IS NULL OR DAY('$current_date') = day)
+                AND (month IS NULL OR MONTH('$current_date') = month)
+                AND (date IS NULL OR '$current_date' = date))
+            group by task_id
+        ) p ON p.task_id = t.id
         WHERE (ac.appointments_count < pc.periods_count OR ac.appointments_count IS NULL)
             AND t.duration < TIMESTAMPDIFF(MINUTE, TIME('$current_time'), TIME('$nearest_task_start_time'))
             AND NOT EXISTS (
@@ -610,7 +628,6 @@ function appoint_random_task(
             AND t.active = 1
             AND t.deleted = 0
             AND (NOW() < t.end_date OR t.end_date IS NULL)
-            AND (a.status_id IN (2, 3, 4, 8) or a.status_id IS NULL)
             AND (DATE_FORMAT(a.start_date, '%Y-%m-%d %H:00') + INTERVAL t.cooldown HOUR < NOW() AND p.type_id = 1
                 OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown DAY < NOW() AND p.type_id = 2
                 OR DATE_FORMAT(a.start_date, '%Y-%m-%d 00:00') + INTERVAL t.cooldown WEEK < NOW() AND p.type_id = 3
@@ -618,15 +635,6 @@ function appoint_random_task(
                 OR a.start_date IS NULL
                 OR p.type_id = 5
                 OR t.cooldown = 0)
-            AND (DAY('$current_date') IN (SELECT day FROM periods WHERE task_id = t.id) 
-                OR (SELECT day FROM periods WHERE task_id = t.id LIMIT 1) IS NULL)
-            AND (a.start_date = (SELECT MAX(start_date) FROM appointments WHERE task_id = t.id AND status_id IN (2, 3, 4, 8)) 
-                OR a.start_date IS NULL)
-            AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
-            AND ((p.weekday IS NULL OR WEEKDAY('$current_date') + 1 = p.weekday)
-                AND (p.day IS NULL OR DAY('$current_date') = p.day)
-                AND (p.month IS NULL OR MONTH('$current_date') = p.month)
-                AND (p.date IS NULL OR '$current_date' = p.date))
             AND t.id NOT IN (
                 SELECT et.excluded_task_id 
                 FROM excluded_tasks et 
