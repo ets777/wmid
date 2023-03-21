@@ -28,7 +28,7 @@ function appoint_task($mysqli, $mode, $current_time = null, $current_date = null
         ON t.id = a.task_id 
         WHERE a.id = $last_appointment_id";
 
-        save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+        save_logs($mysqli, $mode, 'appoint_task_sql', "-- appoint_task: выбор следующего задания \n\n $query");
         $result = $mysqli->query($query);
         $row = $result->fetch_row();
 
@@ -202,7 +202,7 @@ function appoint_next_task(
                     LIMIT 1";
                 }
 
-                save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+                save_logs($mysqli, $mode, 'appoint_task_sql', "-- appoint_next_task: проверка, достаточно ли времени до задания на время \n\n $query");
                 $result = $mysqli->query($query);
                 $row = $result->fetch_row();
 
@@ -250,7 +250,7 @@ function appoint_next_task(
                         GROUP BY a.task_id
                     ) ac ON pc.task_id = ac.task_id";
 
-                save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+                save_logs($mysqli, $mode, 'appoint_task_sql', "-- appoint_next_task: проверка возможности назначения задания в периоде \n\n $query");
                 $result = $mysqli->query($query);
                 $row = $result->fetch_row();
 
@@ -375,7 +375,7 @@ function appoint_time_task(
         ORDER BY can_be_appointed DESC, p.start_time ASC 
         LIMIT 1";
 
-    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+    save_logs($mysqli, $mode, 'appoint_task_sql', "-- appoint_time_task: выбор задания на время \n\n $query");
     $result = $mysqli->query($query);
     $row = $result->fetch_row();
 
@@ -446,7 +446,7 @@ function appoint_time_task(
                 ORDER BY t1.lvl DESC
             ) t3";
 
-        save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+        save_logs($mysqli, $mode, 'appoint_task_sql', "-- appoint_time_task: поиск первого задания в цепочке для задания на время \n\n $query");
         $result = $mysqli->query($query);
 
         $row = $result->fetch_row();
@@ -644,7 +644,7 @@ function appoint_random_task(
                 WHERE a2.id IS NOT NULL    	
             )";
 
-    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+    save_logs($mysqli, $mode, 'appoint_task_sql', "-- appoint_random_task: выбор доступных случайных заданий \n\n $query");
     $result = $mysqli->query($query);
 
     $logs .= "Составляю пул доступных заданий\n";
@@ -863,7 +863,7 @@ function appoint_additional_tasks($mysqli, $main_task_id, $mode, &$logs, $curren
         AND p.id = (SELECT id FROM periods WHERE task_id = t.id LIMIT 1)
         GROUP BY at.additional_task_id";
 
-    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+    save_logs($mysqli, $mode, 'appoint_task_sql', "-- appoint_additional_tasks: выбор дополнительных заданий \n\n $query");
     $result = $mysqli->query($query);
 
     $insert_tasks_id = [];
@@ -930,7 +930,7 @@ function check_chain_belonging($mysqli, $mode, $main_task_id, $verifiable_task_i
     ON t1._id = t2.id
     WHERE t2.id = $verifiable_task_id";
 
-    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
+    save_logs($mysqli, $mode, 'appoint_task_sql', "-- check_chain_belonging: проверка на принадлежность цепочке \n\n $query");
     $result = $mysqli->query($query);
     $row = $result->fetch_row();
 
