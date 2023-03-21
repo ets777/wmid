@@ -155,6 +155,8 @@ function appoint_next_task(
                 // проверка, есть ли в цепочке задание на время
                 [$time_task_id, $task_start_time, $time_task_important, $first_task_in_chain] = get_chain_time_task($mysqli, $mode, $next_task_id);
 
+                $time_task_important = $time_task_important ? 1 : 0;
+
                 // проверка, достаточно ли времени до ближайшего задания на время
                 if ($time_task_id && !$first_task_in_chain) {
                     // если $time_task_id имеет значение, значит в цепочке есть задание на время и оно не первое (!$first_task_in_chain)
@@ -180,13 +182,13 @@ function appoint_next_task(
                         TIMESTAMPDIFF(
                             MINUTE, 
                             TIME('$current_time'), 
-                            p.start_time - INTERVAL(
-                                SELECT IFNULL(offset, 0) FROM tasks WHERE id = p.task_id
+                            p.start_time + INTERVAL(
+                                SELECT CASE WHEN t.important = 1 THEN -1 ELSE 1 END * IFNULL(offset, 0) FROM tasks t WHERE t.id = p.task_id
                             ) MINUTE
                         ) > t.duration 
                         or t.duration IS NULL is_enough_time,
-                        p.start_time - INTERVAL(
-                            SELECT IFNULL(offset, 0) FROM tasks WHERE id = p.task_id
+                        p.start_time + INTERVAL(
+                            SELECT CASE WHEN t.important = 1 THEN -1 ELSE 1 END * IFNULL(offset, 0) FROM tasks t WHERE t.id = p.task_id
                         ) MINUTE nearest_task_time,
                         p.task_id
                     from periods p
