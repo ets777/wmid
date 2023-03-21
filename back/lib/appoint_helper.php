@@ -799,6 +799,7 @@ function filter_tasks($mysqli, $mode, $result)
     foreach ($tasks_id as $task_id) {
         
         // проверка, есть ли в цепочке задания на время, чтобы первое задание в таких цепочках не назначалось рандомно
+        // TODO: попробовать уместить весь массив в один запрос, а не выполнять запросы в цикле
         $row = get_chain_time_task($mysqli, $mode, $task_id);
 
         if (!$row[0]) {
@@ -960,7 +961,6 @@ function get_chain_time_task($mysqli, $mode, $task_id)
     ON p.task_id = t2.id 
     WHERE p.start_time IS NOT NULL";
 
-    save_logs($mysqli, $mode, 'appoint_task_sql', $query);
     $result = $mysqli->query($query);
     $row = $result->fetch_row();
 
@@ -987,8 +987,6 @@ function get_chain_time_task($mysqli, $mode, $task_id)
         JOIN periods p
         ON p.task_id = t2.id 
         WHERE p.start_time IS NOT NULL";
-
-        save_logs($mysqli, $mode, 'appoint_task_sql', $query);
 
         $result = $mysqli->query($query);
         $row = $result->fetch_row();
