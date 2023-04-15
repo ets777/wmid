@@ -342,19 +342,26 @@ function appoint_time_task(
             ON t.id = p.task_id
         LEFT JOIN appointments a 
             ON a.task_id = t.id 
-            AND (a.start_date > TIMESTAMP('$current_date', p.start_time) - INTERVAL t.offset MINUTE 
-            AND a.start_date < TIMESTAMP('$current_date', p.end_time) + INTERVAL t.offset MINUTE
-            AND p.start_time < p.end_time 
-            OR (
-                a.start_date > TIMESTAMP('$current_date', p.start_time) - INTERVAL t.offset MINUTE 
-                AND a.start_date < TIMESTAMP('$current_date', '23:59:59')
-                AND TIME('$current_time') < TIME('23:59:59') 
-                AND TIME('$current_time') > TIME('12:00:00')
-                OR a.start_date < TIMESTAMP('$current_date', p.end_time) + INTERVAL t.offset MINUTE
-                AND a.start_date > TIMESTAMP('$current_date', '00:00:00')
-                AND TIME('$current_time') > TIME('00:00:00') 
-                AND TIME('$current_time') < TIME('12:00:00')
-            ) AND p.start_time > p.end_time)
+            AND (
+                (
+                    p.start_time < p.end_time 
+                    AND a.start_date < TIMESTAMP('$current_date', p.end_time) + INTERVAL t.offset MINUTE
+                    OR p.end_time IS NULL
+                )
+                AND a.start_date > TIMESTAMP('$current_date', p.start_time) - INTERVAL t.offset MINUTE 
+                OR 
+                p.start_time > p.end_time 
+                AND (
+                    a.start_date > TIMESTAMP('$current_date', p.start_time) - INTERVAL t.offset MINUTE 
+                    AND a.start_date < TIMESTAMP('$current_date', '23:59:59')
+                    AND TIME('$current_time') < TIME('23:59:59') 
+                    AND TIME('$current_time') > TIME('12:00:00')
+                    OR a.start_date < TIMESTAMP('$current_date', p.end_time) + INTERVAL t.offset MINUTE
+                    AND a.start_date > TIMESTAMP('$current_date', '00:00:00')
+                    AND TIME('$current_time') > TIME('00:00:00') 
+                    AND TIME('$current_time') < TIME('12:00:00')
+                )
+            )
         WHERE (
             IFNULL(p.end_time, p.start_time) + INTERVAL t.offset MINUTE > TIME('$current_time') 
             AND p.start_time < IFNULL(p.end_time, p.start_time + INTERVAL t.offset MINUTE)
