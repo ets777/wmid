@@ -3,8 +3,8 @@ import { Config } from '../classes/Config';
 import { HttpClient } from '@angular/common/http';
 import { Product } from '../classes/Product';
 import { MealDaily } from '../classes/MealDaily';
-import { MealType } from 'src/classes/MealType';
-import { Meal } from 'src/classes/Meal';
+import { MealType } from '../classes/MealType';
+import { Meal } from '../classes/Meal';
 
 @Injectable({
   providedIn: 'root'

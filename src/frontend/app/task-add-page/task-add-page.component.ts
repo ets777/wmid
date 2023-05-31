@@ -18,9 +18,9 @@ import {
   MAT_DATE_FORMATS,
   MAT_DATE_LOCALE,
 } from '@angular/material/core';
-import { Daily } from 'src/classes/Daily';
-import { Monthly } from 'src/classes/Monthly';
-import { Yearly } from 'src/classes/Yearly';
+import { Daily } from '../../classes/Daily';
+import { Monthly } from '../../classes/Monthly';
+import { Yearly } from '../../classes/Yearly';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 export const MY_FORMATS = {
