@@ -10,6 +10,6 @@
     "src/frontend/polyfills.ts"
   ],
   "include": [
-    "src/**/*.d.ts"
+    "src/backend/**/*.d.ts"
   ]
 }
