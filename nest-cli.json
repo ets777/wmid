@@ -5,6 +5,7 @@
   "entryFile": "main",
   "root": "src/backend",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "tsConfigPath": "src/backend/tsconfig.json"
   }
 }

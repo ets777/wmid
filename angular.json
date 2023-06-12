@@ -21,7 +21,7 @@
             "index": "src/frontend/index.html",
             "main": "src/frontend/main.ts",
             "polyfills": "src/frontend/polyfills.ts",
-            "tsConfig": "tsconfig.app.json",
+            "tsConfig": "src/frontend/tsconfig.json",
             "inlineStyleLanguage": "sass",
             "assets": [
               "src/frontend/favicon.ico",

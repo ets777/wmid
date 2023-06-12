@@ -4,7 +4,7 @@ import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { AccessTokenGuard } from './guards/accessToken.guard';
-import { UserBasicAttrDto } from '../users/dto/user-basic-attr.dto';
+import { UserCredentialsDto } from '../users/dto/user-credentials.dto';
 import { RefreshTokenGuard } from './guards/refreshToken.guard';
 
 @ApiTags('Авторизация')
@@ -14,9 +14,9 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Вход' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
-  @ApiBody({ type: UserBasicAttrDto })
+  @ApiBody({ type: UserCredentialsDto })
   @Post('/sign-in')
-  signIn(@Body() userDto: UserBasicAttrDto): Promise<AuthResponseDto> {
+  signIn(@Body() userDto: UserCredentialsDto): Promise<AuthResponseDto> {
     return this.authService.signIn(userDto);
   }
 

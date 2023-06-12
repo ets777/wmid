@@ -1,27 +1,15 @@
 import { Injectable, isDevMode } from '@angular/core';
-import {
-  Router,
-  ActivatedRouteSnapshot,
-  CanActivate,
-  RouterStateSnapshot,
-  UrlTree,
-} from '@angular/router';
+import { Router, CanActivate, UrlTree } from '@angular/router';
 import { Observable } from 'rxjs';
-import { AuthenticationService } from './authentication.service';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthGuard implements CanActivate {
-  constructor(
-    private router: Router,
-    private authenticationService: AuthenticationService
-  ) {}
+  constructor(private router: Router, private authService: AuthService) {}
 
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ):
+  canActivate():
     | Observable<boolean | UrlTree>
     | Promise<boolean | UrlTree>
     | boolean
@@ -29,7 +17,7 @@ export class AuthGuard implements CanActivate {
     return isDevMode()
       ? true
       : new Observable<boolean>((obs) => {
-          this.authenticationService.checkAuth().subscribe(a => {
+          this.authService.checkAuth().subscribe((a) => {
             if (a?.success) {
               obs.next(true);
             } else {

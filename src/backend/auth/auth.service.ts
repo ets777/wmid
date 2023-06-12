@@ -11,7 +11,7 @@ import * as bcrypt from 'bcryptjs';
 import { User } from '../users/users.model';
 import { ConfigService } from '@nestjs/config';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { UserBasicAttrDto } from '../users/dto/user-basic-attr.dto';
+import { UserCredentialsDto } from '../users/dto/user-credentials.dto';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +21,7 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async signIn(userDto: UserBasicAttrDto): Promise<AuthResponseDto> {
+  async signIn(userDto: UserCredentialsDto): Promise<AuthResponseDto> {
     const user = await this.validateUser(userDto);
 
     const tokens = await this.getTokens(user);
@@ -128,7 +128,7 @@ export class AuthService {
     return password ? await bcrypt.hash(password, 5) : null;
   }
 
-  private async validateUser(userDto: UserBasicAttrDto): Promise<User> {
+  private async validateUser(userDto: UserCredentialsDto): Promise<User> {
     const user = await this.usersService.getUserByName(userDto.username);
     const passwordsEqual = await bcrypt.compare(
       userDto.password,

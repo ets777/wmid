@@ -7,9 +7,9 @@
     "experimentalDecorators": true,
     "target": "es2017",
     "sourceMap": true,
-    "outDir": "./dist/backend",
+    "outDir": "./tsc-out/",
     "baseUrl": "./",
     "incremental": true,
   },
-  "exclude": ["node_modules", "dist", "src/frontend"]
+  "exclude": []
 }

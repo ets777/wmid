@@ -21,9 +21,9 @@ import { IndexPageComponent } from './index-page/index-page.component';
 import { TaskAddPageComponent } from './task-add-page/task-add-page.component';
 import { GrowthHistoryIndexBlockComponent } from './growth-history-index-block/growth-history-index-block.component';
 import { GrowthProgressIndexBlockComponent } from './growth-progress-index-block/growth-progress-index-block.component';
-import { LoginPageComponent } from './login-page/login-page.component';
+import { SignInComponent } from './auth/sign-in/sign-in.component';
 
-import { AuthGuard } from './auth.guard';
+import { AuthGuard } from './auth/auth.guard';
 import { GoalsIndexBlockComponent } from './goals-index-block/goals-index-block.component';
 import { MealsIndexBlockComponent } from './meals-index-block/meals-index-block.component';
 import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
@@ -46,10 +46,18 @@ import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
     MatProgressSpinnerModule,
     RouterModule.forRoot([
       { path: '', component: IndexPageComponent, canActivate: [AuthGuard] },
-      { path: 'add-task', component: TaskAddPageComponent, canActivate: [AuthGuard] },
-      { path: 'add-meal', component: MealAddPageComponent, canActivate: [AuthGuard] },
-      { path: 'login', component: LoginPageComponent },
-    ])
+      {
+        path: 'add-task',
+        component: TaskAddPageComponent,
+        canActivate: [AuthGuard],
+      },
+      {
+        path: 'add-meal',
+        component: MealAddPageComponent,
+        canActivate: [AuthGuard],
+      },
+      { path: 'sign-in', component: SignInComponent },
+    ]),
   ],
   declarations: [
     AppComponent,
@@ -58,13 +66,11 @@ import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
     TaskAddPageComponent,
     GrowthHistoryIndexBlockComponent,
     GrowthProgressIndexBlockComponent,
-    LoginPageComponent,
+    SignInComponent,
     GoalsIndexBlockComponent,
     MealsIndexBlockComponent,
-    MealAddPageComponent
+    MealAddPageComponent,
   ],
-  bootstrap: [
-    AppComponent
-  ]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}
