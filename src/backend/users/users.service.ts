@@ -12,7 +12,7 @@ export class UsersService {
     private roleService: RolesService,
   ) {}
 
-  async createUser(dto: CreateUserDto) {
+  async createUser(dto: CreateUserDto): Promise<User> {
     const user = await this.userRepository.create(dto);
     const role = await this.roleService.getRoleByCode('USER');
     await user.$set('roles', [role.id]);
@@ -21,12 +21,12 @@ export class UsersService {
     return user;
   }
 
-  async getAllUsers() {
+  async getAllUsers(): Promise<User[]> {
     const users = await this.userRepository.findAll({ include: { all: true } });
     return users;
   }
 
-  async getUserByEmail(email: string) {
+  async getUserByEmail(email: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { email },
       include: { all: true },
@@ -35,9 +35,29 @@ export class UsersService {
     return user;
   }
 
-  async addRole(dto: AddRoleDto) {
-    const user = await this.userRepository.findByPk(dto.userId);
-    const role = await this.roleService.getRoleByCode(dto.value);
+  async getUserByName(username: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { username },
+      include: { all: true },
+    });
+
+    return user;
+  }
+
+  async getUserByNameOrEmail(username: string, email: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: [{ username }, { email }],
+      include: { all: true },
+    });
+
+    return user;
+  }
+
+  async addRole(dto: AddRoleDto): Promise<AddRoleDto> {
+    const user = await this.userRepository.findOne({
+      where: { username: dto.username },
+    });
+    const role = await this.roleService.getRoleByCode(dto.code);
 
     if (role && user) {
       await user.$add('role', role.id);
@@ -48,5 +68,32 @@ export class UsersService {
       'Пользователь или роль не найдены',
       HttpStatus.NOT_FOUND,
     );
+  }
+
+  async deleteUser(username: string): Promise<number> {
+    const affectedRows = await this.userRepository.destroy({
+      where: { username },
+    });
+
+    return affectedRows;
+  }
+
+  async updateUser(username: string, data: any): Promise<number> {
+    const user = await this.userRepository.findOne({
+      where: { username },
+    });
+
+    const updatedData = {
+      ...user,
+      ...data,
+    };
+
+    const updatedUser = await this.userRepository.update(updatedData, {
+      where: { username },
+    });
+
+    const [affectedRows] = updatedUser;
+
+    return affectedRows;
   }
 }

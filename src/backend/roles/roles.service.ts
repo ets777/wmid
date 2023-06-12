@@ -7,12 +7,17 @@ import { CreateRoleDto } from './dto/create-role.dto';
 export class RolesService {
   constructor(@InjectModel(Role) private roleRepository: typeof Role) {}
 
-  async createRole(dto: CreateRoleDto) {
+  async createRole(dto: CreateRoleDto): Promise<Role> {
     const role = await this.roleRepository.create(dto);
     return role;
   }
 
-  async getRoleByCode(code: string) {
+  async deleteRole(code: string): Promise<number> {
+    const affectedRows = await this.roleRepository.destroy({ where: { code } });
+    return affectedRows;
+  }
+
+  async getRoleByCode(code: string): Promise<Role> {
     const role = await this.roleRepository.findOne({ where: { code } });
     return role;
   }

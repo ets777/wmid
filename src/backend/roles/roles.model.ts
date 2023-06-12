@@ -1,12 +1,22 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import {
+  BelongsToMany,
+  Column,
+  DataType,
+  Model,
+  Table,
+} from 'sequelize-typescript';
+import { User } from '../users/users.model';
+import { UserRole } from './user-roles.model';
+import { ApiProperty } from '@nestjs/swagger';
 
 interface RoleCreationAttrs {
   code: string;
   name: string;
 }
 
-@Table({ tableName: 'roles' })
+@Table({ tableName: 'roles', createdAt: false, updatedAt: false })
 export class Role extends Model<Role, RoleCreationAttrs> {
+  @ApiProperty({ example: '1', description: 'Идентификатор' })
   @Column({
     type: DataType.INTEGER,
     unique: true,
@@ -15,6 +25,7 @@ export class Role extends Model<Role, RoleCreationAttrs> {
   })
   id: number;
 
+  @ApiProperty({ example: 'admin', description: 'Код роли' })
   @Column({
     type: DataType.STRING,
     unique: true,
@@ -22,9 +33,13 @@ export class Role extends Model<Role, RoleCreationAttrs> {
   })
   code: string;
 
+  @ApiProperty({ example: 'Админ', description: 'Название роли' })
   @Column({
     type: DataType.STRING,
     allowNull: false,
   })
   name: string;
+
+  @BelongsToMany(() => User, () => UserRole)
+  users: User[];
 }

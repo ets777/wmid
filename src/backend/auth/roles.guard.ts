@@ -30,10 +30,9 @@ export class RolesGuard implements CanActivate {
       }
 
       const req = context.switchToHttp().getRequest();
-      const authHeader = req.headers.authorization;
+      const authHeader = req.headers.authorization || '';
       const [bearer, token] = authHeader.split(' ');
 
-      console.log(bearer, token);
       if (bearer !== 'Bearer' || !token) {
         throw new UnauthorizedException({
           message: 'Пользователь не авторизован',
@@ -44,7 +43,6 @@ export class RolesGuard implements CanActivate {
       req.user = user;
       return user.roles.some((role: Role) => requiredRoles.includes(role.code));
     } catch (e) {
-      console.log(e);
       throw new HttpException('Нет доступа', HttpStatus.FORBIDDEN);
     }
   }
