@@ -4,15 +4,14 @@ import { Category } from '../classes/Category';
 import { Config } from '../classes/Config';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CategoryService {
-
-  constructor(
-    private http: HttpClient
-  ) { }
+  constructor(private http: HttpClient) {}
 
   getCategories() {
-    return this.http.get<Category[]>(`${Config.getRoot()}/back/get_categories.php`);
+    return this.http.get<Category[]>(
+      `${Config.getRoot()}/back/get_categories.php`,
+    );
   }
 }

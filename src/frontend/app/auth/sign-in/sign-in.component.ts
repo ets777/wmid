@@ -33,7 +33,7 @@ export class SignInComponent {
         console.log(authResponse);
       });
 
-    if (this.authService.user.authKey) {
+    if (!this.authService.user) {
       this.router.navigate(['/']);
     }
   }
