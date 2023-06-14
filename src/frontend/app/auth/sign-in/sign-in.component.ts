@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { FormGroup, FormBuilder } from '@angular/forms';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
-import { AuthResponseDto } from '../../../../backend/auth/dto/auth-response.dto';
+import { AuthResponseDto } from '@backend/auth/dto/auth-response.dto';
 
 @Component({
   selector: 'app-sign-in',

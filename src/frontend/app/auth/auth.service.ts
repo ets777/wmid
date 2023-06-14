@@ -2,13 +2,18 @@ import { Injectable } from '@angular/core';
 import { Config } from '../../classes/Config';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthResponseDto } from '../../../backend/auth/dto/auth-response.dto';
+import { AuthResponseDto } from '@backend/auth/dto/auth-response.dto';
+
+interface User {
+  id: number;
+  username: string;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  user: { authKey: string } = { authKey: '' };
+  user: Observable<User>;
 
   constructor(private http: HttpClient) {}
 
