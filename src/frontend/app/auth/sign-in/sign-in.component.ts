@@ -10,7 +10,7 @@ import { AuthResponseDto } from '@backend/auth/dto/auth-response.dto';
   styleUrls: ['./sign-in.component.sass'],
 })
 export class SignInComponent {
-  loginForm: FormGroup = this.formBuilder.group({});
+  loginForm: FormGroup;
 
   constructor(
     private formBuilder: FormBuilder,
