@@ -1,6 +1,10 @@
-<form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+<form [formGroup]="signInForm" (ngSubmit)="onSubmit()">
 
     <h3>Авторизация</h3>
+
+    <div class="error" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
   
     <div>
       <mat-form-field>

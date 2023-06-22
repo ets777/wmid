@@ -7,14 +7,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
 import { rolesKey } from './roles-auth.decorator';
 import { Role } from '../roles/roles.model';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private jwtService: JwtService, private reflector: Reflector) {}
+  constructor(private reflector: Reflector) {}
 
   canActivate(
     context: ExecutionContext,
@@ -39,8 +38,11 @@ export class RolesGuard implements CanActivate {
         });
       }
 
-      const user = this.jwtService.verify(token);
+      const user = JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64').toString(),
+      );
       req.user = user;
+
       return user.roles.some((role: Role) => requiredRoles.includes(role.code));
     } catch (e) {
       throw new HttpException('Нет доступа', HttpStatus.FORBIDDEN);

@@ -12,7 +12,7 @@
   "scripts": {
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "front-start": "ng serve",
+    "front-start": "ng serve -o",
     "front-build-prod": "ng build --configuration production",
     "front-build-dev": "ng build --configuration development",
     "front-build-dev-watch": "ng build --watch --configuration development",

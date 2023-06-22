@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +14,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { CookieService } from 'ngx-cookie-service';
 
 import { AppComponent } from './app.component';
 import { TopBarComponent } from './top-bar/top-bar.component';
@@ -22,11 +23,13 @@ import { TaskAddPageComponent } from './task-add-page/task-add-page.component';
 import { GrowthHistoryIndexBlockComponent } from './growth-history-index-block/growth-history-index-block.component';
 import { GrowthProgressIndexBlockComponent } from './growth-progress-index-block/growth-progress-index-block.component';
 import { SignInComponent } from './auth/sign-in/sign-in.component';
-
-import { AuthGuard } from './auth/auth.guard';
 import { GoalsIndexBlockComponent } from './goals-index-block/goals-index-block.component';
 import { MealsIndexBlockComponent } from './meals-index-block/meals-index-block.component';
 import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
+import { UserListComponent } from './users/user-list/user-list.component';
+
+import { AuthGuard } from './auth/auth.guard';
+import { TokenInterceptorService } from './interceptors/token-interceptor.service';
 
 @NgModule({
   imports: [
@@ -52,6 +55,11 @@ import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
         canActivate: [AuthGuard],
       },
       {
+        path: 'users/list',
+        component: UserListComponent,
+        canActivate: [AuthGuard],
+      },
+      {
         path: 'add-meal',
         component: MealAddPageComponent,
         canActivate: [AuthGuard],
@@ -70,7 +78,16 @@ import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
     GoalsIndexBlockComponent,
     MealsIndexBlockComponent,
     MealAddPageComponent,
+    UserListComponent,
   ],
   bootstrap: [AppComponent],
+  providers: [
+    CookieService,
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: TokenInterceptorService,
+      multi: true,
+    },
+  ],
 })
 export class AppModule {}

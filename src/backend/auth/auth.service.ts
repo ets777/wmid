@@ -23,7 +23,6 @@ export class AuthService {
 
   async signIn(userDto: UserCredentialsDto): Promise<AuthResponseDto> {
     const user = await this.validateUser(userDto);
-
     const tokens = await this.getTokens(user);
     await this.updateRefreshToken(user.username, tokens.refreshToken);
 
@@ -66,10 +65,11 @@ export class AuthService {
     }
 
     const hashPassword = await this.hashData(userDto.password);
-    const user = await this.usersService.createUser({
+    const userDb = await this.usersService.createUser({
       ...userDto,
       password: hashPassword,
     });
+    const user = userDb?.dataValues;
 
     const tokens = await this.getTokens(user);
 
@@ -98,7 +98,7 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-        expiresIn: '1h',
+        expiresIn: '30m',
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
@@ -129,11 +129,13 @@ export class AuthService {
   }
 
   private async validateUser(userDto: UserCredentialsDto): Promise<User> {
-    const user = await this.usersService.getUserByName(userDto.username);
+    const userDb = await this.usersService.getUserByName(userDto.username);
+    const user = userDb?.dataValues;
     const passwordsEqual = await bcrypt.compare(
       userDto.password,
       user?.password || '',
     );
+
     if (!user || !passwordsEqual) {
       throw new UnauthorizedException({
         message: 'Некорректное имя пользователя или пароль',
@@ -147,7 +149,8 @@ export class AuthService {
     username: string,
     refreshToken: string,
   ): Promise<AuthResponseDto> {
-    const existingUser = await this.usersService.getUserByName(username);
+    const existingUserDb = await this.usersService.getUserByName(username);
+    const existingUser = existingUserDb?.dataValues;
 
     if (!existingUser?.refreshToken) {
       throw new UnauthorizedException({

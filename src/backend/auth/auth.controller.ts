@@ -46,4 +46,12 @@ export class AuthController {
       req.user.refreshToken,
     );
   }
+
+  @ApiOperation({ summary: 'Проверка авторизации' })
+  @ApiResponse({ status: 200, type: Boolean })
+  @UseGuards(AccessTokenGuard)
+  @Get('/check')
+  checkAuth(): boolean {
+    return true;
+  }
 }
