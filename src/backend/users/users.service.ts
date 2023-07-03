@@ -13,9 +13,12 @@ export class UsersService {
   ) {}
 
   async createUser(dto: CreateUserDto): Promise<User> {
-    const user = await this.userRepository.create(dto);
-    const role = await this.roleService.getRoleByCode('USER');
-    await user.$set('roles', [role.id]);
+    const userDb = await this.userRepository.create(dto);
+    const user = userDb?.dataValues;
+    const roleDb = await this.roleService.getRoleByCode('USER');
+    const role = roleDb?.dataValues;
+
+    await userDb.$set('roles', [role.id]);
     user.roles = [role];
 
     return user;
@@ -78,14 +81,49 @@ export class UsersService {
     return affectedRows;
   }
 
-  async updateUser(username: string, data: any): Promise<number> {
+  async updateRefreshToken(
+    username: string,
+    refreshToken: string,
+  ): Promise<number> {
     const user = await this.userRepository.findOne({
       where: { username },
     });
 
+    if (!user) {
+      throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
+    }
+
     const updatedData = {
       ...user,
-      ...data,
+      refreshToken,
+    };
+
+    const updatedUser = await this.userRepository.update(updatedData, {
+      where: { username },
+    });
+
+    const [affectedRows] = updatedUser;
+
+    return affectedRows;
+  }
+
+  async updateUser(username: string, data: CreateUserDto): Promise<number> {
+    const user = await this.userRepository.findOne({
+      where: { username },
+    });
+
+    if (!user) {
+      throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
+    }
+
+    const filteredData = {
+      password: data.password,
+      email: data.email,
+    };
+
+    const updatedData = {
+      ...user,
+      ...filteredData,
     };
 
     const updatedUser = await this.userRepository.update(updatedData, {

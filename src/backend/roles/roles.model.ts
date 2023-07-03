@@ -8,14 +8,10 @@ import {
 import { User } from '../users/users.model';
 import { UserRole } from './user-roles.model';
 import { ApiProperty } from '@nestjs/swagger';
-
-interface RoleCreationAttrs {
-  code: string;
-  name: string;
-}
+import { CreateRoleDto } from './dto/create-role.dto';
 
 @Table({ tableName: 'roles', createdAt: false, updatedAt: false })
-export class Role extends Model<Role, RoleCreationAttrs> {
+export class Role extends Model<Role, CreateRoleDto> {
   @ApiProperty({ example: 'admin', description: 'Код роли' })
   @Column({
     type: DataType.STRING,

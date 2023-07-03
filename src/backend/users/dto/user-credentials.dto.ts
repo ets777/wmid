@@ -4,7 +4,7 @@ import { IsString, Length } from 'class-validator';
 export class UserCredentialsDto {
   @ApiProperty({
     example: 'user',
-    description: 'Имя',
+    description: 'Имя пользователя',
   })
   @IsString({ message: 'Значение должно быть строкой' })
   @Length(4, 16, { message: 'Значение должно быть длиной от 4 до 16 символов' })

@@ -7,13 +7,14 @@ import {
   UsePipes,
   Delete,
   Param,
+  Patch,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from './users.model';
 import { Roles } from '../auth/roles-auth.decorator';
-import { RolesGuard } from '../auth/roles.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { AddRoleDto } from './dto/add-role.dto';
 import { ValidationPipe } from '../pipes/validation.pipe';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
@@ -52,7 +53,17 @@ export class UsersController {
   @ApiOperation({ summary: 'Удаление пользователя' })
   @ApiResponse({ status: 200, type: Number })
   @Delete('/:username')
-  delete(@Param() username: string): Promise<number> {
+  delete(@Param('username') username: string): Promise<number> {
     return this.userService.deleteUser(username);
+  }
+
+  @ApiOperation({ summary: 'Обновление пользователя' })
+  @ApiResponse({ status: 200, type: Number })
+  @Patch('/:username')
+  update(
+    @Param('username') username: string,
+    @Body() userDto: CreateUserDto,
+  ): Promise<number> {
+    return this.userService.updateUser(username, userDto);
   }
 }

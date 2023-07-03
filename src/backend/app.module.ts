@@ -9,6 +9,12 @@ import { RolesModule } from './roles/roles.module';
 import { Role } from './roles/roles.model';
 import { UserRole } from './roles/user-roles.model';
 import { AuthModule } from './auth/auth.module';
+import { Task } from 'tasks/tasks.model';
+import { TaskCategory } from 'task-categories/task-categories.model';
+import { TasksModule } from './tasks/tasks.module';
+import { TaskCategoriesModule } from './task-categories/task-categories.module';
+import { TaskPeriod } from 'task-periods/task-periods.model';
+import { TaskPeriodsModule } from 'task-periods/task-periods.module';
 
 @Module({
   controllers: [AppController],
@@ -24,12 +30,15 @@ import { AuthModule } from './auth/auth.module';
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      models: [User, Role, UserRole],
+      models: [User, Role, UserRole, Task, TaskCategory, TaskPeriod],
       autoLoadModels: true,
     }),
     UsersModule,
     RolesModule,
     AuthModule,
+    TasksModule,
+    TaskCategoriesModule,
+    TaskPeriodsModule,
   ],
 })
 export class AppModule {}

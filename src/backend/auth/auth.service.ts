@@ -65,11 +65,10 @@ export class AuthService {
     }
 
     const hashPassword = await this.hashData(userDto.password);
-    const userDb = await this.usersService.createUser({
+    const user = await this.usersService.createUser({
       ...userDto,
       password: hashPassword,
     });
-    const user = userDb?.dataValues;
 
     const tokens = await this.getTokens(user);
 
@@ -117,9 +116,10 @@ export class AuthService {
     refreshToken: string,
   ): Promise<boolean> {
     const hashedRefreshToken = await this.hashData(refreshToken);
-    const affectedRows = await this.usersService.updateUser(username, {
-      refreshToken: hashedRefreshToken,
-    });
+    const affectedRows = await this.usersService.updateRefreshToken(
+      username,
+      hashedRefreshToken,
+    );
 
     return affectedRows === 1;
   }
