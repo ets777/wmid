@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
 import { FormGroup, FormBuilder } from '@angular/forms';
-import { AuthService } from '../auth.service';
+import { AuthService } from '../../service/auth.service';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, map, throwError } from 'rxjs';
-import { User } from '../interface/User.interface';
+import { Observable, catchError, throwError } from 'rxjs';
+import { IUser } from '../../interface/User.interface';
 
 @Component({
   selector: 'app-sign-in',
@@ -34,7 +34,7 @@ export class SignInComponent {
       .signIn(username, password)
       .pipe(catchError(this.handleError))
       .subscribe({
-        next: (user: User) => {
+        next: (user: IUser) => {
           this.authService.setUser(user);
           this.router.navigate(['/']);
         },

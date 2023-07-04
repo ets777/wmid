@@ -19,16 +19,16 @@ import { CookieService } from 'ngx-cookie-service';
 import { AppComponent } from './app.component';
 import { TopBarComponent } from './top-bar/top-bar.component';
 import { IndexPageComponent } from './index-page/index-page.component';
-import { TaskAddPageComponent } from './task-add-page/task-add-page.component';
+import { TaskAddPageComponent } from './tasks/component/task-add-page/task-add-page.component';
 import { GrowthHistoryIndexBlockComponent } from './growth-history-index-block/growth-history-index-block.component';
 import { GrowthProgressIndexBlockComponent } from './growth-progress-index-block/growth-progress-index-block.component';
-import { SignInComponent } from './auth/sign-in/sign-in.component';
+import { SignInComponent } from './auth/component/sign-in/sign-in.component';
 import { GoalsIndexBlockComponent } from './goals-index-block/goals-index-block.component';
 import { MealsIndexBlockComponent } from './meals-index-block/meals-index-block.component';
 import { MealAddPageComponent } from './meal-add-page/meal-add-page.component';
 import { UserListComponent } from './users/user-list/user-list.component';
 
-import { AuthGuard } from './auth/auth.guard';
+import { AuthGuard } from './auth/guard/auth.guard';
 import { TokenInterceptorService } from './interceptors/token-interceptor.service';
 
 @NgModule({

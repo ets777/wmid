@@ -1,14 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormArray, FormBuilder } from '@angular/forms';
-import { TaskService } from '../task.service';
-import { CategoryService } from '../category.service';
-import { PeriodService } from '../period.service';
-import { GrowthService } from '../growth.service';
-import { Category } from '../../classes/Category';
-import { Period } from '../../classes/Period';
-import { Task } from '../../classes/Task';
-import { GrowthType } from '../../classes/GrowthType';
-import { Growth } from '../../classes/Growth';
+import { TaskService } from '../../service/task.service';
+import { TaskCategoryService } from '../../service/task-category.service';
+import { PeriodService } from '../../service/period.service';
+import { GrowthService } from '../../service/growth.service';
+import { ICategory } from '../../interface/category.interface';
+import { IPeriodType } from '../../interface/period-type.interface';
+import { ITask } from '../../interface/task.interface';
+import { IGrowthType } from '../../interface/growth-type.interface';
+import { IGrowth } from '../../interface/growth.interface';
 import {
   MomentDateAdapter,
   MAT_MOMENT_DATE_ADAPTER_OPTIONS,
@@ -18,9 +18,9 @@ import {
   MAT_DATE_FORMATS,
   MAT_DATE_LOCALE,
 } from '@angular/material/core';
-import { Daily } from '../../classes/Daily';
-import { Monthly } from '../../classes/Monthly';
-import { Yearly } from '../../classes/Yearly';
+import { IDaily } from '../../interface/daily.interface';
+import { IMonthly } from '../../interface/monthly.interface';
+import { IYearly } from '../../interface/yearly.interface';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 export const MY_FORMATS = {
@@ -50,40 +50,23 @@ export const MY_FORMATS = {
   ],
 })
 export class TaskAddPageComponent implements OnInit {
-  categories?: Category[] = [];
-  tasks?: Task[] = [];
-  periods?: Period[] = [];
-  growthTypes?: GrowthType[] = [];
-
-  addTaskForm: FormGroup = this.formBuilder.group({});
-  weeklyFormGroup = this.formBuilder.group({
-    byWeekdays: false,
-    periods: 0,
-    monday: false,
-    thuesday: false,
-    wednesday: false,
-    thursday: false,
-    friday: false,
-    saturday: false,
-    sunday: false,
-    hour: undefined,
-    minute: undefined,
-  });
-  onceFormGroup = this.formBuilder.group({
-    date: undefined,
-    hour: undefined,
-    minute: undefined,
-  });
+  categories?: ICategory[] = [];
+  tasks?: ITask[] = [];
+  periods?: IPeriodType[] = [];
+  growthTypes?: IGrowthType[] = [];
+  addTaskForm: FormGroup;
+  weeklyFormGroup: FormGroup;
+  onceFormGroup: FormGroup;
 
   isChecked = true;
 
   constructor(
     private formBuilder: FormBuilder,
-    private categoryService: CategoryService,
+    private taskCategoryService: TaskCategoryService,
     private periodService: PeriodService,
     private taskService: TaskService,
     private growthService: GrowthService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
   ) {
     this.addTaskForm = this.formBuilder.group({
       text: '',
@@ -103,44 +86,62 @@ export class TaskAddPageComponent implements OnInit {
       once: this.onceFormGroup,
       growth: this.formBuilder.array([]),
     });
+
+    this.onceFormGroup = this.formBuilder.group({
+      date: undefined,
+      hour: undefined,
+      minute: undefined,
+    });
+
+    this.weeklyFormGroup = this.formBuilder.group({
+      byWeekdays: false,
+      periods: 0,
+      monday: false,
+      thuesday: false,
+      wednesday: false,
+      thursday: false,
+      friday: false,
+      saturday: false,
+      sunday: false,
+      hour: undefined,
+      minute: undefined,
+    });
   }
 
   ngOnInit(): void {
-    this.categoryService
+    this.taskCategoryService
       .getCategories()
-      .subscribe(a => (this.categories = a));
+      .subscribe((a) => (this.categories = a));
 
-    this.periodService
-      .getPeriods()
-      .subscribe(a => (this.periods = a));
+    this.periods = this.periodService.getPeriodTypes();
 
     this.updateTaskList();
 
     this.growthService
       .getGrowthTypes()
-      .subscribe(a => (this.growthTypes = a));
+      .subscribe((a) => (this.growthTypes = a));
 
     this.addGrowth();
   }
 
   onSubmit(): void {
-    const task: Task = new Task();
-
-    task.nextTaskId = +this.addTaskForm.value.nextTaskId;
-    task.prevTaskId = +this.addTaskForm.value.prevTaskId;
-    task.categoryId = +this.addTaskForm.value.categoryId;
-    task.periodId = +this.addTaskForm.value.periodId;
-    task.text = this.addTaskForm.value.text || '';
-    task.offset = +this.addTaskForm.value.offset;
-    task.duration = +this.addTaskForm.value.duration;
-    task.cooldown = +this.addTaskForm.value.cooldown;
-    task.nextTaskBreak = +this.addTaskForm.value.nextTaskBreak;
-    task.active = this.addTaskForm.value.active;
+    const task: ITask = {
+      nextTaskId: +this.addTaskForm.value.nextTaskId,
+      prevTaskId: +this.addTaskForm.value.prevTaskId,
+      categoryId: +this.addTaskForm.value.categoryId,
+      periodId: +this.addTaskForm.value.periodId,
+      text: this.addTaskForm.value.text || '',
+      offset: +this.addTaskForm.value.offset,
+      duration: +this.addTaskForm.value.duration,
+      cooldown: +this.addTaskForm.value.cooldown,
+      nextTaskBreak: +this.addTaskForm.value.nextTaskBreak,
+      active: this.addTaskForm.value.active,
+    };
 
     switch (task.periodId) {
       case 1:
         task.dailyData = [];
-        this.addTaskForm.value.daily.forEach((element: Daily) => {
+        this.addTaskForm.value.daily.forEach((element: IDaily) => {
           task.dailyData?.push(element);
         });
         break;
@@ -149,13 +150,13 @@ export class TaskAddPageComponent implements OnInit {
         break;
       case 3:
         task.monthlyData = [];
-        this.addTaskForm.value.monthly.forEach((element: Monthly) => {
+        this.addTaskForm.value.monthly.forEach((element: IMonthly) => {
           task.monthlyData?.push(element);
         });
         break;
       case 4:
         task.yearlyData = [];
-        this.addTaskForm.value.yearly.forEach((element: Yearly) => {
+        this.addTaskForm.value.yearly.forEach((element: IYearly) => {
           task.yearlyData?.push(element);
         });
         break;
@@ -171,22 +172,20 @@ export class TaskAddPageComponent implements OnInit {
 
     if (this.addTaskForm.value.growth.length > 0) {
       task.growthData = [];
-      this.addTaskForm.value.growth.forEach((element: Growth) => {
+      this.addTaskForm.value.growth.forEach((element: IGrowth) => {
         task.growthData?.push(element);
       });
     }
 
-    this.taskService
-      .add(task)
-      .subscribe(a => {
-        if (a) {
-          this.addTaskForm.reset();
-          this.updateTaskList();
-          this.openSnackBar('Добавлено');
-        } else {
-          this.openSnackBar('Ошибка!');
-        }
-      });
+    this.taskService.add(task).subscribe((a) => {
+      if (a) {
+        this.addTaskForm.reset();
+        this.updateTaskList();
+        this.openSnackBar('Добавлено');
+      } else {
+        this.openSnackBar('Ошибка!');
+      }
+    });
   }
 
   getPeriod(periodType: string): FormArray {
@@ -197,7 +196,7 @@ export class TaskAddPageComponent implements OnInit {
     return this.addTaskForm.get('growth') as FormArray;
   }
 
-  onPeriodChange(a: any) {
+  onPeriodChange(a: any): void {
     switch (a) {
       case '1':
         this.addDaily();
@@ -211,76 +210,74 @@ export class TaskAddPageComponent implements OnInit {
     }
   }
 
-  addDaily() {
+  addDaily(): void {
     this.getPeriod('daily').push(
       this.formBuilder.group({
         hour: undefined,
         minute: undefined,
-      })
+      }),
     );
   }
 
-  addMonthly() {
+  addMonthly(): void {
     this.getPeriod('monthly').push(
       this.formBuilder.group({
         day: undefined,
         hour: undefined,
         minute: undefined,
-      })
+      }),
     );
   }
 
-  addYearly() {
+  addYearly(): void {
     this.getPeriod('yearly').push(
       this.formBuilder.group({
         day: undefined,
         month: undefined,
         hour: undefined,
         minute: undefined,
-      })
+      }),
     );
   }
 
-  addGrowth() {
+  addGrowth(): void {
     this.getGrowth().push(
       this.formBuilder.group({
         typeId: undefined,
         goal: undefined,
         step: undefined,
-      })
+      }),
     );
   }
 
-  removeDaily(i: number) {
+  removeDaily(i: number): void {
     this.getPeriod('daily').removeAt(i);
   }
 
-  removeMonthly(i: number) {
+  removeMonthly(i: number): void {
     this.getPeriod('monthly').removeAt(i);
   }
 
-  removeYearly(i: number) {
+  removeYearly(i: number): void {
     this.getPeriod('yearly').removeAt(i);
   }
 
-  removeGrowth(i: number) {
+  removeGrowth(i: number): void {
     this.getGrowth().removeAt(i);
   }
 
-  openSnackBar(message: string) {
+  openSnackBar(message: string): void {
     this.snackBar.open(message, undefined, {
       duration: 2500,
       panelClass: 'snackbar',
     });
   }
 
-  byWeekdays() {
+  byWeekdays(): any {
     return this.addTaskForm.value.weekly.byWeekdays;
   }
 
-  updateTaskList() {
-    this.taskService
-      .getAll()
-      .subscribe(a => (this.tasks = a?.data));
+  updateTaskList(): void {
+    this.taskService.getAll().subscribe((a) => (this.tasks = a?.data));
   }
 }

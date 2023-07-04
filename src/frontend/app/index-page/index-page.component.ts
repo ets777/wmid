@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { TaskService } from '../task.service';
-import { Task } from '../../classes/Task';
-import { AdditionalTask } from '../../classes/AdditionalTask';
+import { TaskService } from '../tasks/service/task.service';
+import { ITask } from '../tasks/interface/task.interface';
+import { IAdditionalTask } from '../tasks/interface/additional-task.interface';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
@@ -10,34 +10,34 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./index-page.component.sass'],
 })
 export class IndexPageComponent implements OnInit {
-  emptyTask: Task = {
+  emptyTask: ITask = {
     text: '',
     appointmentId: 0,
     statusId: 0,
     additionalTasks: [],
   };
-  currentTask: Task = this.emptyTask;
-  loading: boolean = false;
+  currentTask: ITask = this.emptyTask;
+  loading = false;
 
-  additionalTasksCompletion: AdditionalTask[] = [];
+  additionalTasksCompletion: IAdditionalTask[] = [];
 
   constructor(
     private taskService: TaskService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
   ) {}
 
   ngOnInit(): void {
     this.getCurrent();
   }
 
-  complete() {
+  complete(): void {
     if (this.currentTask.appointmentId && this.additionalTasksCompletion) {
       this.taskService
         .complete(
           this.currentTask.appointmentId,
-          this.additionalTasksCompletion
+          this.additionalTasksCompletion,
         )
-        .subscribe(a => {
+        .subscribe((a) => {
           if (a?.success) {
             this.appoint();
           } else {
@@ -47,14 +47,14 @@ export class IndexPageComponent implements OnInit {
     }
   }
 
-  postpone() {
+  postpone(): void {
     if (this.currentTask.appointmentId && this.additionalTasksCompletion) {
       this.taskService
         .postpone(
           this.currentTask.appointmentId,
-          this.additionalTasksCompletion
+          this.additionalTasksCompletion,
         )
-        .subscribe(a => {
+        .subscribe((a) => {
           if (a?.success) {
             this.appoint();
           } else {
@@ -64,10 +64,10 @@ export class IndexPageComponent implements OnInit {
     }
   }
 
-  appoint() {
+  appoint(): void {
     this.loading = true;
 
-    this.taskService.appoint(this.currentTask.appointmentId).subscribe(a => {
+    this.taskService.appoint(this.currentTask.appointmentId).subscribe((a) => {
       this.loading = false;
 
       if (a?.success) {
@@ -80,11 +80,11 @@ export class IndexPageComponent implements OnInit {
     });
   }
 
-  reject() {
+  reject(): void {
     if (this.currentTask.appointmentId && this.additionalTasksCompletion) {
       this.taskService
         .reject(this.currentTask.appointmentId, this.additionalTasksCompletion)
-        .subscribe(a => {
+        .subscribe((a) => {
           if (a?.success) {
             this.appoint();
           } else {
@@ -94,18 +94,18 @@ export class IndexPageComponent implements OnInit {
     }
   }
 
-  getCurrent() {
-    this.taskService.getCurrent().subscribe(a => {
+  getCurrent(): void {
+    this.taskService.getCurrent().subscribe((a) => {
       if (a && a.success) {
         const tasks = a.data;
 
         if (Array.isArray(tasks) && tasks.length) {
-          const mainTask: Task = tasks.find((a: Task) => a.statusId == 1);
-          const additionalTasks = tasks.filter((a: Task) => a.statusId == 7);
+          const mainTask: ITask = tasks.find((a: ITask) => a.statusId == 1);
+          const additionalTasks = tasks.filter((a: ITask) => a.statusId == 7);
 
           mainTask.additionalTasks = additionalTasks;
 
-          this.additionalTasksCompletion = additionalTasks.map(a => {
+          this.additionalTasksCompletion = additionalTasks.map((a) => {
             return {
               appointmentId: +a.appointmentId,
               completed: false,
@@ -125,14 +125,14 @@ export class IndexPageComponent implements OnInit {
     });
   }
 
-  checkAdditionalTask(a: any, appointmentId: any) {
+  checkAdditionalTask(a: any, appointmentId: any): void {
     const i = this.additionalTasksCompletion.findIndex(
-      a => a.appointmentId == appointmentId
+      (a) => a.appointmentId == appointmentId,
     );
     this.additionalTasksCompletion[i].completed = a.checked;
   }
 
-  openSnackBar(message: string) {
+  openSnackBar(message: string): void {
     this.snackBar.open(message, undefined, {
       duration: 2500,
       panelClass: 'snackbar',

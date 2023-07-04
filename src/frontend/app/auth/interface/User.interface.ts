@@ -1,6 +1,6 @@
-import { Role } from './Role.interface';
+import { IRole } from './Role.interface';
 
-export interface User {
+export interface IUser {
   username: string;
-  roles: Role[];
+  roles: IRole[];
 }

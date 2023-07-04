@@ -5,7 +5,7 @@ import {
   HttpRequest,
 } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { AuthService } from 'app/auth/auth.service';
+import { AuthService } from 'app/auth/service/auth.service';
 import { Observable, catchError, throwError } from 'rxjs';
 
 @Injectable({

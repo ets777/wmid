@@ -1,20 +1,20 @@
 import { Injectable } from '@angular/core';
-import { Config } from '../../classes/Config';
+import { Config } from '../../../classes/Config';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { AuthResponseDto } from '@backend/auth/dto/auth-response.dto';
-import { User } from './interface/User.interface';
+import { IUser } from '../interface/User.interface';
 import { CookieService } from 'ngx-cookie-service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private user: User;
+  private user: IUser;
 
-  constructor(private http: HttpClient, private cookieService: CookieService) { }
+  constructor(private http: HttpClient, private cookieService: CookieService) {}
 
-  signIn(username: string, password: string): Observable<User> {
+  signIn(username: string, password: string): Observable<IUser> {
     return this.http
       .post<any>(`${Config.getApiPath()}/auth/sign-in`, {
         username,
@@ -36,11 +36,11 @@ export class AuthService {
     return this.http.get<any>(`${Config.getApiPath()}/auth/sign-out`);
   }
 
-  getUser(): User {
+  getUser(): IUser {
     return this.user;
   }
 
-  setUser(user: User): void {
+  setUser(user: IUser): void {
     this.user = user;
   }
 
@@ -70,7 +70,7 @@ export class AuthService {
     this.cookieService.set('refresh-token', authResponse.refreshToken);
   }
 
-  private getUserFromToken(token: string): User {
+  private getUserFromToken(token: string): IUser {
     const tokenBody = this.parseJwt(token);
 
     return {
