@@ -1,6 +1,8 @@
+import { Month } from '@backend/task-periods/task-periods.enum';
+
 export class IYearly {
-  month: number;
-  day: number;
-  hour?: number;
-  minute?: number;
+  month?: Month;
+  day?: number;
+  startTime?: string;
+  endTime?: string;
 }

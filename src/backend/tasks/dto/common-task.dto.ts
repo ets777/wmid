@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsBoolean } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, Min } from 'class-validator';
 
 export class CommonTaskDto {
   @ApiProperty({
@@ -49,6 +49,7 @@ export class CommonTaskDto {
     example: 1,
     description: 'ID следующего задания',
   })
+  @Min(1, { message: 'Должно быть больше нуля' })
   @IsNumber(null, { message: 'Должно быть числом' })
   nextTaskId?: number;
 }

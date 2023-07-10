@@ -1,4 +1,4 @@
 export interface IDaily {
-  hour: number;
-  minute: number;
+  startTime?: string;
+  endTime?: string;
 }

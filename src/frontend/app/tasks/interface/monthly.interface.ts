@@ -1,5 +1,5 @@
 export class IMonthly {
-  day: number;
-  hour?: number;
-  minute?: number;
+  day?: number;
+  startTime?: string;
+  endTime?: string;
 }

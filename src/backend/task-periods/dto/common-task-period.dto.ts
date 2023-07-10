@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, IsString } from 'class-validator';
-import { Month, TaskPeriodType, Weekday } from 'task-periods/task-periods.enum';
+import {
+  Month,
+  TaskPeriodType,
+  Weekday,
+} from '@backend/task-periods/task-periods.enum';
 
 export class CommonTaskPeriodDto {
   @ApiProperty({

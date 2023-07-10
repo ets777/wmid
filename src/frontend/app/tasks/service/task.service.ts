@@ -5,6 +5,7 @@ import { Config } from '../../../classes/Config';
 import { IAdditionalTask } from '../interface/additional-task.interface';
 import { ITask } from '../interface/task.interface';
 import { Observable } from 'rxjs';
+import { CreateTaskControllerDto } from '@backend/tasks/dto/create-task-controller.dto';
 
 @Injectable({
   providedIn: 'root',
@@ -12,8 +13,8 @@ import { Observable } from 'rxjs';
 export class TaskService {
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<Response> {
-    return this.http.get<Response>(`${Config.getRoot()}/back/get_tasks.php`);
+  getAll(): Observable<ITask[]> {
+    return this.http.get<ITask[]>(`${Config.getApiPath()}/tasks`);
   }
 
   getCurrent(): Observable<Response> {
@@ -22,9 +23,9 @@ export class TaskService {
     );
   }
 
-  add(task: ITask): Observable<Response> {
-    return this.http.post<Response>(
-      `${Config.getRoot()}/back/add_task.php`,
+  add(task: CreateTaskControllerDto): Observable<CreateTaskControllerDto> {
+    return this.http.post<CreateTaskControllerDto>(
+      `${Config.getApiPath()}/tasks`,
       task,
     );
   }

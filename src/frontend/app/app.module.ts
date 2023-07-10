@@ -7,6 +7,7 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -47,6 +48,7 @@ import { TokenInterceptorService } from './interceptors/token-interceptor.servic
     MatSlideToggleModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     RouterModule.forRoot([
       { path: '', component: IndexPageComponent, canActivate: [AuthGuard] },
       {

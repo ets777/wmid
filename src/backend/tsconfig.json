@@ -10,6 +10,9 @@
     "outDir": "../../dist/backend",
     "baseUrl": "./",
     "incremental": true,
+    "paths": { 
+      "@backend/*": ["./*"] 
+    }
   },
   "exclude": ["common"]
 }

@@ -22,6 +22,11 @@ import { IDaily } from '../../interface/daily.interface';
 import { IMonthly } from '../../interface/monthly.interface';
 import { IYearly } from '../../interface/yearly.interface';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TaskPeriodType } from '@backend/task-periods/task-periods.enum';
+import { CreateTaskControllerDto } from '@backend/tasks/dto/create-task-controller.dto';
+import { weekdays, months } from '@backend/task-periods/task-periods.enum';
+import { IWeekly } from 'app/tasks/interface/weekly.interface';
+import { IOnce } from 'app/tasks/interface/once.interface';
 
 export const MY_FORMATS = {
   parse: {
@@ -52,13 +57,11 @@ export const MY_FORMATS = {
 export class TaskAddPageComponent implements OnInit {
   categories?: ICategory[] = [];
   tasks?: ITask[] = [];
-  periods?: IPeriodType[] = [];
+  periodTypes?: IPeriodType[] = [];
   growthTypes?: IGrowthType[] = [];
   addTaskForm: FormGroup;
-  weeklyFormGroup: FormGroup;
-  onceFormGroup: FormGroup;
-
-  isChecked = true;
+  weekdays = weekdays;
+  months = months;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -68,43 +71,23 @@ export class TaskAddPageComponent implements OnInit {
     private growthService: GrowthService,
     private snackBar: MatSnackBar,
   ) {
-    this.addTaskForm = this.formBuilder.group({
+    this.addTaskForm = this.formBuilder.group<ITask>({
       text: '',
       categoryId: 0,
       nextTaskId: undefined,
       prevTaskId: undefined,
-      periodId: 0,
+      periodTypeId: 0,
       offset: undefined,
       duration: undefined,
       cooldown: undefined,
       nextTaskBreak: undefined,
       active: false,
-      daily: this.formBuilder.array([]),
-      weekly: this.weeklyFormGroup,
-      monthly: this.formBuilder.array([]),
-      yearly: this.formBuilder.array([]),
-      once: this.onceFormGroup,
-      growth: this.formBuilder.array([]),
-    });
-
-    this.onceFormGroup = this.formBuilder.group({
-      date: undefined,
-      hour: undefined,
-      minute: undefined,
-    });
-
-    this.weeklyFormGroup = this.formBuilder.group({
-      byWeekdays: false,
-      periods: 0,
-      monday: false,
-      thuesday: false,
-      wednesday: false,
-      thursday: false,
-      friday: false,
-      saturday: false,
-      sunday: false,
-      hour: undefined,
-      minute: undefined,
+      daily: this.formBuilder.array<IDaily[]>([]),
+      weekly: this.formBuilder.array<IWeekly[]>([]),
+      monthly: this.formBuilder.array<IMonthly[]>([]),
+      yearly: this.formBuilder.array<IYearly[]>([]),
+      once: this.formBuilder.array<IOnce[]>([]),
+      growth: this.formBuilder.array<IGrowth>([]),
     });
   }
 
@@ -113,7 +96,7 @@ export class TaskAddPageComponent implements OnInit {
       .getCategories()
       .subscribe((a) => (this.categories = a));
 
-    this.periods = this.periodService.getPeriodTypes();
+    this.periodTypes = this.periodService.getPeriodTypes();
 
     this.updateTaskList();
 
@@ -125,57 +108,92 @@ export class TaskAddPageComponent implements OnInit {
   }
 
   onSubmit(): void {
-    const task: ITask = {
-      nextTaskId: +this.addTaskForm.value.nextTaskId,
-      prevTaskId: +this.addTaskForm.value.prevTaskId,
-      categoryId: +this.addTaskForm.value.categoryId,
-      periodId: +this.addTaskForm.value.periodId,
-      text: this.addTaskForm.value.text || '',
-      offset: +this.addTaskForm.value.offset,
-      duration: +this.addTaskForm.value.duration,
-      cooldown: +this.addTaskForm.value.cooldown,
-      nextTaskBreak: +this.addTaskForm.value.nextTaskBreak,
-      active: this.addTaskForm.value.active,
+    const formData = this.addTaskForm.value;
+    const task: CreateTaskControllerDto = {
+      text: formData.text,
+      duration: parseInt(formData.duration, 10),
+      categoryId: parseInt(formData.categoryId, 10),
+      active: !!formData.active,
+      periods: [],
     };
 
-    switch (task.periodId) {
-      case 1:
-        task.dailyData = [];
-        this.addTaskForm.value.daily.forEach((element: IDaily) => {
-          task.dailyData?.push(element);
+    if (formData.nextTaskId) {
+      task.nextTaskId = parseInt(formData.nextTaskId, 10);
+    }
+
+    if (formData.offset) {
+      task.offset = parseInt(formData.offset, 10);
+    }
+
+    if (formData.cooldown) {
+      task.cooldown = parseInt(formData.cooldown, 10);
+    }
+
+    if (formData.nextTaskBreak) {
+      task.nextTaskBreak = parseInt(formData.nextTaskBreak, 10);
+    }
+
+    switch (formData.periodTypeId) {
+      case TaskPeriodType.DAILY:
+        formData.daily.forEach((element: IDaily) => {
+          task.periods.push({
+            typeId: TaskPeriodType.DAILY,
+            startTime: element.startTime,
+            endTime: element.endTime,
+          });
         });
         break;
-      case 2:
-        task.weeklyData = this.addTaskForm.value.weekly;
-        break;
-      case 3:
-        task.monthlyData = [];
-        this.addTaskForm.value.monthly.forEach((element: IMonthly) => {
-          task.monthlyData?.push(element);
+      case TaskPeriodType.WEEKLY:
+        formData.weekly.forEach((element: IWeekly) => {
+          task.periods.push({
+            typeId: TaskPeriodType.WEEKLY,
+            startTime: element.startTime,
+            endTime: element.endTime,
+            weekday: element.weekday,
+          });
         });
         break;
-      case 4:
-        task.yearlyData = [];
-        this.addTaskForm.value.yearly.forEach((element: IYearly) => {
-          task.yearlyData?.push(element);
+      case TaskPeriodType.MONTHLY:
+        formData.monthly.forEach((element: IMonthly) => {
+          task.periods.push({
+            typeId: TaskPeriodType.MONTHLY,
+            startTime: element.startTime,
+            endTime: element.endTime,
+            day: element.day,
+          });
         });
         break;
-      case 5:
-        task.onceData = this.addTaskForm.value.once;
-        if (task.onceData && this.addTaskForm.value.once.date) {
-          console.log(this.addTaskForm.value.once.date);
-          task.onceData.date =
-            this.addTaskForm.value.once.date.format('YYYY-MM-DD');
-        }
+      case TaskPeriodType.YEARLY:
+        formData.yearly.forEach((element: IYearly) => {
+          task.periods.push({
+            typeId: TaskPeriodType.YEARLY,
+            startTime: element.startTime,
+            endTime: element.endTime,
+            day: element.day,
+            month: element.month,
+          });
+        });
+        break;
+      case TaskPeriodType.ONCE:
+        formData.once.forEach((element: IOnce) => {
+          task.periods.push({
+            typeId: TaskPeriodType.YEARLY,
+            startTime: element.startTime,
+            endTime: element.endTime,
+            date: element.date,
+          });
+        });
         break;
     }
 
-    if (this.addTaskForm.value.growth.length > 0) {
-      task.growthData = [];
-      this.addTaskForm.value.growth.forEach((element: IGrowth) => {
-        task.growthData?.push(element);
-      });
-    }
+    //this.addTaskForm.value.once.date.format('YYYY-MM-DD');
+
+    // if (this.addTaskForm.value.growth.length > 0) {
+    //   task.growthData = [];
+    //   this.addTaskForm.value.growth.forEach((element: IGrowth) => {
+    //     task.growthData?.push(element);
+    //   });
+    // }
 
     this.taskService.add(task).subscribe((a) => {
       if (a) {
@@ -196,46 +214,73 @@ export class TaskAddPageComponent implements OnInit {
     return this.addTaskForm.get('growth') as FormArray;
   }
 
-  onPeriodChange(a: any): void {
-    switch (a) {
-      case '1':
-        this.addDaily();
+  onPeriodTypeChange(periodType: TaskPeriodType): void {
+    console.log('test');
+    switch (periodType) {
+      case TaskPeriodType.DAILY:
+        if (this.getPeriod('daily').length === 0) this.addDaily();
         break;
-      case '3':
-        this.addMonthly();
+      case TaskPeriodType.WEEKLY:
+        if (this.getPeriod('weekly').length === 0) this.addWeekly();
         break;
-      case '4':
-        this.addYearly();
+      case TaskPeriodType.MONTHLY:
+        if (this.getPeriod('monthly').length === 0) this.addMonthly();
+        break;
+      case TaskPeriodType.YEARLY:
+        if (this.getPeriod('yearly').length === 0) this.addYearly();
+        break;
+      case TaskPeriodType.ONCE:
+        if (this.getPeriod('once').length === 0) this.addOnce();
         break;
     }
   }
 
   addDaily(): void {
     this.getPeriod('daily').push(
-      this.formBuilder.group({
-        hour: undefined,
-        minute: undefined,
+      this.formBuilder.group<IDaily>({
+        startTime: undefined,
+        endTime: undefined,
+      }),
+    );
+  }
+
+  addWeekly(): void {
+    this.getPeriod('weekly').push(
+      this.formBuilder.group<IWeekly>({
+        startTime: undefined,
+        endTime: undefined,
+        weekday: undefined,
       }),
     );
   }
 
   addMonthly(): void {
     this.getPeriod('monthly').push(
-      this.formBuilder.group({
+      this.formBuilder.group<IMonthly>({
         day: undefined,
-        hour: undefined,
-        minute: undefined,
+        startTime: undefined,
+        endTime: undefined,
       }),
     );
   }
 
   addYearly(): void {
     this.getPeriod('yearly').push(
-      this.formBuilder.group({
+      this.formBuilder.group<IYearly>({
         day: undefined,
         month: undefined,
-        hour: undefined,
-        minute: undefined,
+        startTime: undefined,
+        endTime: undefined,
+      }),
+    );
+  }
+
+  addOnce(): void {
+    this.getPeriod('once').push(
+      this.formBuilder.group<IOnce>({
+        date: undefined,
+        startTime: undefined,
+        endTime: undefined,
       }),
     );
   }
@@ -254,12 +299,20 @@ export class TaskAddPageComponent implements OnInit {
     this.getPeriod('daily').removeAt(i);
   }
 
+  removeWeekly(i: number): void {
+    this.getPeriod('weekly').removeAt(i);
+  }
+
   removeMonthly(i: number): void {
     this.getPeriod('monthly').removeAt(i);
   }
 
   removeYearly(i: number): void {
     this.getPeriod('yearly').removeAt(i);
+  }
+
+  removeOnce(i: number): void {
+    this.getPeriod('once').removeAt(i);
   }
 
   removeGrowth(i: number): void {
@@ -273,11 +326,31 @@ export class TaskAddPageComponent implements OnInit {
     });
   }
 
-  byWeekdays(): any {
-    return this.addTaskForm.value.weekly.byWeekdays;
+  byWeekdays(): boolean {
+    return this.addTaskForm.value.weekly?.byWeekdays;
   }
 
   updateTaskList(): void {
-    this.taskService.getAll().subscribe((a) => (this.tasks = a?.data));
+    this.taskService.getAll().subscribe((a) => (this.tasks = a));
+  }
+
+  isDaily(periodType: TaskPeriodType): boolean {
+    return periodType === TaskPeriodType.DAILY;
+  }
+
+  isWeekly(periodType: TaskPeriodType): boolean {
+    return periodType === TaskPeriodType.WEEKLY;
+  }
+
+  isMonthly(periodType: TaskPeriodType): boolean {
+    return periodType === TaskPeriodType.MONTHLY;
+  }
+
+  isYearly(periodType: TaskPeriodType): boolean {
+    return periodType === TaskPeriodType.YEARLY;
+  }
+
+  isOnce(periodType: TaskPeriodType): boolean {
+    return periodType === TaskPeriodType.ONCE;
   }
 }

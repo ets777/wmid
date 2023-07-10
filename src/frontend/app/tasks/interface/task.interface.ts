@@ -4,6 +4,7 @@ import { IMonthly } from './monthly.interface';
 import { IYearly } from './yearly.interface';
 import { IOnce } from './once.interface';
 import { IGrowth } from './growth.interface';
+import { FormArray, FormControl } from '@angular/forms';
 
 export class ITask {
   text: string;
@@ -18,12 +19,12 @@ export class ITask {
   cooldown?: number;
   nextTaskBreak?: number;
   active?: boolean;
-  periodId?: number;
-  dailyData?: IDaily[];
-  weeklyData?: IWeekly;
-  monthlyData?: IMonthly[];
-  yearlyData?: IYearly[];
-  onceData?: IOnce;
-  growthData?: IGrowth[];
+  periodTypeId?: number;
+  daily?: IDaily[] | FormArray<FormControl<IDaily>>;
+  weekly?: IWeekly[] | FormArray<FormControl<IWeekly>>;
+  monthly?: IMonthly[] | FormArray<FormControl<IMonthly>>;
+  yearly?: IYearly[] | FormArray<FormControl<IYearly>>;
+  once?: IOnce[] | FormArray<FormControl<IOnce>>;
+  growth?: IGrowth[] | FormArray<FormControl<IGrowth>>;
   additionalTasks?: Task[];
 }

@@ -1,6 +1,52 @@
 mat-checkbox
-    margin-right: 20px
+  margin-right: 20px
 
 ::ng-deep .snackbar
-    background-color: #f1f1f1
-    color: #666666
+  background-color: #f1f1f1
+  color: #666666
+
+mat-form-field
+  width: 100%
+  height: 100%
+
+// inputs
+::ng-deep div.mat-mdc-text-field-wrapper
+  padding: 0 8px
+  background-color: white!important
+
+  .mat-mdc-form-field-flex
+    div.mat-mdc-form-field-infix
+      padding-bottom: 0
+      padding-top: 16px
+      min-height: 28px
+
+      input
+        margin-bottom: 8px
+
+    .mdc-floating-label
+      top: 45%
+
+// buttons
+::ng-deep .mat-mdc-fab, .mat-mdc-mini-fab
+  box-shadow: unset
+
+::ng-deep .mdc-tooltip
+  font-size: 12px
+  border-radius: 5px
+
+fieldset
+  border-radius: 5px
+  border-width: 1px
+  border-color: #ddd
+  padding: 30px
+  margin-bottom: 30px
+
+  legend
+    color: #777
+
+.period-number
+  display: flex
+  align-items: center
+  height: 100%
+  color: #777
+  font-size: 12px

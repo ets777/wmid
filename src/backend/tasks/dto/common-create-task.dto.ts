@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, IsString } from 'class-validator';
 import { CommonTaskDto } from './common-task.dto';
-import { CommonTaskPeriodDto } from 'task-periods/dto/common-task-period.dto';
-import { TaskPeriodType } from 'task-periods/task-periods.enum';
+import { CommonTaskPeriodDto } from '@backend/task-periods/dto/common-task-period.dto';
+import { TaskPeriodType } from '@backend/task-periods/task-periods.enum';
 
 export class CommonCreateTaskDto extends CommonTaskDto {
   @ApiProperty({

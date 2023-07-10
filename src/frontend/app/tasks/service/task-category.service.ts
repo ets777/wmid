@@ -11,8 +11,6 @@ export class TaskCategoryService {
   constructor(private http: HttpClient) {}
 
   getCategories(): Observable<ICategory[]> {
-    return this.http.get<ICategory[]>(
-      `${Config.getRoot()}/back/get_categories.php`,
-    );
+    return this.http.get<ICategory[]>(`${Config.getApiPath()}/task-categories`);
   }
 }
