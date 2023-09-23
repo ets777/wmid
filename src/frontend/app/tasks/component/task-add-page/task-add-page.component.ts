@@ -113,7 +113,7 @@ export class TaskAddPageComponent implements OnInit {
       text: formData.text,
       duration: parseInt(formData.duration, 10),
       categoryId: parseInt(formData.categoryId, 10),
-      active: !!formData.active,
+      isActive: !!formData.active,
       periods: [],
     };
 
@@ -215,7 +215,6 @@ export class TaskAddPageComponent implements OnInit {
   }
 
   onPeriodTypeChange(periodType: TaskPeriodType): void {
-    console.log('test');
     switch (periodType) {
       case TaskPeriodType.DAILY:
         if (this.getPeriod('daily').length === 0) this.addDaily();

@@ -1,41 +1,55 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
-import { Role } from './roles.model';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { IRole } from './roles.interface';
 import { CreateRoleDto } from './dto/create-role.dto';
+import { DB_CONNECTION } from '@backend/database/database.module';
+import { ResultSetHeader } from 'mysql2/promise';
 
 @Injectable()
 export class RolesService {
-  constructor(@InjectModel(Role) private roleRepository: typeof Role) {}
+  constructor(@Inject(DB_CONNECTION) private mysqlConnection: any) {}
 
-  async createRole(dto: CreateRoleDto): Promise<Role> {
-    dto.code = dto.code.toUpperCase();
-    const role = await this.roleRepository.create(dto);
-    return role;
+  async createRole(dto: CreateRoleDto): Promise<IRole> {
+    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(`
+      insert into usr_roles (code, name)
+      values ('${dto.code}', '${dto.name}')
+    `);
+
+    return {
+      ...dto,
+      id: result.insertId,
+    };
   }
 
   async deleteRole(code: string): Promise<number> {
-    const affectedRows = await this.roleRepository.destroy({
-      where: { code: code.toUpperCase() },
-    });
-    return affectedRows;
+    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(`
+      delete from usr_roles
+      where code = '${code.toUpperCase()}'
+    `);
+
+    return result.affectedRows;
   }
 
-  async getRoleByCode(code: string): Promise<Role> {
-    const role = await this.roleRepository.findOne({
-      where: { code: code.toUpperCase() },
-    });
+  async getRoleByCode(code: string): Promise<IRole> {
+    const [[role]]: [[IRole]] = await this.mysqlConnection.query(`
+      select id, code, name
+      from usr_roles
+      where code = '${code.toUpperCase()}'
+    `);
+
     return role;
   }
 
-  async getAllRoles(): Promise<Role[]> {
-    const roles = await this.roleRepository.findAll({ include: { all: true } });
+  async getAllRoles(): Promise<IRole[]> {
+    const [roles]: [IRole[]] = await this.mysqlConnection.query(`
+      select id, code, name
+      from usr_roles
+    `);
+
     return roles;
   }
 
   async updateRole(code: string, data: CreateRoleDto): Promise<number> {
-    const role = await this.roleRepository.findOne({
-      where: { code: code.toUpperCase() },
-    });
+    const role = this.getRoleByCode(code);
 
     if (!role) {
       throw new HttpException('Роль не найдена', HttpStatus.NOT_FOUND);
@@ -50,12 +64,24 @@ export class RolesService {
       ...filteredData,
     };
 
-    const updatedRole = await this.roleRepository.update(updatedData, {
-      where: { code: code.toUpperCase() },
-    });
+    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(`
+      update usr_users
+      set name = '${updatedData.name}'
+      where code = '${code.toUpperCase()}'
+    `);
 
-    const [affectedRows] = updatedRole;
+    return result.affectedRows;
+  }
 
-    return affectedRows;
+  async getUserRoles(username: string): Promise<IRole[]> {
+    const [roles]: [IRole[]] = await this.mysqlConnection.query(`
+      select r.code, r.name
+      from usr_roles r
+      join usr_userRoles ur on ur.roleId = r.id
+      join usr_users u on u.id = ur.userId
+      where u.username = '${username}'
+    `);
+
+    return roles;
   }
 }

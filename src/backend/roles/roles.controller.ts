@@ -10,28 +10,21 @@ import {
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Role } from './roles.model';
+import { IRole } from './roles.interface';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/roles-auth.decorator';
 
-@ApiTags('Роли')
 @Controller('roles')
 export class RolesController {
   constructor(private roleService: RolesService) {}
 
-  @ApiOperation({ summary: 'Создание роли' })
-  @ApiResponse({ status: 200, type: Role })
-  @ApiBody({ type: CreateRoleDto })
   @Roles('admin')
   @UseGuards(RolesGuard)
   @Post()
-  create(@Body() dto: CreateRoleDto): Promise<Role> {
+  create(@Body() dto: CreateRoleDto): Promise<IRole> {
     return this.roleService.createRole(dto);
   }
 
-  @ApiOperation({ summary: 'Удаление роли' })
-  @ApiResponse({ status: 200, type: Number })
   @Roles('admin')
   @UseGuards(RolesGuard)
   @Delete('/:code')
@@ -39,22 +32,16 @@ export class RolesController {
     return this.roleService.deleteRole(code);
   }
 
-  @ApiOperation({ summary: 'Выбор роли по коду' })
-  @ApiResponse({ status: 200, type: Role })
   @Get('/:code')
-  getByCode(@Param('code') code: string): Promise<Role> {
+  getByCode(@Param('code') code: string): Promise<IRole> {
     return this.roleService.getRoleByCode(code);
   }
 
-  @ApiOperation({ summary: 'Получение всех ролей' })
-  @ApiResponse({ status: 200, type: [Role] })
   @Get()
-  getAll(): Promise<Role[]> {
+  getAll(): Promise<IRole[]> {
     return this.roleService.getAllRoles();
   }
 
-  @ApiOperation({ summary: 'Обновление роли' })
-  @ApiResponse({ status: 200, type: Number })
   @Patch('/:code')
   update(
     @Param('code') code: string,

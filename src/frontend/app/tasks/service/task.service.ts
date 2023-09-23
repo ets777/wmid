@@ -2,10 +2,10 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Response } from '../../../classes/Response';
 import { Config } from '../../../classes/Config';
-import { IAdditionalTask } from '../interface/additional-task.interface';
 import { ITask } from '../interface/task.interface';
 import { Observable } from 'rxjs';
 import { CreateTaskControllerDto } from '@backend/tasks/dto/create-task-controller.dto';
+import { AppointedTaskDto } from '@backend/tasks/dto/apointed-task.dto';
 
 @Injectable({
   providedIn: 'root',
@@ -17,9 +17,9 @@ export class TaskService {
     return this.http.get<ITask[]>(`${Config.getApiPath()}/tasks`);
   }
 
-  getCurrent(): Observable<Response> {
-    return this.http.get<Response>(
-      `${Config.getRoot()}/back/get_current_task.php`,
+  getCurrent(): Observable<AppointedTaskDto> {
+    return this.http.get<AppointedTaskDto>(
+      `${Config.getApiPath()}/tasks/getCurrent`,
     );
   }
 
@@ -30,49 +30,31 @@ export class TaskService {
     );
   }
 
-  complete(
-    appointmentId: number,
-    additionalTasksCompletion: IAdditionalTask[],
-  ): Observable<Response> {
-    return this.http.post<Response>(
-      `${Config.getRoot()}/back/complete_task.php`,
-      {
-        mainTaskAppointmentId: appointmentId,
-        additionalTasks: additionalTasksCompletion,
-      },
+  complete(appointedTaskDto: AppointedTaskDto): Observable<number> {
+    return this.http.post<number>(
+      `${Config.getApiPath()}/tasks/complete`,
+      appointedTaskDto,
     );
   }
 
-  postpone(
-    appointmentId: number,
-    additionalTasksCompletion: IAdditionalTask[],
-  ): Observable<Response> {
-    return this.http.post<Response>(
-      `${Config.getRoot()}/back/postpone_task.php`,
-      {
-        mainTaskAppointmentId: appointmentId,
-        additionalTasks: additionalTasksCompletion,
-      },
+  postpone(appointedTaskDto: AppointedTaskDto): Observable<number> {
+    return this.http.post<number>(
+      `${Config.getApiPath()}/tasks/postpone`,
+      appointedTaskDto,
     );
   }
 
-  appoint(lastAppointmentId?: number): Observable<Response> {
-    return this.http.post<Response>(
-      `${Config.getRoot()}/back/appoint_task.php`,
-      lastAppointmentId,
+  appoint(): Observable<AppointedTaskDto> {
+    return this.http.post<AppointedTaskDto>(
+      `${Config.getApiPath()}/tasks/appoint`,
+      {},
     );
   }
 
-  reject(
-    appointmentId: number,
-    additionalTasksCompletion: IAdditionalTask[],
-  ): Observable<Response> {
-    return this.http.post<Response>(
-      `${Config.getRoot()}/back/reject_task.php`,
-      {
-        mainTaskAppointmentId: appointmentId,
-        additionalTasks: additionalTasksCompletion,
-      },
+  reject(appointedTaskDto: AppointedTaskDto): Observable<number> {
+    return this.http.post<number>(
+      `${Config.getApiPath()}/tasks/reject`,
+      appointedTaskDto,
     );
   }
 }

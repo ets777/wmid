@@ -8,11 +8,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { rolesKey } from '../roles-auth.decorator';
-import { Role } from '../../roles/roles.model';
+import { IRole } from '../../roles/roles.interface';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(
     context: ExecutionContext,
@@ -29,7 +29,7 @@ export class RolesGuard implements CanActivate {
 
       const req = context.switchToHttp().getRequest();
 
-      return req.user.roles.some((role: Role) =>
+      return req.user.roles.some((role: IRole) =>
         requiredRoles.includes(role.code),
       );
     } catch (e) {

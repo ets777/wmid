@@ -5,13 +5,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { CreateUserDto } from '../users/dto/create-user.dto';
-import { UsersService } from '../users/users.service';
+import { CreateUserDto } from '@backend/users/dto/create-user.dto';
+import { UsersService } from '@backend/users/users.service';
 import * as bcrypt from 'bcryptjs';
-import { User } from '../users/users.model';
+import { IUser } from '@backend/users/users.interface';
 import { ConfigService } from '@nestjs/config';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { UserCredentialsDto } from '../users/dto/user-credentials.dto';
+import { UserCredentialsDto } from '@backend/users/dto/user-credentials.dto';
 
 @Injectable()
 export class AuthService {
@@ -87,7 +87,7 @@ export class AuthService {
     return tokens;
   }
 
-  private async getTokens(user: User): Promise<AuthResponseDto> {
+  private async getTokens(user: IUser): Promise<AuthResponseDto> {
     const payload = {
       username: user.username,
       id: user.id,
@@ -128,9 +128,8 @@ export class AuthService {
     return password ? await bcrypt.hash(password, 5) : null;
   }
 
-  private async validateUser(userDto: UserCredentialsDto): Promise<User> {
-    const userDb = await this.usersService.getUserByName(userDto.username);
-    const user = userDb?.dataValues;
+  private async validateUser(userDto: UserCredentialsDto): Promise<IUser> {
+    const user = await this.usersService.getUserByName(userDto.username);
     const passwordsEqual = await bcrypt.compare(
       userDto.password,
       user?.password || '',
@@ -149,8 +148,7 @@ export class AuthService {
     username: string,
     refreshToken: string,
   ): Promise<AuthResponseDto> {
-    const existingUserDb = await this.usersService.getUserByName(username);
-    const existingUser = existingUserDb?.dataValues;
+    const existingUser = await this.usersService.getUserByName(username);
 
     if (!existingUser?.refreshToken) {
       throw new UnauthorizedException({

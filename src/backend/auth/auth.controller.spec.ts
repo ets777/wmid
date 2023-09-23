@@ -1,15 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { SequelizeModule } from '@nestjs/sequelize';
 import { ConfigModule } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
-import { User } from '../users/users.model';
-import { RolesService } from '../roles/roles.service';
-import { Role } from '../roles/roles.model';
-import { UserRole } from '../roles/user-roles.model';
-import { UsersController } from '../users/users.controller';
+import { UsersService } from '@backend/users/users.service';
+import { RolesService } from '@backend/roles/roles.service';
+import { UsersController } from '@backend/users/users.controller';
+import { createPool } from 'mysql2/promise';
+import { DB_CONNECTION } from '@backend/database/database.module';
+
+const pool = createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME_TEST,
+  timezone: process.env.DB_TIMEZONE,
+});
 
 describe('AuthController', () => {
   let authController: AuthController;
@@ -24,18 +30,6 @@ describe('AuthController', () => {
         ConfigModule.forRoot({
           envFilePath: `.${process.env.NODE_ENV}.env`,
         }),
-        SequelizeModule.forRoot({
-          dialect: 'mysql',
-          host: process.env.DB_HOST,
-          port: Number(process.env.DB_PORT),
-          username: process.env.DB_USER,
-          password: process.env.DB_PASSWORD,
-          database: process.env.DB_NAME_TEST,
-          models: [User, Role, UserRole],
-          autoLoadModels: true,
-          logging: false,
-        }),
-        SequelizeModule.forFeature([User, Role, UserRole]),
       ],
       providers: [
         AuthService,
@@ -47,6 +41,10 @@ describe('AuthController', () => {
             signAsync: jest.fn().mockImplementation(() => testToken),
           },
         },
+        {
+          provide: DB_CONNECTION,
+          useValue: pool,
+        },
       ],
       controllers: [AuthController, UsersController],
     }).compile();
@@ -56,8 +54,9 @@ describe('AuthController', () => {
   });
 
   afterAll(async () => {
-    usersController.delete(testUsername);
-    module.close();
+    await usersController.delete(testUsername);
+    await pool.end();
+    await module.close();
   });
 
   describe('signUp', () => {

@@ -1,8 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { TaskService } from '../tasks/service/task.service';
-import { ITask } from '../tasks/interface/task.interface';
-import { IAdditionalTask } from '../tasks/interface/additional-task.interface';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { AppointedTaskDto } from '@backend/tasks/dto/apointed-task.dto';
 
 @Component({
   selector: 'app-index-page',
@@ -10,16 +9,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./index-page.component.sass'],
 })
 export class IndexPageComponent implements OnInit {
-  emptyTask: ITask = {
-    text: '',
-    appointmentId: 0,
-    statusId: 0,
-    additionalTasks: [],
-  };
-  currentTask: ITask = this.emptyTask;
+  appointedTask: AppointedTaskDto;
   loading = false;
-
-  additionalTasksCompletion: IAdditionalTask[] = [];
 
   constructor(
     private taskService: TaskService,
@@ -31,105 +22,84 @@ export class IndexPageComponent implements OnInit {
   }
 
   complete(): void {
-    if (this.currentTask.appointmentId && this.additionalTasksCompletion) {
-      this.taskService
-        .complete(
-          this.currentTask.appointmentId,
-          this.additionalTasksCompletion,
-        )
-        .subscribe((a) => {
-          if (a?.success) {
-            this.appoint();
-          } else {
-            this.openSnackBar('Ошибка при выполнении задания');
-          }
-        });
+    if (this.appointedTask.appointmentId) {
+      this.taskService.complete(this.appointedTask).subscribe((result) => {
+        if (result) {
+          this.appointedTask = null;
+        } else {
+          this.openSnackBar('Ошибка при выполнении задания');
+        }
+      });
+    }
+  }
+
+  completeAndAppoint(): void {
+    if (this.appointedTask.appointmentId) {
+      this.taskService.complete(this.appointedTask).subscribe((result) => {
+        if (result) {
+          this.appoint();
+        } else {
+          this.openSnackBar('Ошибка при выполнении задания');
+        }
+      });
     }
   }
 
   postpone(): void {
-    if (this.currentTask.appointmentId && this.additionalTasksCompletion) {
-      this.taskService
-        .postpone(
-          this.currentTask.appointmentId,
-          this.additionalTasksCompletion,
-        )
-        .subscribe((a) => {
-          if (a?.success) {
-            this.appoint();
-          } else {
-            this.openSnackBar('Ошибка при откладывании задания');
-          }
-        });
+    if (this.appointedTask.appointmentId) {
+      this.taskService.postpone(this.appointedTask).subscribe((result) => {
+        if (result) {
+          this.appoint();
+        } else {
+          this.openSnackBar('Ошибка при откладывании задания');
+        }
+      });
     }
   }
 
   appoint(): void {
     this.loading = true;
 
-    this.taskService.appoint(this.currentTask.appointmentId).subscribe((a) => {
+    this.taskService.appoint().subscribe((appointedTask) => {
       this.loading = false;
 
-      if (a?.success) {
+      if (appointedTask?.text) {
         this.openSnackBar('Задание успешно назначено');
-        this.getCurrent();
+        this.appointedTask = appointedTask;
       } else {
         this.openSnackBar('Заданий нет');
-        this.currentTask = this.emptyTask;
+        this.appointedTask = null;
       }
     });
   }
 
   reject(): void {
-    if (this.currentTask.appointmentId && this.additionalTasksCompletion) {
-      this.taskService
-        .reject(this.currentTask.appointmentId, this.additionalTasksCompletion)
-        .subscribe((a) => {
-          if (a?.success) {
-            this.appoint();
-          } else {
-            this.openSnackBar('Ошибка при отмене задания');
-          }
-        });
+    if (this.appointedTask.appointmentId) {
+      this.taskService.reject(this.appointedTask).subscribe((a) => {
+        if (a > 0) {
+          this.appoint();
+        } else {
+          this.openSnackBar('Ошибка при отмене задания');
+        }
+      });
     }
   }
 
   getCurrent(): void {
-    this.taskService.getCurrent().subscribe((a) => {
-      if (a && a.success) {
-        const tasks = a.data;
-
-        if (Array.isArray(tasks) && tasks.length) {
-          const mainTask: ITask = tasks.find((a: ITask) => a.statusId == 1);
-          const additionalTasks = tasks.filter((a: ITask) => a.statusId == 7);
-
-          mainTask.additionalTasks = additionalTasks;
-
-          this.additionalTasksCompletion = additionalTasks.map((a) => {
-            return {
-              appointmentId: +a.appointmentId,
-              completed: false,
-            };
-          });
-
-          this.currentTask = mainTask;
-        } else {
-          this.currentTask = {
-            text: '',
-            appointmentId: 0,
-          };
-        }
-      } else {
+    this.taskService.getCurrent().subscribe((task) => {
+      if (task) {
+        this.appointedTask = task;
+      } else if (task !== null) {
         this.openSnackBar('Ошибка при получении задания');
       }
     });
   }
 
   checkAdditionalTask(a: any, appointmentId: any): void {
-    const i = this.additionalTasksCompletion.findIndex(
+    const i = this.appointedTask.additionalTasks.findIndex(
       (a) => a.appointmentId == appointmentId,
     );
-    this.additionalTasksCompletion[i].completed = a.checked;
+    this.appointedTask.additionalTasks[i].isCompleted = a.checked;
   }
 
   openSnackBar(message: string): void {

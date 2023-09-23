@@ -1,20 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TaskPeriodsService } from './task-periods.service';
-import { SequelizeModule } from '@nestjs/sequelize';
-import { Role } from 'roles/roles.model';
-import { User } from 'users/users.model';
-import { UserRole } from 'roles/user-roles.model';
-import { Task } from 'tasks/tasks.model';
-import { TaskPeriod } from './task-periods.model';
-import { AuthModule } from 'auth/auth.module';
+import { AuthModule } from '@backend/auth/auth.module';
+import { DatabaseModule } from '@backend/database/database.module';
 
 @Module({
   providers: [TaskPeriodsService],
   controllers: [],
-  imports: [
-    SequelizeModule.forFeature([Role, User, UserRole, Task, TaskPeriod]),
-    AuthModule,
-  ],
+  imports: [AuthModule, DatabaseModule],
   exports: [TaskPeriodsService],
 })
 export class TaskPeriodsModule {}

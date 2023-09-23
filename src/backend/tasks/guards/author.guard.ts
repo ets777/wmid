@@ -5,7 +5,7 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import { TasksService } from 'tasks/tasks.service';
+import { TasksService } from '../tasks.service';
 
 @Injectable()
 export class AuthorGuard implements CanActivate {
@@ -14,11 +14,13 @@ export class AuthorGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const req = context.switchToHttp().getRequest();
+      console.log(req.params);
+      console.log(req.user);
       const taskId = req.params.id;
       const userId = req.user.id;
       const task = await this.tasksService.getTaskById(taskId);
 
-      return task.dataValues.userId === userId;
+      return task.userId === userId;
     } catch (e) {
       throw new HttpException('Нет доступа', HttpStatus.FORBIDDEN);
     }

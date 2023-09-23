@@ -136,12 +136,9 @@ export class MealAddPageComponent implements OnInit {
 
     });
 
-    this
-      .mealService
-      .add(meal)
-      .subscribe(a => {
-        console.log(a);
-      })
+    this.mealService.add(meal).subscribe((a) => {
+      console.log(a);
+    });
   }
 
   displayFn(product: Product): string {
@@ -151,7 +148,8 @@ export class MealAddPageComponent implements OnInit {
   private _filter(value: string): Product[] {
     const filterValue = value.toLowerCase();
 
-    return this.products.filter(option => option.name?.toLowerCase().includes(filterValue));
+    return this.products.filter((option) =>
+      option.name?.toLowerCase().includes(filterValue),
+    );
   }
-
 }

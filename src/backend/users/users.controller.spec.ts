@@ -1,13 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { SequelizeModule } from '@nestjs/sequelize';
-import { User } from './users.model';
 import { ConfigModule } from '@nestjs/config';
 import { UsersController } from './users.controller';
-import { UserRole } from '../roles/user-roles.model';
-import { Role } from '../roles/roles.model';
 import { RolesService } from '../roles/roles.service';
 import { JwtService } from '@nestjs/jwt';
+import { createPool } from 'mysql2/promise';
+import { DB_CONNECTION } from '@backend/database/database.module';
+
+const pool = createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME_TEST,
+  timezone: process.env.DB_TIMEZONE,
+});
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -20,20 +26,16 @@ describe('UsersController', () => {
         ConfigModule.forRoot({
           envFilePath: `.${process.env.NODE_ENV}.env`,
         }),
-        SequelizeModule.forRoot({
-          dialect: 'mysql',
-          host: process.env.DB_HOST,
-          port: Number(process.env.DB_PORT),
-          username: process.env.DB_USER,
-          password: process.env.DB_PASSWORD,
-          database: process.env.DB_NAME_TEST,
-          models: [Role, User, UserRole],
-          autoLoadModels: true,
-          logging: false,
-        }),
-        SequelizeModule.forFeature([Role, User, UserRole]),
       ],
-      providers: [UsersService, RolesService, JwtService],
+      providers: [
+        UsersService,
+        RolesService,
+        JwtService,
+        {
+          provide: DB_CONNECTION,
+          useValue: pool,
+        },
+      ],
       controllers: [UsersController],
     }).compile();
 
@@ -41,7 +43,8 @@ describe('UsersController', () => {
   });
 
   afterAll(async () => {
-    module.close();
+    await pool.end();
+    await module.close();
   });
 
   describe('create', () => {
@@ -74,7 +77,7 @@ describe('UsersController', () => {
 
       const result = await controller.addRole(dto);
 
-      expect(result).toStrictEqual(dto);
+      expect(result).toBe(1);
     });
   });
 

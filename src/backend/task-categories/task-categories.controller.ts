@@ -8,33 +8,26 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TaskCategoriesService } from './task-categories.service';
-import { TaskCategory } from './task-categories.model';
-import { Roles } from '../auth/roles-auth.decorator';
+import { ITaskCategory } from './task-categories.interface';
+import { Roles } from '@backend/auth/roles-auth.decorator';
 import { CreateTaskCategoryDto } from './dto/create-task-category.dto';
-import { RolesGuard } from 'auth/guards/roles.guard';
-import { AccessTokenGuard } from 'auth/guards/accessToken.guard';
+import { RolesGuard } from '@backend/auth/guards/roles.guard';
+import { AccessTokenGuard } from '@backend/auth/guards/accessToken.guard';
 import { UpdateTaskCategoryDto } from './dto/update-task-category.dto';
 
-@ApiTags('Категории заданий')
 @Controller('task-categories')
 @UseGuards(AccessTokenGuard)
 export class TaskCategoriesController {
   constructor(private taskCategoriesService: TaskCategoriesService) {}
 
-  @ApiOperation({ summary: 'Создание категории задания' })
-  @ApiResponse({ status: 200, type: TaskCategory })
-  @ApiBody({ type: CreateTaskCategoryDto })
   @Roles('admin')
   @UseGuards(RolesGuard)
   @Post()
-  create(@Body() dto: CreateTaskCategoryDto): Promise<TaskCategory> {
+  create(@Body() dto: CreateTaskCategoryDto): Promise<number> {
     return this.taskCategoriesService.createTaskCategory(dto);
   }
 
-  @ApiOperation({ summary: 'Удаление категории задания' })
-  @ApiResponse({ status: 200, type: Number })
   @Roles('admin')
   @UseGuards(RolesGuard)
   @Delete('/:code')
@@ -42,22 +35,16 @@ export class TaskCategoriesController {
     return this.taskCategoriesService.deleteTaskCategory(code);
   }
 
-  @ApiOperation({ summary: 'Выбор категории задания по ID' })
-  @ApiResponse({ status: 200, type: TaskCategory })
   @Get('/:code')
-  getByCode(@Param('code') code: string): Promise<TaskCategory> {
+  getByCode(@Param('code') code: string): Promise<ITaskCategory> {
     return this.taskCategoriesService.getTaskCategoryByCode(code);
   }
 
-  @ApiOperation({ summary: 'Получение всех категорий заданий' })
-  @ApiResponse({ status: 200, type: [TaskCategory] })
   @Get()
-  getAll(): Promise<TaskCategory[]> {
+  getAll(): Promise<ITaskCategory[]> {
     return this.taskCategoriesService.getAllTaskCategories();
   }
 
-  @ApiOperation({ summary: 'Обновление категории заданий' })
-  @ApiResponse({ status: 200, type: Number })
   @Patch('/:code')
   update(
     @Param('code') code: string,

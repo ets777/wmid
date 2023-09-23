@@ -1,70 +1,91 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
-import { User } from './users.model';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { IUser } from './users.interface';
 import { RolesService } from '../roles/roles.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AddRoleDto } from './dto/add-role.dto';
+import { DB_CONNECTION } from '@backend/database/database.module';
+import { ResultSetHeader } from 'mysql2/promise';
+import { DatabaseHelper } from '@backend/database/database.helper';
+import { DatabaseTable } from '@backend/database/database.enum';
+import { CommonHelper } from '@backend/library/common.helper';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(User) private userRepository: typeof User,
+    @Inject(DB_CONNECTION) private mysqlConnection: any,
     private roleService: RolesService,
   ) {}
 
-  async createUser(dto: CreateUserDto): Promise<User> {
-    const userDb = await this.userRepository.create(dto);
-    const user = userDb?.dataValues;
-    const roleDb = await this.roleService.getRoleByCode('USER');
-    const role = roleDb?.dataValues;
+  async createUser(createUserDto: CreateUserDto): Promise<IUser> {
+    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(`
+      insert into usr_users (username, email, password)
+      values ('${createUserDto.username}', '${createUserDto.email}', '${createUserDto.password}')
+    `);
 
-    await userDb.$set('roles', [role.id]);
-    user.roles = [role];
+    const role = await this.roleService.getRoleByCode('USER');
 
-    return user;
+    return {
+      ...createUserDto,
+      id: result.insertId,
+      roles: [role],
+    };
   }
 
-  async getAllUsers(): Promise<User[]> {
-    const users = await this.userRepository.findAll({ include: { all: true } });
+  async getAllUsers(): Promise<IUser[]> {
+    const [users]: [IUser[]] = await this.mysqlConnection.query(`
+      select id, username, email 
+      from usr_users
+    `);
+
     return users;
   }
 
-  async getUserByEmail(email: string): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: { email },
-      include: { all: true },
-    });
+  // async getUserByEmail(email: string): Promise<IUser> {
+  //   const user = await this.userRepository.findOne({
+  //     where: { email },
+  //     include: { all: true },
+  //   });
+
+  //   return user;
+  // }
+
+  async getUserByName(username: string): Promise<IUser> {
+    const [[user]]: [[IUser]] = await this.mysqlConnection.query(`
+      select id, username, password, email, refreshToken
+      from usr_users 
+      where username = '${username}'
+    `);
+
+    const roles = await this.roleService.getUserRoles(username);
+
+    return {
+      ...user,
+      roles,
+    };
+  }
+
+  async getUserByNameOrEmail(username: string, email: string): Promise<IUser> {
+    const [[user]]: [[IUser]] = await this.mysqlConnection.query(`
+      select id, username, password, email 
+      from usr_users 
+      where username = '${username}'
+        or email = '${email}'
+    `);
 
     return user;
   }
 
-  async getUserByName(username: string): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: { username },
-      include: { all: true },
-    });
-
-    return user;
-  }
-
-  async getUserByNameOrEmail(username: string, email: string): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: [{ username }, { email }],
-      include: { all: true },
-    });
-
-    return user;
-  }
-
-  async addRole(dto: AddRoleDto): Promise<AddRoleDto> {
-    const user = await this.userRepository.findOne({
-      where: { username: dto.username },
-    });
+  async addRole(dto: AddRoleDto): Promise<number> {
+    const user = await this.getUserByName(dto.username);
     const role = await this.roleService.getRoleByCode(dto.code);
 
     if (role && user) {
-      await user.$add('role', role.id);
-      return dto;
+      const [res]: [ResultSetHeader] = await this.mysqlConnection.query(`
+        insert into usr_userRoles (userId, roleId)
+        values (${user.id}, ${role.id})
+      `);
+
+      return res.affectedRows;
     }
 
     throw new HttpException(
@@ -74,64 +95,49 @@ export class UsersService {
   }
 
   async deleteUser(username: string): Promise<number> {
-    const affectedRows = await this.userRepository.destroy({
-      where: { username },
-    });
+    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(`
+      delete from ${DatabaseTable.USR_USERS} 
+      where username = '${username}'
+    `);
 
-    return affectedRows;
+    return result.affectedRows;
   }
 
   async updateRefreshToken(
     username: string,
     refreshToken: string,
   ): Promise<number> {
-    const user = await this.userRepository.findOne({
-      where: { username },
-    });
+    const user = this.getUserByName(username);
 
     if (!user) {
       throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
     }
 
-    const updatedData = {
-      ...user,
-      refreshToken,
-    };
-
-    const updatedUser = await this.userRepository.update(updatedData, {
-      where: { username },
-    });
-
-    const [affectedRows] = updatedUser;
-
-    return affectedRows;
+    return this.updateUser(username, { refreshToken });
   }
 
-  async updateUser(username: string, data: CreateUserDto): Promise<number> {
-    const user = await this.userRepository.findOne({
-      where: { username },
-    });
+  async updateUser(username: string, data: IUser): Promise<number> {
+    const user = await this.getUserByName(username);
 
     if (!user) {
       throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
     }
 
-    const filteredData = {
-      password: data.password,
-      email: data.email,
-    };
+    const filteredData = CommonHelper.getFilteredData<IUser>(user, data, [
+      'password',
+      'email',
+      'refreshToken',
+    ]);
 
-    const updatedData = {
-      ...user,
-      ...filteredData,
-    };
+    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(
+      DatabaseHelper.getSqlUpdate(
+        DatabaseTable.USR_USERS,
+        filteredData,
+        { username },
+        true,
+      ),
+    );
 
-    const updatedUser = await this.userRepository.update(updatedData, {
-      where: { username },
-    });
-
-    const [affectedRows] = updatedUser;
-
-    return affectedRows;
+    return result.affectedRows;
   }
 }

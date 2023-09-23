@@ -3,12 +3,12 @@
     <a [routerLink]="['/add-task']"> Новое задание </a>
 
     <div *ngIf="!loading">
-      <p class="mainTask">{{ currentTask.text }}</p>
+      <p class="mainTask">{{ appointedTask?.text }}</p>
 
-      <div *ngIf="currentTask.additionalTasks?.length">
+      <div *ngIf="appointedTask?.additionalTasks?.length">
         <h5>Дополнительные задания:</h5>
         <ul>
-          <li *ngFor="let additionalTask of currentTask.additionalTasks">
+          <li *ngFor="let additionalTask of appointedTask?.additionalTasks">
             <mat-checkbox color="primary" (change)="checkAdditionalTask($event, additionalTask.appointmentId)">
               {{ additionalTask.text }}
             </mat-checkbox>
@@ -16,10 +16,22 @@
         </ul>
       </div>
 
-      <div class="buttons" *ngIf="currentTask.text">
-        <button mat-raised-button color="primary" type="button" (click)="complete()">
-          Выполнено
-        </button>
+      <div class="buttons" *ngIf="appointedTask?.text">
+        <div>
+          <button mat-raised-button color="primary" class="split-button-left" type="button" (click)="completeAndAppoint()">
+            Выполнено
+          </button>
+          <button mat-raised-button color="primary" class="split-button-right" [matMenuTriggerFor]="menu">
+            <img class="button-icon" src="/assets/expand.svg">
+          </button>
+        </div>
+
+
+        <mat-menu #menu="matMenu" xPosition="before">
+          <button (click)="complete()" mat-menu-item>
+            Выполнить без назначения
+          </button>
+        </mat-menu>
         <button mat-raised-button color="secondary" type="button" (click)="postpone()">
           Отложено
         </button>
@@ -27,7 +39,8 @@
           Отменено
         </button>
       </div>
-      <div class="buttons" *ngIf="!currentTask.text">
+      
+      <div class="buttons" *ngIf="!appointedTask?.text">
         <button mat-raised-button color="primary" type="button" (click)="appoint()">
           Назначить
         </button>
@@ -39,7 +52,7 @@
     </div>
 
   </div>
-  <div class="col-lg-6 col-xl-4">
+<!--  <div class="col-lg-6 col-xl-4">
     <app-growth-progress-index-block></app-growth-progress-index-block>
   </div>
   <div class="col-lg-6 col-xl-4">
@@ -50,5 +63,5 @@
   </div>
   <div class="col-lg-6 col-xl-4">
     <app-meals-index-block></app-meals-index-block>
-  </div>
+  </div>-->
 </div>

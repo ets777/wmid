@@ -15,6 +15,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatMenuModule } from '@angular/material/menu';
 import { CookieService } from 'ngx-cookie-service';
 
 import { AppComponent } from './app.component';
@@ -49,6 +50,7 @@ import { TokenInterceptorService } from './interceptors/token-interceptor.servic
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    MatMenuModule,
     RouterModule.forRoot([
       { path: '', component: IndexPageComponent, canActivate: [AuthGuard] },
       {

@@ -2,22 +2,13 @@ import { Module } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { TasksController } from './tasks.controller';
 import { AuthModule } from 'auth/auth.module';
-import { SequelizeModule } from '@nestjs/sequelize';
-import { Role } from 'roles/roles.model';
-import { User } from 'users/users.model';
-import { UserRole } from 'roles/user-roles.model';
-import { Task } from './tasks.model';
-import { TaskCategory } from 'task-categories/task-categories.model';
-import { TaskPeriodsModule } from 'task-periods/task-periods.module';
+import { TaskPeriodsModule } from '@backend/task-periods/task-periods.module';
+import { DatabaseModule } from '@backend/database/database.module';
 
 @Module({
   providers: [TasksService],
   controllers: [TasksController],
-  imports: [
-    SequelizeModule.forFeature([Role, User, UserRole, Task, TaskCategory]),
-    AuthModule,
-    TaskPeriodsModule,
-  ],
+  imports: [AuthModule, TaskPeriodsModule, DatabaseModule],
   exports: [],
 })
 export class TasksModule {}

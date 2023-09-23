@@ -1,5 +1,3 @@
-/back
-
 /dist
 /node_modules
 *.env
