@@ -940,7 +940,7 @@ export class TasksService {
           and t.isActive = 1
           and (date('${this.currentDate}') < t.endDate or t.endDate is null)
       where a.statusId = ${Status.POSTPONED}
-          and date('${this.currentDate}') > a.startDate
+          and timestamp(date('${this.currentDate}'), time('${this.currentTime}')) > a.startDate
       order by a.startDate asc 
       limit 1`;
 
