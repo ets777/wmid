@@ -135,3 +135,18 @@ insert into tsk_periods (id, typeId, taskId, startTime, endTime, weekday, day, m
 
 insert into tsk_appointments (id, startDate, endDate, statusId, taskId, isAdditional) values
 (13, '2000-01-04 06:40:00', '2000-01-04 06:50:00', 2, 27, 0);
+
+-- Проверка назначения следующего задания с наличием неважного задания на время (кейс 1.24)
+insert into tsk_tasks (id, text, nextTaskId, nextTaskBreak, endDate, categoryId, offset, duration, isActive, isDeleted, cooldown, isImportant, userId) values
+(32, 'Задание 32 (разовое)', null, null, null, 1, 10, 10, 1, 0, 0, 0, 1),
+(31, 'Задание 31 (разовое, есть предыдущее)', null, null, null, 1, 0, 10, 1, 0, 0, 0, 1),
+(30, 'Задание 30 (разовое, есть следующее отложенное)', 31, 10, null, 1, 0, 10, 1, 0, 0, 0, 1);
+
+insert into tsk_periods (id, typeId, taskId, startTime, endTime, weekday, day, month, date) values
+(32, 5, 32, null, null, null, null, null, '2000-01-05'),
+(31, 5, 31, null, null, null, null, null, '2000-01-05'),
+(30, 5, 30, null, null, null, null, null, '2000-01-05');
+
+insert into tsk_appointments (id, startDate, endDate, statusId, taskId, isAdditional) values
+(14, '2000-01-05 06:40:00', '2000-01-05 06:50:00', 2, 30, 0),
+(15, '2999-01-05 07:00:00', null, 3, 31, 0);

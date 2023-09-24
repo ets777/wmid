@@ -460,13 +460,14 @@ export class TasksService {
 
     if (nextTask.id) {
       if (nextTask.timeBreak > 0) {
-        const appointedTask = await this.insertAppointment(
+        await this.insertAppointment(
           nextTask.id,
           Status.POSTPONED,
           nextTask.timeBreak,
         );
 
-        return appointedTask;
+        // отложенное задание не возвращается
+        return null;
       }
 
       // выбор задания на время в цепочке, если оно есть
