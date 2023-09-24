@@ -232,7 +232,7 @@ export class TasksService {
     return lastAppointmentId;
   }
 
-  private async getNextTask(lastAppointmentId): Promise<INextTask> {
+  private async getNextTask(lastAppointmentId: number): Promise<INextTask> {
     const nextTaskQuery = `
       select 
         t.nextTaskId id, 
@@ -274,21 +274,23 @@ export class TasksService {
     }
 
     // Поиск заданий с конкретной датой
-    const datedResult = await this.appointDatedTask(timeTask.startTime);
+    const datedResult = await this.appointDatedTask(timeTask?.startTime);
 
     if (datedResult) {
       return datedResult;
     }
 
     // Поиск отложенных заданий, на выполнение которых не будет затрачено больше, чем осталось до задания на время
-    const postponedResult = await this.appointPostponedTask(timeTask.startTime);
+    const postponedResult = await this.appointPostponedTask(
+      timeTask?.startTime,
+    );
 
     if (postponedResult) {
       return postponedResult;
     }
 
     // Выбор из пула доступных заданий
-    const randomTaskResult = await this.appointRandomTask(timeTask.startTime);
+    const randomTaskResult = await this.appointRandomTask(timeTask?.startTime);
 
     if (randomTaskResult) {
       return randomTaskResult;
@@ -664,22 +666,26 @@ export class TasksService {
   private async appointTimeTask(
     timeTask: ITimeTask,
   ): Promise<AppointedTaskDto> {
-    if (timeTask.startTime && timeTask.canBeAppointed && timeTask.taskId) {
-      const appointedTask = await this.insertAppointment(
-        timeTask.taskId,
-        Status.APPOINTED,
-      );
-
-      const additionalTasks = await this.appointAdditionalTasks(
-        timeTask.taskId,
-      );
-
-      if (additionalTasks?.length > 0) {
-        appointedTask.additionalTasks = additionalTasks;
-      }
-
-      return appointedTask;
+    if (
+      !timeTask?.startTime ||
+      !timeTask?.canBeAppointed ||
+      !timeTask?.taskId
+    ) {
+      return null;
     }
+
+    const appointedTask = await this.insertAppointment(
+      timeTask.taskId,
+      Status.APPOINTED,
+    );
+
+    const additionalTasks = await this.appointAdditionalTasks(timeTask.taskId);
+
+    if (additionalTasks?.length > 0) {
+      appointedTask.additionalTasks = additionalTasks;
+    }
+
+    return appointedTask;
   }
 
   private async getTimeTaskSql(): Promise<ITimeTask> {
@@ -750,6 +756,10 @@ export class TasksService {
     `;
 
     const [[timeTask]] = await this.mysqlConnection.query(timeTaskQuery);
+
+    if (!timeTask) {
+      return null;
+    }
 
     return CommonHelper.convertToBooleanProperties<ITimeTask>(timeTask, [
       'canBeAppointed',
@@ -839,7 +849,7 @@ export class TasksService {
 
     // если задание на время находится в цепочке, то необходимо найти первое доступное
     // задание в этой цепочке и назначать именно его
-    if (timeTask.isInChain) {
+    if (timeTask?.isInChain) {
       const nearestTaskFromChain = await this.getNearestTaskFromChain(timeTask);
 
       timeTask.canBeAppointed = nearestTaskFromChain.canBeAppointed;
@@ -853,6 +863,10 @@ export class TasksService {
   private async appointDatedTask(
     nearestTaskStartTime: string,
   ): Promise<AppointedTaskDto> {
+    const nearestTimeTaskCondition = nearestTaskStartTime
+      ? `and t.duration < timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}'))`
+      : '';
+
     const datedTasksQuery = `
       select 
         t.id
@@ -863,8 +877,7 @@ export class TasksService {
         on a.taskId = t.id 
         and date(a.startDate) = '${this.currentDate}'
       where 
-        t.duration < timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}'))
-        and not exists (
+        not exists (
           select * from ${DatabaseTable.TSK_TASKS} where nextTaskId = t.id
         )
         and t.isDeleted = 0
@@ -878,6 +891,7 @@ export class TasksService {
         )
         and a.id is null
         and p.startTime is null
+        ${nearestTimeTaskCondition}
       limit 1
     `;
 
@@ -910,9 +924,12 @@ export class TasksService {
   private async appointPostponedTask(
     nearestTaskStartTime: string,
   ): Promise<AppointedTaskDto> {
+    const nearestTimeTaskCondition = nearestTaskStartTime
+      ? `timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}')) > t.duration or t.duration is null`
+      : '1';
+
     const postponedTaskQuery = `select 
-      timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}')) > t.duration 
-      or t.duration is null canBeAppointed,
+      ${nearestTimeTaskCondition} canBeAppointed,
       a.id appointmentId,
       t.id taskId
       from ${DatabaseTable.TSK_APPOINTMENTS} a
@@ -958,6 +975,9 @@ export class TasksService {
       Status.POSTPONED,
       Status.REJECTED,
     ]);
+    const nearestTimeTaskCondition = nearestTaskStartTime
+      ? `and t.duration < timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}'))`
+      : '';
     const randomTasksQuery = `
       select 
         t.id,
@@ -995,7 +1015,7 @@ export class TasksService {
         group by taskId
       ) p on p.taskId = t.id
       where (ac.appointmentCount < pc.periodCount or ac.appointmentCount is null)
-        and t.duration < timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}'))
+        ${nearestTimeTaskCondition}
         and not exists (
             select * from ${DatabaseTable.TSK_TASKS} where nextTaskId = t.id
         )
