@@ -565,13 +565,17 @@ export class TasksService {
       const isPeriodCompleted = await this.checkPeriodCompletion(nextTask.id);
 
       if (isPeriodCompleted) {
-        const nextTaskQuery = `select nextTaskId, nextTaskBreak
-            from ${DatabaseTable.TSK_TASKS}
-            where id = ${nextTask.id}`;
+        const nextTaskQuery = `
+          select 
+            nextTaskId id, 
+            nextTaskBreak timeBreak
+          from ${DatabaseTable.TSK_TASKS}
+          where id = ${nextTask.id}
+        `;
 
         [[nextTask]] = await this.mysqlConnection.query(nextTaskQuery);
 
-        this.appointNextTask(nextTask);
+        return this.appointNextTask(nextTask);
       } else if (isEnoughTime || isCommonChain) {
         const appointedTask = await this.insertAppointment(
           nextTask.id,
@@ -929,20 +933,22 @@ export class TasksService {
       ? `timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}')) > t.duration or t.duration is null`
       : '1';
 
-    const postponedTaskQuery = `select 
-      ${nearestTimeTaskCondition} canBeAppointed,
-      a.id appointmentId,
-      t.id taskId
+    const postponedTaskQuery = `
+      select 
+        ${nearestTimeTaskCondition} canBeAppointed,
+        a.id appointmentId,
+        t.id taskId
       from ${DatabaseTable.TSK_APPOINTMENTS} a
       join ${DatabaseTable.TSK_TASKS} t
       on t.id = a.taskId 
-          and t.isDeleted = 0
-          and t.isActive = 1
-          and (date('${this.currentDate}') < t.endDate or t.endDate is null)
+        and t.isDeleted = 0
+        and t.isActive = 1
+        and (date('${this.currentDate}') < t.endDate or t.endDate is null)
       where a.statusId = ${Status.POSTPONED}
-          and timestamp(date('${this.currentDate}'), time('${this.currentTime}')) > a.startDate
+        and timestamp(date('${this.currentDate}'), time('${this.currentTime}')) > a.startDate
       order by a.startDate asc 
-      limit 1`;
+      limit 1
+    `;
 
     const [[postponedTask]] = await this.mysqlConnection.query(
       postponedTaskQuery,
@@ -955,11 +961,15 @@ export class TasksService {
     ) {
       this.appointAdditionalTasks(postponedTask.taskId);
 
-      const updateQuery = `update ${DatabaseTable.TSK_APPOINTMENTS}
-        set startDate = now(), statusId = ${Status.APPOINTED}
-        where id = ${postponedTask.appointmentId}`;
+      if (!this.testMode) {
+        const updateQuery = `
+          update ${DatabaseTable.TSK_APPOINTMENTS}
+          set startDate = now(), statusId = ${Status.APPOINTED}
+          where id = ${postponedTask.appointmentId}
+        `;
 
-      await this.mysqlConnection.query(updateQuery);
+        await this.mysqlConnection.query(updateQuery);
+      }
 
       const appointedTask = this.getAppointedTask(postponedTask.appointmentId);
 

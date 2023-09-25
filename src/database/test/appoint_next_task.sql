@@ -26,7 +26,7 @@ insert into tsk_periods (id, typeId, taskId, startTime, endTime, weekday, day, m
 insert into tsk_appointments (id, startDate, endDate, statusId, taskId, isAdditional) values
 (2, '2000-01-01 06:01:00', '2000-01-01 06:02:00', 2, 3, 0);
 
--- Проверка назначения следующего задания с наличием важного задания на время (кейсы 1.3-1.5)
+-- Проверка назначения следующего задания при наличии важного задания на время (кейсы 1.3-1.5)
 insert into tsk_tasks (id, text, nextTaskId, nextTaskBreak, endDate, categoryId, offset, duration, isActive, isDeleted, cooldown, isImportant, userId) values
 (9, 'Задание 9 (разовое, со временем, важное)', null, null, null, 1, 10, 10, 1, 0, 0, 1, 1),
 (8, 'Задание 8 (разовое, есть предыдущее)', null, null, null, 1, 0, 10, 1, 0, 0, 0, 1),
@@ -122,7 +122,7 @@ insert into tsk_periods (id, typeId, taskId, startTime, endTime, weekday, day, m
 insert into tsk_appointments (id, startDate, endDate, statusId, taskId, isAdditional) values
 (11, '2000-01-03 23:58:00', '2000-01-03 23:59:00', 2, 23, 0);
 
--- Проверка назначения следующего задания с наличием неважного задания на время (кейсы 1.21-1.23)
+-- Проверка назначения следующего задания при наличии неважного задания на время (кейсы 1.21-1.23)
 insert into tsk_tasks (id, text, nextTaskId, nextTaskBreak, endDate, categoryId, offset, duration, isActive, isDeleted, cooldown, isImportant, userId) values
 (29, 'Задание 29 (разовое, со временем, неважное)', null, null, null, 1, 10, 10, 1, 0, 0, 0, 1),
 (28, 'Задание 28 (разовое, есть предыдущее)', null, null, null, 1, 0, 10, 1, 0, 0, 0, 1),
@@ -136,7 +136,7 @@ insert into tsk_periods (id, typeId, taskId, startTime, endTime, weekday, day, m
 insert into tsk_appointments (id, startDate, endDate, statusId, taskId, isAdditional) values
 (13, '2000-01-04 06:40:00', '2000-01-04 06:50:00', 2, 27, 0);
 
--- Проверка назначения следующего задания с наличием неважного задания на время (кейсы 1.24-1.25)
+-- Проверка назначения следующего задания при наличии отложенного задания (кейсы 1.24-1.25)
 insert into tsk_tasks (id, text, nextTaskId, nextTaskBreak, endDate, categoryId, offset, duration, isActive, isDeleted, cooldown, isImportant, userId) values
 (32, 'Задание 32 (разовое)', null, null, null, 1, 10, 10, 1, 0, 0, 0, 1),
 (31, 'Задание 31 (разовое, есть предыдущее)', null, null, null, 1, 0, 10, 1, 0, 0, 0, 1),
@@ -150,3 +150,17 @@ insert into tsk_periods (id, typeId, taskId, startTime, endTime, weekday, day, m
 insert into tsk_appointments (id, startDate, endDate, statusId, taskId, isAdditional) values
 (14, '2000-01-05 06:40:00', '2000-01-05 06:50:00', 2, 30, 0),
 (15, '2999-01-05 07:00:00', null, 3, 31, 0);
+
+-- Проверка назначения следующего задания при наличии в цепочке удалённого задания (кейс 1.26)
+insert into tsk_tasks (id, text, nextTaskId, nextTaskBreak, endDate, categoryId, offset, duration, isActive, isDeleted, cooldown, isImportant, userId) values
+(35, 'Задание 35 (разовое, есть предыдущее)', null, null, null, 1, 10, 10, 1, 0, 0, 0, 1),
+(34, 'Задание 34 (разовое, удалённое, есть предыдущее)', 35, null, null, 1, 0, 10, 1, 1, 0, 0, 1),
+(33, 'Задание 33 (разовое, есть следующее)', 34, null, null, 1, 0, 10, 1, 0, 0, 0, 1);
+
+insert into tsk_periods (id, typeId, taskId, startTime, endTime, weekday, day, month, date) values
+(35, 5, 35, null, null, null, null, null, '2000-01-06'),
+(34, 5, 34, null, null, null, null, null, '2000-01-06'),
+(33, 5, 33, null, null, null, null, null, '2000-01-06');
+
+insert into tsk_appointments (id, startDate, endDate, statusId, taskId, isAdditional) values
+(16, '2000-01-06 07:00:00', '2000-01-06 07:01:00', 2, 33, 0);
