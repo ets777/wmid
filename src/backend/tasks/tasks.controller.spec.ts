@@ -10,6 +10,7 @@ import { createPool } from 'mysql2/promise';
 import { DB_CONNECTION } from '@backend/database/database.module';
 import { appointNextTaskCases } from './tests/appoint-next-task';
 import { appointDatedTaskCases } from './tests/appoint-dated-task';
+import { appointRandomTaskCases } from './tests/appoint-random-task';
 
 const pool = createPool({
   host: process.env.DB_HOST,
@@ -70,6 +71,21 @@ describe('TasksController', () => {
 
     describe('2. Задания на время', () => {
       appointDatedTaskCases.forEach((testCase) => {
+        it(testCase.description, async () => {
+          const dto: AppointTaskParamsDto = {
+            currentTime: testCase.time,
+            currentDate: testCase.date,
+            testMode: true,
+          };
+
+          const result = await controller.appoint(dto);
+          expect(result?.taskId).toEqual(testCase.expectedTaskId);
+        });
+      });
+    });
+
+    describe('3. Случайные задания', () => {
+      appointRandomTaskCases.forEach((testCase) => {
         it(testCase.description, async () => {
           const dto: AppointTaskParamsDto = {
             currentTime: testCase.time,

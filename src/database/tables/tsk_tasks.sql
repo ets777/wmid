@@ -3,6 +3,7 @@ CREATE TABLE `tsk_tasks` (
   `id` int NOT NULL AUTO_INCREMENT,
   `text` varchar(255) NOT NULL,
   `nextTaskBreak` int DEFAULT NULL,
+  `startDate` date DEFAULT NULL,
   `endDate` date DEFAULT NULL,
   `offset` int DEFAULT NULL,
   `duration` int NOT NULL,

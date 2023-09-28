@@ -755,7 +755,8 @@ export class TasksService {
         and a.id is null 
         and t.isActive = 1
         and t.isDeleted = 0
-        and (date('${this.currentDate}') < t.endDate or t.endDate is null)
+        and (t.startDate <= date('${this.currentDate}') or t.startDate is null)
+        and (t.endDate >= date('${this.currentDate}') or t.endDate is null)
       order by canBeAppointed desc, p.startTime asc 
       limit 1
     `;
@@ -887,7 +888,8 @@ export class TasksService {
         )
         and t.isDeleted = 0
         and t.isActive = 1
-        and (date('${this.currentDate}') < t.endDate or t.endDate is null)
+        and (t.startDate <= date('${this.currentDate}') or t.startDate is null)
+        and (t.endDate >= date('${this.currentDate}') or t.endDate is null)
         and (
           p.weekday is not null and weekday('${this.currentDate}') + 1 = p.weekday
           or p.day is not null and p.month is null and day('${this.currentDate}') = p.day
@@ -943,7 +945,8 @@ export class TasksService {
       on t.id = a.taskId 
         and t.isDeleted = 0
         and t.isActive = 1
-        and (date('${this.currentDate}') < t.endDate or t.endDate is null)
+        and (t.startDate <= date('${this.currentDate}') or t.startDate is null)
+        and (t.endDate >= date('${this.currentDate}') or t.endDate is null)
       where a.statusId = ${Status.POSTPONED}
         and timestamp(date('${this.currentDate}'), time('${this.currentTime}')) > a.startDate
       order by a.startDate asc 
@@ -1032,7 +1035,8 @@ export class TasksService {
         )
         and t.isActive = 1
         and t.isDeleted = 0
-        and (date(${this.currentDate}) < t.endDate or t.endDate is null)
+        and (t.startDate <= date('${this.currentDate}') or t.startDate is null)
+        and (t.endDate >= date('${this.currentDate}') or t.endDate is null)
         and (
           date_format(a.startDate, '%Y-%m-%d %H:00') + interval t.cooldown hour 
             < timestamp(date('${this.currentDate}'), time('${this.currentTime}')) 
@@ -1045,17 +1049,19 @@ export class TasksService {
             and p.typeId = ${TaskPeriodType.YEARLY}
           or a.startDate is null
           or p.typeId = ${TaskPeriodType.ONCE}
-          or t.cooldown = 0)
+          or t.cooldown = 0
+        )
         and t.id not in (
-            select 
-              r.relatedTaskId
-            from tsk_relations r
-            left join ${DatabaseTable.TSK_APPOINTMENTS} a2
-              on a2.taskId = r.mainTaskId
-              and r.relationType = ${TaskRelationType.EXCLUDED}
-              and date(a2.startDate) = '${this.currentDate}'
-            where a2.id is not null
-        )`;
+          select 
+            r.relatedTaskId
+          from tsk_relations r
+          left join ${DatabaseTable.TSK_APPOINTMENTS} a2
+            on a2.taskId = r.mainTaskId
+            and r.relationType = ${TaskRelationType.EXCLUDED}
+            and date(a2.startDate) = '${this.currentDate}'
+          where a2.id is not null
+        )
+    `;
 
     let [randomTasksArray] = await this.mysqlConnection.query(randomTasksQuery);
 
@@ -1103,7 +1109,8 @@ export class TasksService {
           and (date(a.startDate) = '${this.currentDate}' 
           and pt.typeId = ${TaskPeriodType.DAILY}
         or 
-          week(a.startDate, 1) = week('${this.currentDate}', 1) 
+          week(a.startDate, 1) = week('${this.currentDate}', 1)
+          and year(a.startDate) = year('${this.currentDate}')
           and pt.typeId = ${TaskPeriodType.WEEKLY}
         or 
           month(a.startDate) = month('${this.currentDate}') 
@@ -1387,11 +1394,12 @@ export class TasksService {
   ): Promise<AppointedTaskDto[]> {
     const appointedTaskQuery = `
       select 
-          t.id,
+          t.id taskId,
+          a.id appointmentId,
           t.text
-      from ${DatabaseTable.TSK_APPOINTMENTS} ta
-      join ${DatabaseTable.TSK_TASKS} t on t.id = ta.taskId
-      where ta.id in (${appointmentsId.join(',')})`;
+      from ${DatabaseTable.TSK_APPOINTMENTS} a
+      join ${DatabaseTable.TSK_TASKS} t on t.id = a.taskId
+      where a.id in (${appointmentsId.join(',')})`;
 
     const [appointedTasks] = await this.mysqlConnection.query(
       appointedTaskQuery,
@@ -1445,7 +1453,8 @@ export class TasksService {
         and (ac.appointmentCount < pc.periodCount or ac.appointmentCount is null)
         and t.isActive = 1
         and t.isDeleted = 0
-        and (date('${this.currentDate}') < t.endDate or t.endDate is null)
+        and (t.startDate <= date('${this.currentDate}') or t.startDate is null)
+        and (t.endDate >= date('${this.currentDate}') or t.endDate is null)
         and (a.statusId in (${Status.COMPLETED}, ${Status.POSTPONED}) or a.statusId is null)
         and (day('${this.currentDate}') in (select day from ${DatabaseTable.TSK_PERIODS} where taskId = t.id) 
           or (select day from ${DatabaseTable.TSK_PERIODS} where taskId = t.id limit 1) is null)

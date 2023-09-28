@@ -190,8 +190,8 @@ export const appointNextTaskCases = [
     description: '1.24. Назначение задания с наличием отложенного задания',
   },
   {
-    time: '07:01:00',
-    date: '2999-01-05',
+    time: '05:01:00',
+    date: '2000-01-06',
     lastAppointmentId: 14,
     expectedTaskId: 31,
     description: '1.25. Назначение отложенного задания',
