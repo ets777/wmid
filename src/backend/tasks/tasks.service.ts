@@ -273,14 +273,21 @@ export class TasksService {
       return timeTaskAppointment;
     }
 
-    // Поиск заданий с конкретной датой
+    // Поиск заданий с датой
     const datedResult = await this.appointDatedTask(timeTask?.startTime);
 
     if (datedResult) {
       return datedResult;
     }
 
-    // Поиск отложенных заданий, на выполнение которых не будет затрачено больше, чем осталось до задания на время
+    // Поиск просроченных заданий
+    const overdueResult = await this.appointOverdueTask(timeTask?.startTime);
+
+    if (overdueResult) {
+      return overdueResult;
+    }
+
+    // Поиск отложенных заданий
     const postponedResult = await this.appointPostponedTask(
       timeTask?.startTime,
     );
@@ -405,16 +412,19 @@ export class TasksService {
   }
 
   async getCurrent(): Promise<AppointedTaskDto | null> {
-    const lastAppointmentQuery = `select 
+    const lastAppointmentQuery = `
+      select 
         t.id taskId,
         ta.id appointmentId,
         t.text
       from ${DatabaseTable.TSK_APPOINTMENTS} ta
-      join ${DatabaseTable.TSK_TASKS} t on t.id = ta.taskId
+      join ${DatabaseTable.TSK_TASKS} t 
+        on t.id = ta.taskId
       where ta.isAdditional = 0
         and ta.statusId = ${Status.APPOINTED}
       order by ta.endDate desc 
-      limit 1`;
+      limit 1
+    `;
 
     const [[lastAppointmentResult]] = await this.mysqlConnection.query(
       lastAppointmentQuery,
@@ -582,6 +592,7 @@ export class TasksService {
           Status.APPOINTED,
         );
 
+        console.log('Вызов из appointNextTask');
         const additionalTasks = await this.appointAdditionalTasks(nextTask.id);
 
         if (additionalTasks?.length > 0) {
@@ -624,10 +635,12 @@ export class TasksService {
       const result = [];
 
       if (insertData) {
-        const insertQuery = `insert into ${DatabaseTable.TSK_APPOINTMENTS}
-        (startDate, statusId, taskId, isAdditional)
-        values 
-        ${insertData}`;
+        const insertQuery = `
+          insert into ${DatabaseTable.TSK_APPOINTMENTS}
+          (startDate, statusId, taskId, isAdditional)
+          values 
+          ${insertData}
+        `;
 
         const [insertResult]: [ResultSetHeader] =
           await this.mysqlConnection.query(insertQuery);
@@ -640,10 +653,12 @@ export class TasksService {
       }
 
       if (updateData) {
-        const selectIdToUpdateQuery = `select id 
+        const selectIdToUpdateQuery = `
+          select id 
           from ${DatabaseTable.TSK_APPOINTMENTS}
           where taskId in (${updateData})
-            and statusId = ${Status.POSTPONED}`;
+            and statusId = ${Status.POSTPONED}
+        `;
 
         const [selectIdToUpdateResult] = await this.mysqlConnection.query(
           selectIdToUpdateQuery,
@@ -653,11 +668,13 @@ export class TasksService {
           (result: { id: number }) => result.id,
         );
 
-        const updateQuery = `update ${DatabaseTable.TSK_APPOINTMENTS}
+        const updateQuery = `
+          update ${DatabaseTable.TSK_APPOINTMENTS}
           set statusId = ${Status.APPOINTED}, 
             isAdditional = 1, 
             startDate = now()
-          where id in (${updateAppointmentsId.join(',')})`;
+          where id in (${updateAppointmentsId.join(',')})
+        `;
 
         await this.mysqlConnection.query(updateQuery);
 
@@ -684,6 +701,7 @@ export class TasksService {
       Status.APPOINTED,
     );
 
+    console.log('Вызов из appointTimeTask');
     const additionalTasks = await this.appointAdditionalTasks(timeTask.taskId);
 
     if (additionalTasks?.length > 0) {
@@ -906,7 +924,7 @@ export class TasksService {
       datedTasksQuery,
     );
 
-    const datedTasksId = this.filterChainedTimeTasks(
+    const datedTasksId = await this.filterChainedTimeTasks(
       datedTasksResult.map((result: { id: number }) => result.id),
     );
 
@@ -918,6 +936,86 @@ export class TasksService {
 
       const additionalTasks = await this.appointAdditionalTasks(
         datedTasksId[0],
+      );
+
+      if (additionalTasks?.length > 0) {
+        appointedTask.additionalTasks = additionalTasks;
+      }
+
+      return appointedTask;
+    }
+  }
+
+  private async appointOverdueTask(
+    nearestTaskStartTime: string,
+  ): Promise<AppointedTaskDto> {
+    const nearestTimeTaskCondition = nearestTaskStartTime
+      ? `and t.duration < timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}'))`
+      : '';
+
+    const overdueTasksQuery = `
+        select 
+        s.lastPlannedDate,
+        s.taskId,
+        s.startDate
+      from (
+        select 
+          case 
+            when p.month is null and p.date is null and p.day <= day('${this.currentDate}')
+            then
+              date(concat(year('${this.currentDate}'), '-', month('${this.currentDate}'), '-', p.day))
+            when p.month is null and p.date is null and p.day > day('${this.currentDate}')
+            then
+              date(concat(year('${this.currentDate}'), '-', month('${this.currentDate}') - 1, '-', p.day))
+            when p.date is not null
+            then
+              p.date
+            when p.month <= month('${this.currentDate}')
+            then
+              date(concat(year('${this.currentDate}'), '-', p.month, '-', p.day))
+            when p.month > month('${this.currentDate}')
+            then
+              date(concat(year('${this.currentDate}') - 1, '-', p.month, '-', p.day))
+          end lastPlannedDate,
+          t.id taskId,
+          max(a.startDate) startDate
+        from ${DatabaseTable.TSK_TASKS} t
+        join ${DatabaseTable.TSK_PERIODS} p 
+          on t.id = p.taskId
+        join ${DatabaseTable.TSK_APPOINTMENTS} a
+          on t.id = a.taskId
+        where 
+          (
+            p.date is not null
+            and p.date < '${this.currentDate}'
+            or p.day is not null
+          )
+          and t.isActive = 1
+          and t.isDeleted = 0
+          ${nearestTimeTaskCondition}
+        group by lastPlannedDate, taskId, text
+      ) s
+      where startDate < lastPlannedDate
+      limit 1
+    `;
+
+    const [overdueTasksResult] = await this.mysqlConnection.query(
+      overdueTasksQuery,
+    );
+
+    console.log(overdueTasksResult);
+
+    const overdueTasksId = overdueTasksResult.map((result: { taskId: number }) => result.taskId);
+
+    if (overdueTasksId.length > 0) {
+      const appointedTask = await this.insertAppointment(
+        overdueTasksId[0],
+        Status.APPOINTED,
+      );
+
+      console.log('Вызов из appointOverdueTask');
+      const additionalTasks = await this.appointAdditionalTasks(
+        overdueTasksId[0],
       );
 
       if (additionalTasks?.length > 0) {
@@ -992,6 +1090,8 @@ export class TasksService {
     const nearestTimeTaskCondition = nearestTaskStartTime
       ? `and t.duration < timestampdiff(minute, time('${this.currentTime}'), time('${nearestTaskStartTime}'))`
       : '';
+    // TODO: рассмотреть вариант сделать группировку с аггрегирующей функцией MAX(a.startDate) для фильтрации последних назначений
+    // кажется, что это будет оптимальнее
     const randomTasksQuery = `
       select 
         t.id,
@@ -1008,9 +1108,10 @@ export class TasksService {
         select startDate
         from ${DatabaseTable.TSK_APPOINTMENTS}
         where taskId = t.id
-        and statusId in (${Status.COMPLETED}, ${Status.POSTPONED}, ${Status.REJECTED})
+          and statusId in (${Status.COMPLETED}, ${Status.POSTPONED}, ${Status.REJECTED})
         order by startDate desc
-        limit 1)
+        limit 1
+      )
       join (
         ${periodCountSql}
       ) pc on pc.taskId = t.id
@@ -1065,15 +1166,13 @@ export class TasksService {
 
     let [randomTasksArray] = await this.mysqlConnection.query(randomTasksQuery);
 
-    randomTasksArray = this.filterChainedTimeTasks(
-      randomTasksArray.map((task) => task.id),
+    randomTasksArray = await this.filterChainedTimeTasks(
+      randomTasksArray.map((task: { id: number }) => task.id),
     );
 
     if (randomTasksArray.length) {
       const randomTaskId =
         randomTasksArray[Math.floor(Math.random() * randomTasksArray.length)];
-
-      this.appointAdditionalTasks(randomTaskId);
 
       const appointedTask = await this.insertAppointment(
         randomTaskId,
@@ -1287,10 +1386,12 @@ export class TasksService {
       const startDate =
         'now()' + (timeBreak > 0 ? ` + interval ${timeBreak} hour` : '');
 
-      const insertQuery = `insert into ${DatabaseTable.TSK_APPOINTMENTS}
+      const insertQuery = `
+        insert into ${DatabaseTable.TSK_APPOINTMENTS}
         (startDate, statusId, taskId)
         values
-        (${startDate}, ${statusId}, ${taskId})`;
+        (${startDate}, ${statusId}, ${taskId})
+      `;
 
       const [insertResult]: [ResultSetHeader] =
         await this.mysqlConnection.query(insertQuery);
@@ -1315,10 +1416,12 @@ export class TasksService {
     return currentDateTime.toLocaleTimeString();
   }
 
-  private filterChainedTimeTasks(idArray: number[]): number[] {
-    return idArray.filter(
-      async (item) => !(await this.getChainTimeTask(item)).id,
-    );
+  private async filterChainedTimeTasks(idArray: number[]): Promise<number[]> {
+    const result = await CommonHelper.asyncFilter(idArray, async (item) => {
+      return !((await this.getChainTimeTask(item)).id);
+    })
+
+    return result;
   }
 
   private async checkPeriodCompletion(nextTaskId: number): Promise<boolean> {
