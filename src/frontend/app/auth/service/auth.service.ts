@@ -60,7 +60,7 @@ export class AuthService {
     return this.http.get<any>(`${Config.getApiPath()}/auth/refresh`).pipe(
       map((authResponse: AuthResponseDto) => {
         this.saveTokens(authResponse);
-        return this.getUserFromToken(authResponse.accessToken);
+        return authResponse.accessToken;
       }),
     );
   }
