@@ -220,7 +220,7 @@ export class TasksService {
                 id lastAppointmentId
             from ${DatabaseTable.TSK_APPOINTMENTS}
             where isAdditional = 0
-                and statusId = ${Status.COMPLETED}
+                and statusId in (${Status.COMPLETED}, ${Status.REJECTED})
             order by endDate desc
             limit 1
         `;
