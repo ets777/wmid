@@ -1450,7 +1450,11 @@ export class TasksService {
                     limit 1
                 ) pt on pt.taskId = a.taskId
                 where (date(a.startDate) = '${this.currentDate}' and pt.typeId = ${TaskPeriodType.DAILY})
-                    or (week(a.startDate) = week('${this.currentDate}') and pt.typeId = ${TaskPeriodType.WEEKLY})
+                    or (
+                        week(a.startDate) = week('${this.currentDate}') 
+                        and pt.typeId = ${TaskPeriodType.WEEKLY} 
+                        and year(a.startDate) = year('${this.currentDate}'
+                    )
                     or (month(a.startDate) = month('${this.currentDate}') and pt.typeId = ${TaskPeriodType.MONTHLY})
                     or (year(a.startDate) = year('${this.currentDate}') and pt.typeId = ${TaskPeriodType.YEARLY})
                     or pt.typeId = ${TaskPeriodType.ONCE}
