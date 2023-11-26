@@ -594,7 +594,6 @@ export class TasksService {
                     Status.APPOINTED,
                 );
 
-                console.log('Вызов из appointNextTask');
                 const additionalTasks = await this.appointAdditionalTasks(nextTask.id);
 
                 if (additionalTasks?.length > 0) {
@@ -1215,6 +1214,7 @@ export class TasksService {
             and pt.typeId = ${TaskPeriodType.WEEKLY}
             or 
             month(a.startDate) = month('${this.currentDate}') 
+            and year(a.startDate) = year('${this.currentDate}')
             and pt.typeId = ${TaskPeriodType.MONTHLY}
             or 
             year(a.startDate) = year('${this.currentDate}') 
@@ -1452,10 +1452,14 @@ export class TasksService {
                 where (date(a.startDate) = '${this.currentDate}' and pt.typeId = ${TaskPeriodType.DAILY})
                     or (
                         week(a.startDate) = week('${this.currentDate}') 
+                        and year(a.startDate) = year('${this.currentDate}')
                         and pt.typeId = ${TaskPeriodType.WEEKLY} 
-                        and year(a.startDate) = year('${this.currentDate}'
                     )
-                    or (month(a.startDate) = month('${this.currentDate}') and pt.typeId = ${TaskPeriodType.MONTHLY})
+                    or (
+                        month(a.startDate) = month('${this.currentDate}') 
+                        and year(a.startDate) = year('${this.currentDate}')
+                        and pt.typeId = ${TaskPeriodType.MONTHLY}
+                    )
                     or (year(a.startDate) = year('${this.currentDate}') and pt.typeId = ${TaskPeriodType.YEARLY})
                     or pt.typeId = ${TaskPeriodType.ONCE}
                 group by a.taskId
