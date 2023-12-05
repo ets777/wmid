@@ -903,17 +903,19 @@ export class TasksService {
                 and date(a.startDate) = '${this.currentDate}'
             where 
                 not exists (
-                select * from ${DatabaseTable.TSK_TASKS} where nextTaskId = t.id
+                    select * 
+                    from ${DatabaseTable.TSK_TASKS} 
+                    where nextTaskId = t.id
                 )
                 and t.isDeleted = 0
                 and t.isActive = 1
                 and (t.startDate <= date('${this.currentDate}') or t.startDate is null)
                 and (t.endDate >= date('${this.currentDate}') or t.endDate is null)
                 and (
-                p.weekday is not null and weekday('${this.currentDate}') + 1 = p.weekday
-                or p.day is not null and p.month is null and day('${this.currentDate}') = p.day
-                or p.day is not null and p.month is not null and month('${this.currentDate}') = p.month and day('${this.currentDate}') = p.day
-                or p.date is not null and '${this.currentDate}' = p.date
+                    p.weekday is not null and weekday('${this.currentDate}') + 1 = p.weekday
+                    or p.day is not null and p.month is null and day('${this.currentDate}') = p.day
+                    or p.day is not null and p.month is not null and month('${this.currentDate}') = p.month and day('${this.currentDate}') = p.day
+                    or p.date is not null and '${this.currentDate}' = p.date
                 )
                 and a.id is null
                 and p.startTime is null
@@ -962,21 +964,24 @@ export class TasksService {
             from (
                 select 
                 case 
-                    when p.month is null and p.date is null and p.day <= day('${this.currentDate}')
-                    then
-                    date(concat(year('${this.currentDate}'), '-', month('${this.currentDate}'), '-', p.day))
-                    when p.month is null and p.date is null and p.day > day('${this.currentDate}')
-                    then
-                    date(concat(year('${this.currentDate}'), '-', month('${this.currentDate}') - 1, '-', p.day))
+                    when p.date is null and p.month is null and p.day <= day('${this.currentDate}')
+                    then date(concat(year('${this.currentDate}'), '-', month('${this.currentDate}'), '-', p.day))
+                    when p.date is null and p.month is null and p.day > day('${this.currentDate}')
+                    then date(concat(year('${this.currentDate}'), '-', month('${this.currentDate}') - 1, '-', p.day))
+                    when p.date is null and p.month < month('${this.currentDate}') and p.day is not null
+                    then date(concat(year('${this.currentDate}'), '-', p.month, '-', p.day))
+                    when p.date is null and p.month > month('${this.currentDate}') and p.day is not null
+                    then date(concat(year('${this.currentDate}') - 1, '-', p.month, '-', p.day))
+                    when p.date is null and p.month = month('${this.currentDate}') and p.day <= day('${this.currentDate}')
+                    then date(concat(year('${this.currentDate}'), '-', p.month, '-', p.day))
+                    when p.date is null and p.month = month('${this.currentDate}') and p.day > day('${this.currentDate}')
+                    then date(concat(year('${this.currentDate}') - 1, '-', p.month, '-', p.day))
+                    when p.date is null and p.month <= month('${this.currentDate}') and p.day is null
+                    then date(concat(year('${this.currentDate}'), '-', p.month, '-', 1))
+                    when p.date is null and p.month > month('${this.currentDate}') and p.day is null
+                    then date(concat(year('${this.currentDate}') - 1, '-', p.month, '-', 1))
                     when p.date is not null
-                    then
-                    p.date
-                    when p.month <= month('${this.currentDate}')
-                    then
-                    date(concat(year('${this.currentDate}'), '-', p.month, '-', p.day))
-                    when p.month > month('${this.currentDate}')
-                    then
-                    date(concat(year('${this.currentDate}') - 1, '-', p.month, '-', p.day))
+                    then p.date
                 end lastPlannedDate,
                 t.id taskId,
                 max(a.startDate) startDate
@@ -997,6 +1002,7 @@ export class TasksService {
                 group by lastPlannedDate, taskId, text
             ) s
             where startDate < lastPlannedDate
+            and lastPlannedDate < date('${this.currentDate}')
             limit 1
         `;
 
