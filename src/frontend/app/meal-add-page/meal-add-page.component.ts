@@ -44,10 +44,9 @@ export const MY_FORMATS = {
   ],
 })
 export class MealAddPageComponent implements OnInit {
-
   mealTypes: MealType[] = [];
   products: Product[] = [];
-  addMealForm: FormGroup = this.formBuilder.group({});
+  addMealForm: FormGroup;
   filteredProducts: Observable<Product[]>[] = [];
   myControl = new FormControl('');
 
