@@ -10,7 +10,6 @@
   "repository": "https://github.com/ets777/wmid.git",
   "private": true,
   "scripts": {
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "front-start": "ng serve -o",
     "front-build-prod": "ng build --configuration production",

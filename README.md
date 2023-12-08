@@ -1,27 +1,111 @@
-# Front
+# What Must I Do
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 14.1.2.
+## Запуск
 
-## Development server
+Для разработки необходимо запустить фронт и бэк командами:
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+```sh
+npm run front-start
+npm run back-start-dev-watch
+```
 
-## Code scaffolding
+Для выполнения тестов для бэка:
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+```sh
+npm run back-test-dev
+```
 
-## Build
+Запуск на проде осуществляется через файл `start.sh`. Чтобы проект запускался через сервис, необходимо создать файл `wmid.service` со следующим содержимым:
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+```bash
+[Unit]
+Description=WMID
 
-## Running unit tests
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/var/www/wmid/start.sh
+User=root
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+[Install]
+WantedBy=multi-user.target
+```
 
-## Running end-to-end tests
+где `/var/www/wmid/` - путь до проекта.
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+Файл должен находиться в директории `/etc/systemd/system`.
 
-## Further help
+Запуск сервиса осуществляется командой:
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+```sh
+systemctl start wmid
+```
+
+Просмотр логов (последних 100 строк):
+
+```sh
+journalctl -u wmid -n 100 --no-pager
+```
+
+## Настройки сред
+
+Для настройки сред можно использовать файл-шаблон `.draft.env`.
+
+Настройки среды для разработки должны находиться в файле `.dev.env`. Для прода - `.prod.env`.
+
+Пример заполнения:
+
+```sh
+PORT=3000 # порт, на котором будет запущен бэк
+DB_HOST=localhost # хост базы данных
+DB_USER=root # имя пользователя базы данных
+DB_PASSWORD=root # пароль пользователя базы данных
+DB_NAME=wmid # название основной базы данных
+DB_NAME_TEST=wmid_test # название тестовой базы данных (используется для тестов бэка)
+DB_PORT=3306 # порт базы данных
+DB_TIMEZONE=+10:00 # часовой пояс базы данных
+JWT_ACCESS_SECRET=Mp5p # случайная строка для генерации токена доступа
+JWT_REFRESH_SECRET=GDZDN # случайная строка для генерации токена обновления
+SWAGGER=1 # запуск сваггера, 1 - запускать, 0 - нет
+```
+
+## Процесс публикации изменений
+
+1. Войти на сервер:
+
+```sh
+ssh root@40.15.75.130
+```
+
+2. Остановить сервис:
+
+```sh
+systemctl stop wmid
+```
+
+3. Перейти в папку проекта:
+
+```sh
+cd /var/www/wmid
+```
+
+4. Подтянуть изменения из репозитория:
+
+```sh
+git checkout master
+git fetch
+git pull
+```
+
+5. Подтянуть зависимости:
+
+```sh
+npm install
+```
+
+6. Запустить сервис
+
+```sh
+systemctl start wmid
+```
