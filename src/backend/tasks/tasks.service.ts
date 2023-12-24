@@ -895,7 +895,8 @@ export class TasksService {
 
         const datedTasksQuery = `
             select 
-                t.id
+                t.id,
+                t.priority
             from ${DatabaseTable.TSK_PERIODS} p
             join ${DatabaseTable.TSK_TASKS} t 
                 on p.taskId = t.id
@@ -929,17 +930,20 @@ export class TasksService {
         );
 
         const datedTasksId = await this.filterChainedTimeTasks(
-            datedTasksResult.map((result: { id: number }) => result.id),
+            datedTasksResult.map(
+                (result: { id: number, priority: number }) => ({ id: result.id, priority: result.priority})
+            ),
         );
 
+        // TODO: сейчас выбирается первый элемент из массива, но если элементов несколько, то нужно выбирать по приоритету
         if (datedTasksId.length > 0) {
             const appointedTask = await this.insertAppointment(
-                datedTasksId[0],
+                datedTasksId[0].id,
                 Status.APPOINTED,
             );
 
             const additionalTasks = await this.appointAdditionalTasks(
-                datedTasksId[0],
+                datedTasksId[0].id,
             );
 
             if (additionalTasks?.length > 0) {
@@ -1108,7 +1112,8 @@ export class TasksService {
                 t.duration,
                 a.startDate,
                 t.cooldown,
-                p.typeId
+                p.typeId,
+                t.priority
             from ${DatabaseTable.TSK_TASKS} t
             left join ${DatabaseTable.TSK_APPOINTMENTS} a
             on a.taskId = t.id
@@ -1175,12 +1180,50 @@ export class TasksService {
         let [randomTasksArray] = await this.mysqlConnection.query(randomTasksQuery);
 
         randomTasksArray = await this.filterChainedTimeTasks(
-            randomTasksArray.map((task: { id: number }) => task.id),
+            randomTasksArray.map(
+                (task: { id: number, priority: number }) => ({id: task.id, priority: task.priority})
+            ),
         );
 
         if (randomTasksArray.length) {
-            const randomTaskId =
-                randomTasksArray[Math.floor(Math.random() * randomTasksArray.length)];
+            const priorityNum = 5;
+            const prioritySum = priorityNum * (priorityNum + 1) / 2;
+            const priorityPart = 100 / prioritySum;
+            const priorityPropabilities = new Array(priorityNum).fill(0).map(
+                (_, index) => (priorityNum - index) * priorityPart
+            );
+            const randomNumber = Math.floor(Math.random() * 100);
+            let selectedPriority = 1;
+
+            for (let i = 0; i < priorityPropabilities.length; i++) {
+                const previousProbabilitiesSum = priorityPropabilities
+                    .filter((_, j) => (j <= i))
+                    .reduce((prev, curr) => (curr += prev), 0)
+
+                if (randomNumber < previousProbabilitiesSum) {
+                    selectedPriority = i + 1;
+                    break;
+                }
+            }
+
+            let selectedPriorityRandomTasksArray = [];
+            let priorities = [selectedPriority, ...(Array(priorityNum).fill(0).map((_, i) => i + 1))];
+
+            for (let i = 0; i < priorities.length; i++) {
+                selectedPriorityRandomTasksArray =
+                    randomTasksArray.filter(
+                        (task: { id: number, priority: number }) => task.priority == priorities[i]
+                    );
+                
+                if (selectedPriorityRandomTasksArray.length > 0) {
+                    break;
+                }
+            }
+
+            const randomTaskId = 
+                selectedPriorityRandomTasksArray[
+                    Math.floor(Math.random() * randomTasksArray.length)
+                ].id;
 
             const appointedTask = await this.insertAppointment(
                 randomTaskId,
@@ -1430,9 +1473,11 @@ export class TasksService {
         return currentDateTime.toLocaleTimeString();
     }
 
-    private async filterChainedTimeTasks(idArray: number[]): Promise<number[]> {
+    private async filterChainedTimeTasks(
+        idArray: {id: number, priority: number}[]
+    ): Promise<{id: number, priority: number}[]> {
         const result = await CommonHelper.asyncFilter(idArray, async (item) => {
-            return !((await this.getChainTimeTask(item)).id);
+            return !((await this.getChainTimeTask(item.id)).id);
         })
 
         return result;
