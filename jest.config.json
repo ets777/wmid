@@ -1,9 +1,9 @@
 {
-  "preset": "ts-jest",
-  "testEnvironment": "node",
-  "rootDir": "src/backend",
-  "testRegex": ".*\\.spec\\.ts$",
-  "moduleNameMapper": {
-    "^@backend/(.*)$": "<rootDir>/$1"
-  }
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "rootDir": "src/backend",
+    "testRegex": ".*\\.spec\\.ts$",
+    "moduleNameMapper": {
+        "^@backend/(.*)$": "<rootDir>/$1"
+    }
 }

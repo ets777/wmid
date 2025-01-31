@@ -1,0 +1,325 @@
+<form
+    [formGroup]="taskForm"
+    (ngSubmit)="onSubmit()"
+>
+    <h3>{{ formTitle }}</h3>
+    <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="text"
+        >
+            <div slot="label">Text</div>
+        </ion-input>
+    </ion-item>
+    <ion-item>
+        <ion-select
+            labelPlacement="floating"
+            formControlName="categoryId"
+            interface="action-sheet"
+        >
+            <ion-icon
+                *ngIf="taskForm.value.categoryId"
+                slot="start"
+                src="/assets/svg/xmark.svg"
+                aria-hidden="true"
+                (click)="clearField(taskForm.get('categoryId'))"
+            ></ion-icon>
+            <div slot="label">Category</div>
+            <ion-select-option
+                *ngFor="let category of categories"
+                [value]="category.id"
+            > {{ category.name }} </ion-select-option>
+        </ion-select>
+    </ion-item>
+    <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="duration"
+            [maskito]="durationMask"
+            [maskitoElement]="maskPredicate"
+            placeholder="HH:SS"
+        >
+            <div slot="label">Duration</div>
+        </ion-input>
+    </ion-item>
+    <ion-item>
+        <ion-select
+            labelPlacement="floating"
+            formControlName="periodTypeId"
+            interface="action-sheet"
+        >
+            <ion-icon
+                *ngIf="taskForm.value.periodTypeId"
+                slot="start"
+                src="/assets/svg/xmark.svg"
+                aria-hidden="true"
+                (click)="clearField(taskForm.get('periodTypeId'))"
+            ></ion-icon>
+            <div slot="label">Periodicity</div>
+            <ion-select-option
+                *ngFor="let periodType of taskPeriodTypes"
+                [value]="periodType.id"
+            > {{ periodType.name }}
+            </ion-select-option>
+        </ion-select>
+    </ion-item>
+    <ion-item>
+        <ion-checkbox
+            labelPlacement="end"
+            justify="start"
+            formControlName="isPartOfChain"
+        >Make the task part of a
+            chain</ion-checkbox>
+    </ion-item>
+    <ng-container *ngIf="taskForm.value.isPartOfChain">
+        <div
+            *ngIf="taskForm.value.text && (previousTaskId || nextTaskId)"
+            class="task-chain"
+        >
+            <ng-container *ngIf="previousTaskId">
+                <div class="task">
+                    <div class="task-content">{{ getTaskText(previousTaskId) }}
+                    </div>
+                </div>
+                <div class="connector right"></div>
+            </ng-container>
+            <div class="task">
+                <div class="task-content">{{ taskForm.value.text}}</div>
+            </div>
+            <ng-container *ngIf="nextTaskId">
+                <div class="connector left"></div>
+                <div class="task">
+                    <div class="task-content">
+                        {{ getTaskText(nextTaskId) }}
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+        <ion-item>
+            <ion-select
+                labelPlacement="floating"
+                formControlName="previousTaskId"
+                interface="action-sheet"
+                (ionChange)="checkPreviousTask($event)"
+            >
+                <ion-icon
+                    *ngIf="taskForm.value.previousTaskId"
+                    slot="start"
+                    src="/assets/svg/xmark.svg"
+                    aria-hidden="true"
+                    (click)="clearField(taskForm.get('previousTaskId'))"
+                ></ion-icon>
+                <div slot="label">Previous task</div>
+                <ion-select-option
+                    *ngFor="let task of getAvailablePreviousTasks()"
+                    [value]="task.id"
+                > {{ task.text }} </ion-select-option>
+            </ion-select>
+        </ion-item>
+        <ion-item *ngIf="previousTaskId">
+            <ion-input
+                labelPlacement="floating"
+                formControlName="previousTaskBreak"
+            >
+                <div slot="label">Break after previous task (minutes)</div>
+            </ion-input>
+        </ion-item>
+        <ion-item>
+            <ion-select
+                labelPlacement="floating"
+                formControlName="nextTaskId"
+                interface="action-sheet"
+            >
+                <ion-icon
+                    *ngIf="taskForm.value.nextTaskId"
+                    slot="start"
+                    src="/assets/svg/xmark.svg"
+                    aria-hidden="true"
+                    (click)="clearField(taskForm.get('nextTaskId'))"
+                ></ion-icon>
+                <div slot="label">Next task</div>
+                <ion-select-option
+                    *ngFor="let task of getAvailableNextTasks()"
+                    [value]="task.id"
+                > {{ task.text }} </ion-select-option>
+            </ion-select>
+        </ion-item>
+        <ion-item *ngIf="nextTaskId">
+            <ion-input
+                labelPlacement="floating"
+                formControlName="nextTaskBreak"
+            >
+                <div slot="label">Break before next task (minutes)</div>
+            </ion-input>
+        </ion-item>
+    </ng-container>
+    <div formArrayName="periods">
+        <div
+            *ngFor="let period of periodsForm.controls; let i = index"
+            [formGroupName]="i"
+        >
+            <div class="period-header">
+                <ion-icon
+                    *ngIf="i === 0 && periodsForm.controls.length > 1"
+                    class="period-link"
+                    [name]="getLinkIcon()"
+                    (click)="changePeriodLinking()"
+                ></ion-icon>
+                <span class="period-number">Period #{{i+1}}</span>
+                <ion-icon
+                    *ngIf="i !== 0"
+                    class="period-remove"
+                    src="/assets/svg/trash-can.svg"
+                    (click)="removePeriod(period.get('uid').value)"
+                ></ion-icon>
+            </div>
+            <div
+                *ngIf="validateSameTime(period)"
+                class="error"
+            >
+                All periods without date, month, day of month and day of week
+                must have the same start and end time.
+            </div>
+            <ng-container *ngIf="!this.arePeriodsLinked || i === 0">
+                <ion-item *ngIf="periodsForm.controls[i + 1]">
+                    <ion-input
+                        labelPlacement="floating"
+                        formControlName="cooldown"
+                        (ionChange)="onPeriodValueChanged()"
+                    >
+                        <div slot="label">
+                            Break until next period {{ getBreakTimeUnits() }}
+                        </div>
+                    </ion-input>
+                </ion-item>
+                <ion-item *ngIf="getDateParamVisibility('startTime')">
+                    <ion-input
+                        labelPlacement="floating"
+                        formControlName="startTime"
+                        [maskito]="timeMask"
+                        [maskitoElement]="maskPredicate"
+                        placeholder="HH:SS"
+                        (ionChange)="onPeriodValueChanged()"
+                    >
+                        <div slot="label">Start time</div>
+                    </ion-input>
+                </ion-item>
+                <ng-container *ngIf="period.value.startTime">
+                    <ion-item>
+                        <ion-checkbox
+                            labelPlacement="end"
+                            justify="start"
+                            formControlName="isImportant"
+                            (ionChange)="onPeriodValueChanged()"
+                        >
+                            Is important
+                        </ion-checkbox>
+                    </ion-item>
+                    <ion-item>
+                        <ion-input
+                            labelPlacement="floating"
+                            formControlName="offset"
+                            (ionChange)="onPeriodValueChanged()"
+                        >
+                            <div slot="label">Offset (minutes)</div>
+                        </ion-input>
+                    </ion-item>
+                </ng-container>
+                <ion-item *ngIf="getDateParamVisibility('endTime')">
+                    <ion-input
+                        labelPlacement="floating"
+                        formControlName="endTime"
+                        [maskito]="timeMask"
+                        [maskitoElement]="maskPredicate"
+                        placeholder="HH:SS"
+                        (ionChange)="onPeriodValueChanged()"
+                    >
+                        <div slot="label">End time</div>
+                    </ion-input>
+                </ion-item>
+            </ng-container>
+            <ion-item *ngIf="getDateParamVisibility('weekday')">
+                <ion-select
+                    labelPlacement="floating"
+                    formControlName="weekday"
+                    interface="action-sheet"
+                >
+                    <ion-icon
+                        *ngIf="period.value.weekday"
+                        slot="start"
+                        src="/assets/svg/xmark.svg"
+                        aria-hidden="true"
+                        (click)="clearField(period.get('weekday'))"
+                    ></ion-icon>
+                    <div slot="label">Day of week</div>
+                    <ion-select-option
+                        *ngFor="let weekday of weekdays"
+                        [value]="weekday.id"
+                    > {{ weekday.name }}
+                    </ion-select-option>
+                </ion-select>
+            </ion-item>
+            <div
+                *ngIf="period.hasError('invalidDays')"
+                class="error"
+            >
+                The selected month has a maximum of
+                {{ period.getError('invalidDays')?.maxDays }} days.
+            </div>
+            <ion-item *ngIf="getDateParamVisibility('day')">
+                <ion-input
+                    type="number"
+                    labelPlacement="floating"
+                    formControlName="day"
+                >
+                    <div slot="label">Day of month</div>
+                </ion-input>
+            </ion-item>
+            <ion-item *ngIf="getDateParamVisibility('month')">
+                <ion-select
+                    labelPlacement="floating"
+                    formControlName="month"
+                    interface="action-sheet"
+                >
+                    <ion-icon
+                        *ngIf="period.value.month"
+                        slot="start"
+                        src="/assets/svg/xmark.svg"
+                        aria-hidden="true"
+                        (click)="clearField(period.get('month'))"
+                    ></ion-icon>
+                    <div slot="label">Month</div>
+                    <ion-select-option
+                        *ngFor="let month of months"
+                        [value]="month.id"
+                    > {{ month.name }}
+                    </ion-select-option>
+                </ion-select>
+            </ion-item>
+            <ion-item *ngIf="getDateParamVisibility('date')">
+                <ion-input
+                    labelPlacement="floating"
+                    formControlName="date"
+                    [maskito]="dateMask"
+                    [maskitoElement]="maskPredicate"
+                    placeholder="YYYY.MM.DD"
+                >
+                    <div slot="label">Date</div>
+                </ion-input>
+            </ion-item>
+        </div>
+        <ion-button
+            expand="full"
+            (click)="addPeriod()"
+            type="button"
+        >Add
+            period</ion-button>
+    </div>
+    <div>
+        <ion-button
+            expand="full"
+            (click)="onSubmit()"
+            type="button"
+        >Submit</ion-button>
+    </div>
+</form>

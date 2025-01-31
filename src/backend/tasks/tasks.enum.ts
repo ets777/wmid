@@ -1,4 +1,4 @@
 export enum TaskRelationType {
-  ADDITIONAL = 1,
-  EXCLUDED,
+    ADDITIONAL = 1,
+    EXCLUDED,
 }

@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+    mysql:
+        image: mysql:latest
+        container_name: wmid-database
+        environment:
+            MYSQL_ROOT_PASSWORD: ololo
+            MYSQL_DATABASE: wmid
+        volumes:
+            - wmid-data:/var/lib/mysql
+        ports:
+            - "3306:3306"
+
+volumes:
+    wmid-data:

@@ -1,0 +1,52 @@
+.task-links {
+    text-align: center;
+}
+
+.main-task {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+// h5
+//     font-weight: normal
+//     margin: 10px 0
+//     color: grey
+
+// ul
+//     list-style-type: none
+//     margin: 0
+//     padding: 0
+
+.buttons {
+    display: flex;
+    justify-content: space-around;
+}
+
+// ::ng-deep .snackbar
+//     background-color: #f1f1f1
+//     color: #666666
+
+// .button-icon
+//     width: 16px
+
+.split-button {    
+    .left {
+        --border-radius: 4px 0 0 4px;
+        height: 40px;
+        margin-right: 0;
+        border-right: 1px solid color-mix(in oklab, var(--ion-color-primary) 75%, white);
+    }
+    
+    .right {
+        --border-radius: 0 4px 4px 0;
+        height: 40px;
+        margin-left: 0;
+    }
+}
+
+ion-button {
+    --box-shadow: none;
+    height: 40px;
+    letter-spacing: 0;
+}

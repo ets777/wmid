@@ -2,12 +2,12 @@ import { IsNumber, IsString } from 'class-validator';
 import { Status } from '../task-appointments.enum';
 
 export class CommonTaskAppointmentDto {
-  @IsNumber(null, { message: 'Должно быть числом' })
+  @IsNumber(null, { message: 'Must be a number' })
   statusId: Status;
 
-  @IsString({ message: 'Должно быть строкой' })
+  @IsString({ message: 'Must be a string' })
   startDate?: string;
 
-  @IsString({ message: 'Должно быть строкой' })
+  @IsString({ message: 'Must be a string' })
   endDate?: string;
 }

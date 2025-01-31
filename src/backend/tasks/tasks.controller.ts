@@ -1,92 +1,128 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-  Patch,
-  Req,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Post,
+    UseGuards,
+    Patch,
+    Req,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { ITask } from './tasks.interface';
-import { CreateTaskControllerDto } from './dto/create-task-controller.dto';
+import { CreateTaskDto } from './dto/create-task.dto';
 import { RolesGuard } from '@backend/auth/guards/roles.guard';
 import { AccessTokenGuard } from '@backend/auth/guards/accessToken.guard';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AuthorGuard } from './guards/author.guard';
 import { Roles } from '@backend/auth/roles-auth.decorator';
-import { AppointedTaskDto } from './dto/apointed-task.dto';
-import { AppointTaskParamsDto } from './dto/apointed-task-params.dto';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Task } from './tasks.model';
+import { TaskAppointmentsService } from '@backend/task-appointments/task-appointments.service';
+import { TaskPeriodsService } from '@backend/task-periods/task-periods.service';
 
+@ApiTags('Tasks')
 @Controller('tasks')
 @Roles('user')
 @UseGuards(AccessTokenGuard, RolesGuard)
 export class TasksController {
-  constructor(private tasksService: TasksService) {}
+    constructor(
+        private readonly tasksService: TasksService,
+        private readonly taskAppointmentsService: TaskAppointmentsService,
+        private readonly taskPeriodsService: TaskPeriodsService,
+    ) { }
 
-  @Post()
-  create(
-    @Body() dto: CreateTaskControllerDto,
-    @Req() req: any,
-  ): Promise<number> {
-    delete req.user.iat;
-    delete req.user.exp;
+    @Get('test')
+    async test(): Promise<Task> {
+        const lastTask = await this.tasksService.getTaskById(6);
+        const [nextTask] = await this.tasksService.getFilteredTaskChain(
+            lastTask,
+            this.tasksService.getTaskChainAfterCurrentTask,
+        );
 
-    return this.tasksService.createTask(dto, req.user);
-  }
+        return nextTask;
+    }
 
-  @UseGuards(AuthorGuard)
-  @Delete('/:id')
-  delete(@Param('id') id: number): Promise<number> {
-    return this.tasksService.deleteTask(id);
-  }
+    @ApiOperation({ summary: 'Create a task' })
+    @ApiResponse({ status: 200, type: Task })
+    @ApiBody({ type: CreateTaskDto })
+    @Post()
+    create(
+        @Body() dto: CreateTaskDto,
+        @Req() req: any,
+    ): Promise<Task> {
+        delete req.user.iat;
+        delete req.user.exp;
 
-  @UseGuards(AuthorGuard)
-  @Patch('/:id')
-  update(
-    @Param('id') id: number,
-    @Body() taskDto: UpdateTaskDto,
-  ): Promise<number> {
-    return this.tasksService.updateTask(id, taskDto);
-  }
+        return this.tasksService.createTask(dto, req.user);
+    }
 
-  @Post('/appoint')
-  appoint(
-    @Body() appointTaskParamsDto: AppointTaskParamsDto,
-  ): Promise<AppointedTaskDto | null> {
-    return this.tasksService.appointTask(appointTaskParamsDto);
-  }
+    @ApiOperation({ summary: 'Удаление задания' })
+    @ApiResponse({ status: 200, type: Number })
+    @UseGuards(AuthorGuard)
+    @Delete('/:id')
+    delete(@Param('id') id: number): Promise<number> {
+        return this.tasksService.deleteTask(id);
+    }
 
-  @Post('/complete')
-  complete(@Body() appointedTaskDto: AppointedTaskDto): Promise<number> {
-    return this.tasksService.completeTask(appointedTaskDto);
-  }
+    @ApiOperation({ summary: 'Обновление задания' })
+    @ApiResponse({ status: 200, type: Number })
+    @UseGuards(AuthorGuard)
+    @Patch('/:id')
+    update(
+        @Param('id') id: number,
+        @Body() taskDto: UpdateTaskDto,
+    ): Promise<number> {
+        return this.tasksService.updateTask(id, taskDto);
+    }
 
-  @Post('/reject')
-  reject(@Body() appointedTaskDto: AppointedTaskDto): Promise<number> {
-    return this.tasksService.rejectTask(appointedTaskDto);
-  }
+    @ApiOperation({ summary: 'Назначение задания' })
+    @ApiResponse({ status: 200, type: Task })
+    @Post('/appoint')
+    appoint(): Promise<Task | null> {
+        return this.tasksService.appointTask();
+    }
 
-  @Post('/postpone')
-  postpone(@Body() appointedTaskDto: AppointedTaskDto): Promise<number> {
-    return this.tasksService.postponeTask(appointedTaskDto);
-  }
+    @ApiOperation({ summary: 'Завершение задания' })
+    @ApiResponse({ status: 200, type: Number })
+    @Post('/complete/:id')
+    complete(@Param('id') id: number): Promise<number> {
+        return this.tasksService.completeTask(id);
+    }
 
-  @Get()
-  getAll(): Promise<ITask[]> {
-    return this.tasksService.getAllTasks();
-  }
+    // @ApiOperation({ summary: 'Отмена задания' })
+    // @ApiResponse({ status: 200, type: Number })
+    // @Post('/reject')
+    // reject(@Body() appointedTaskDto: AppointedTaskDto): Promise<number> {
+    //     return this.tasksService.rejectTask(appointedTaskDto);
+    // }
 
-  @Get('/getCurrent')
-  getCurrent(): Promise<AppointedTaskDto> {
-    return this.tasksService.getCurrent();
-  }
+    // @ApiOperation({ summary: 'Перенос задания' })
+    // @ApiResponse({ status: 200, type: Number })
+    // @Post('/postpone')
+    // postpone(@Body() appointedTaskDto: AppointedTaskDto): Promise<number> {
+    //     return this.tasksService.postponeTask(appointedTaskDto);
+    // }
 
-  @UseGuards(AuthorGuard)
-  @Get('/:id')
-  getById(@Param('id') id: number): Promise<ITask> {
-    return this.tasksService.getTaskById(id);
-  }
+    @ApiOperation({ summary: 'Получение всех заданий' })
+    @ApiResponse({ status: 200, type: [Task] })
+    @Get()
+    getAll(): Promise<Task[]> {
+        return this.tasksService.getAllTasks();
+    }
+
+    @ApiOperation({ summary: 'Получение текущего задания' })
+    @ApiResponse({ status: 200, type: Task })
+    @Get('/getCurrent')
+    getCurrent(): Promise<Task> {
+        return this.tasksService.getCurrentTask();
+    }
+
+    @ApiOperation({ summary: 'Выбор задания по ID' })
+    @ApiResponse({ status: 200, type: Task })
+    //@UseGuards(AuthorGuard)
+    @Get('/:id')
+    getById(@Param('id') id: number): Promise<Task> {
+        return this.tasksService.getTaskById(id);
+    }
 }

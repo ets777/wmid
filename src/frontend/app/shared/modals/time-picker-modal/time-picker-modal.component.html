@@ -1,0 +1,16 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-title>{{ header }}</ion-title>
+        <ion-buttons slot="end">
+            <ion-button (click)="dismiss(false)">Close</ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+<ion-content>
+    <p>{{ text }}</p>
+    <ion-datetime hour-cycle="h23" presentation="time" [formControl]="control"></ion-datetime>
+    <ion-footer>
+        <ion-button expand="block" color="danger" (click)="dismiss(true)">{{ confirmText }}</ion-button>
+        <ion-button expand="block" (click)="dismiss(false)">{{ cancelText }}</ion-button>
+    </ion-footer>
+</ion-content>
