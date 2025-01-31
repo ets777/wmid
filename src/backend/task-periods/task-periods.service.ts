@@ -1,66 +1,121 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ITaskPeriod } from './task-periods.interface';
+import { Injectable } from '@nestjs/common';
 import { CreateTaskPeriodDto } from './dto/create-task-period.dto';
-import { DB_CONNECTION } from '@backend/database/database.module';
-import { ResultSetHeader } from 'mysql2/promise';
-import { DatabaseHelper } from '@backend/database/database.helper';
-import { CommonHelper } from '@backend/library/common.helper';
-import { DatabaseTable } from '@backend/database/database.enum';
+import { InjectModel } from '@nestjs/sequelize';
+import { TaskPeriod } from './task-periods.model';
+import { PeriodFilter, IProcessOptions } from '@backend/filters/process-options.interface';
+import { TaskAppointmentsService } from '@backend/task-appointments/task-appointments.service';
+import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-periods.filter';
+import { Status } from '@backend/task-appointments/task-appointments.enum';
+import { IncludeService } from '@backend/services/include.service';
 
 @Injectable()
 export class TaskPeriodsService {
-  constructor(@Inject(DB_CONNECTION) private mysqlConnection: any) {}
+    constructor(
+        @InjectModel(TaskPeriod)
+        private taskPeriodRepository: typeof TaskPeriod,
+        private readonly taskAppointmentsService: TaskAppointmentsService,
+        private readonly periodsFilter: TaskPeriodsFilterService,
+        private readonly includeService: IncludeService,
+    ) { }
 
-  async createTaskPeriod(
-    createTaskPeriodDto: CreateTaskPeriodDto,
-  ): Promise<number> {
-    const fields = [
-      'typeId',
-      'startTime',
-      'endTime',
-      'weekday',
-      'day',
-      'month',
-      'date',
-      'taskId',
-    ];
+    async createTaskPeriod(dto: CreateTaskPeriodDto): Promise<TaskPeriod> {
+        const task = await this.taskPeriodRepository.create(dto);
 
-    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(
-      DatabaseHelper.getSqlInsert(
-        DatabaseTable.TSK_PERIODS,
-        CommonHelper.filterObjectProperties(createTaskPeriodDto, fields),
-      ),
-    );
+        return task;
+    }
 
-    return result.affectedRows;
-  }
+    async deleteTaskPeriod(id: number): Promise<number> {
+        const affectedRows = await this.taskPeriodRepository.destroy({
+            where: { id },
+        });
 
-  async deleteTaskPeriod(id: number): Promise<number> {
-    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(`
-      delete from ${DatabaseTable.TSK_PERIODS} 
-      where id = '${id}'
-    `);
+        return affectedRows;
+    }
 
-    return result.affectedRows;
-  }
+    async getTaskPeriodById(periodId: number): Promise<TaskPeriod> {
+        const taskPeriod = await this.taskPeriodRepository.findOne({
+            ...this.includeService.getAppointmentsInclude(),
+            where: {
+                id: periodId,
+            },
+        });
 
-  async getTaskCategoryById(id: number): Promise<ITaskPeriod> {
-    const [[taskAppointment]]: [[ITaskPeriod]] = await this.mysqlConnection
-      .query(`
-        select 
-          id,
-          typeId,
-          taskId,
-          startTime,
-          endTime,
-          weekday,
-          day,
-          month,
-          date
-        from ${DatabaseTable.TSK_PERIODS}
-        where id = ${id}
-      `);
+        return taskPeriod;
+    }
 
-    return taskAppointment;
-  }
+    /**
+     * Applies a list of filters to an array of TaskPeriods. Each filter can be 
+     * a single function or an array of functions. Single functions are treated 
+     * as AND conditions, while arrays of functions are treated as OR conditions.
+     * 
+     * Example: [a, b, [c, d]] = a && b && (c || d)
+     */
+    filterPeriods(
+        periods: TaskPeriod[],
+        filters: PeriodFilter[],
+    ): TaskPeriod[] {
+        return periods.filter(
+            (period) => filters.every(
+                filter => {
+                    if (Array.isArray(filter)) {
+                        return filter.some(
+                            (filter) => filter.call(this.periodsFilter, period),
+                        );
+                    }
+                    return filter.call(this.periodsFilter, period);
+                }
+            )
+        );
+    }
+
+    processTaskPeriods(
+        periods: TaskPeriod[],
+        options: IProcessOptions,
+    ): TaskPeriod[] {
+        periods = this.filterPeriods(periods, options.periodFilters);
+
+        if (options.sort) {
+            periods = this.sortPeriods(periods);
+        }
+
+        return periods;
+    }
+
+    sortPeriods(periods: TaskPeriod[]): TaskPeriod[] {
+        return periods
+            .sort(
+                (periodA, periodB) =>
+                    periodA.startTime < periodB.startTime ? -1 : 1,
+            );
+    }
+
+    async getCurrentPeriod(): Promise<TaskPeriod> {
+        const periodId = await this.taskAppointmentsService
+            .getCurrentAppointmentPeriodId();
+
+        console.log('periodId', periodId);
+
+        if (!periodId) {
+            return null;
+        }
+
+        return await this.getTaskPeriodById(periodId);
+    }
+
+    async setAppointmentCompleted(period: TaskPeriod): Promise<number> {
+        const appointment = period.appointments.find(
+            (appointment) => appointment.statusId == Status.APPOINTED,
+        );
+
+        return await this.taskAppointmentsService
+            .setAppointmentCompleted(appointment);
+    }
+
+    getAppointedPeriod(periods: TaskPeriod[]): TaskPeriod {
+        return periods.find(
+            (period) => period.appointments.some(
+                (appointment) => appointment.statusId === Status.APPOINTED
+            )
+        );
+    }
 }

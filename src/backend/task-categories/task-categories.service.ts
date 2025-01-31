@@ -1,92 +1,69 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { ITaskCategory } from './task-categories.interface';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateTaskCategoryDto } from './dto/create-task-category.dto';
 import { UpdateTaskCategoryDto } from './dto/update-task-category.dto';
-import { DB_CONNECTION } from '@backend/database/database.module';
-import { ResultSetHeader } from 'mysql2';
-import { DatabaseHelper } from '@backend/database/database.helper';
-import { DatabaseTable } from '@backend/database/database.enum';
-import { CommonHelper } from '@backend/library/common.helper';
+import { InjectModel } from '@nestjs/sequelize';
+import { TaskCategory } from './task-categories.model';
 
 @Injectable()
 export class TaskCategoriesService {
-  constructor(@Inject(DB_CONNECTION) private mysqlConnection: any) {}
+    constructor(
+        @InjectModel(TaskCategory)
+        private taskCategoryRepository: typeof TaskCategory,
+    ) { }
 
-  async createTaskCategory(
-    createTaskCategoryDto: CreateTaskCategoryDto,
-  ): Promise<number> {
-    const fields = ['code', 'name'];
+    async createTaskCategory(
+        createTaskCategoryDto: CreateTaskCategoryDto,
+    ): Promise<TaskCategory> {
+        createTaskCategoryDto.code = createTaskCategoryDto.code.toUpperCase();
+        const taskCategory = await this.taskCategoryRepository.create(createTaskCategoryDto);
 
-    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(
-      DatabaseHelper.getSqlInsert(
-        DatabaseTable.TSK_CATEGORIES,
-        CommonHelper.filterObjectProperties(
-          {
-            ...createTaskCategoryDto,
-            code: createTaskCategoryDto.code.toUpperCase(),
-          },
-          fields,
-        ),
-      ),
-    );
-
-    return result.affectedRows;
-  }
-
-  async deleteTaskCategory(code: string): Promise<number> {
-    const [result]: [ResultSetHeader] = await this.mysqlConnection.query(`
-      delete from ${DatabaseTable.TSK_CATEGORIES} 
-      where code = '${code.toUpperCase()}'
-    `);
-
-    return result.affectedRows;
-  }
-
-  async getTaskCategoryByCode(code: string): Promise<ITaskCategory> {
-    const [[taskCategory]]: [[ITaskCategory]] = await this.mysqlConnection
-      .query(`
-        select 
-          id,
-          code,
-          name
-        from ${DatabaseTable.TSK_CATEGORIES}
-        where code = ${code.toUpperCase}
-      `);
-
-    return taskCategory;
-  }
-
-  async getAllTaskCategories(): Promise<ITaskCategory[]> {
-    const [taskCategories]: [ITaskCategory[]] = await this.mysqlConnection
-      .query(`
-        select 
-          id,
-          code,
-          name
-        from ${DatabaseTable.TSK_CATEGORIES}
-      `);
-
-    return taskCategories;
-  }
-
-  async updateTaskCategory(
-    code: string,
-    data: UpdateTaskCategoryDto,
-  ): Promise<number> {
-    const taskCategory = await this.getTaskCategoryByCode(code);
-
-    if (!taskCategory) {
-      throw new HttpException('Категория не найдена', HttpStatus.NOT_FOUND);
+        return taskCategory;
     }
 
-    const filteredData = CommonHelper.filterObjectProperties(data, ['name']);
+    async deleteTaskCategory(code: string): Promise<number> {
+        const affectedRows = await this.taskCategoryRepository.destroy({
+            where: { code: code.toUpperCase() },
+        });
 
-    const [updateResult]: [ResultSetHeader] = await this.mysqlConnection.query(
-      DatabaseHelper.getSqlUpdate(DatabaseTable.TSK_CATEGORIES, filteredData, {
-        id: taskCategory.id,
-      }),
-    );
+        return affectedRows;
+    }
 
-    return updateResult.affectedRows;
-  }
+    async getTaskCategoryByCode(code: string): Promise<TaskCategory> {
+        const task = await this.taskCategoryRepository.findOne({
+            where: { code: code.toUpperCase() },
+        });
+
+        return task;
+    }
+
+    async getAllTaskCategories(): Promise<TaskCategory[]> {
+        const taskCategories = await this.taskCategoryRepository.findAll({
+            include: { all: true },
+        });
+
+        return taskCategories;
+    }
+
+    async updateTaskCategory(
+        code: string,
+        data: UpdateTaskCategoryDto,
+    ): Promise<number> {
+        const taskCategory = await this.taskCategoryRepository.findOne({
+            where: { code: code.toUpperCase() },
+        });
+
+        if (!taskCategory) {
+            throw new HttpException('Роль не найдена', HttpStatus.NOT_FOUND);
+        }
+        
+        const updatedTaskCategory = await this.taskCategoryRepository.update(
+            data,
+            {
+                where: { code: code.toUpperCase() },
+            },
+        );
+        const [affectedRows] = updatedTaskCategory;
+
+        return affectedRows;
+    }
 }

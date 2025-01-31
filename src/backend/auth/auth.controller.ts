@@ -5,39 +5,51 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 import { AccessTokenGuard } from './guards/accessToken.guard';
 import { UserCredentialsDto } from '@backend/users/dto/user-credentials.dto';
 import { RefreshTokenGuard } from './guards/refreshToken.guard';
+import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { UserBasicAttrDto } from '../users/dto/user-basic-attr.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+    constructor(private authService: AuthService) { }
 
-  @Post('/sign-in')
-  signIn(@Body() userDto: UserCredentialsDto): Promise<AuthResponseDto> {
-    return this.authService.signIn(userDto);
-  }
+    @ApiOperation({ summary: 'Вход' })
+    @ApiResponse({ status: 200, type: AuthResponseDto })
+    @ApiBody({ type: UserBasicAttrDto })
+    @Post('/sign-in')
+    signIn(@Body() userDto: UserCredentialsDto): Promise<AuthResponseDto> {
+        return this.authService.signIn(userDto);
+    }
 
-  @UseGuards(AccessTokenGuard)
-  @Get('/sign-out')
-  signOut(@Req() req: any): Promise<boolean> {
-    return this.authService.signOut(req.user.username);
-  }
+    @ApiOperation({ summary: 'Выход' })
+    @ApiResponse({ status: 200, type: Boolean })
+    @UseGuards(AccessTokenGuard)
+    @Get('/sign-out')
+    signOut(@Req() req: any): Promise<boolean> {
+        return this.authService.signOut(req.user.username);
+    }
 
-  @Post('/sign-up')
-  signUp(@Body() userDto: CreateUserDto): Promise<AuthResponseDto> {
-    return this.authService.signUp(userDto);
-  }
+    @ApiOperation({ summary: 'Регистрация' })
+    @ApiResponse({ status: 200, type: AuthResponseDto })
+    @ApiBody({ type: CreateUserDto })
+    @Post('/sign-up')
+    signUp(@Body() userDto: CreateUserDto): Promise<AuthResponseDto> {
+        return this.authService.signUp(userDto);
+    }
 
-  @UseGuards(RefreshTokenGuard)
-  @Get('/refresh')
-  refreshTokens(@Req() req: any): Promise<AuthResponseDto> {
-    return this.authService.refreshTokens(
-      req.user.username,
-      req.user.refreshToken,
-    );
-  }
+    @ApiOperation({ summary: 'Обновление токенов' })
+    @ApiResponse({ status: 200, type: AuthResponseDto })
+    @UseGuards(RefreshTokenGuard)
+    @Get('/refresh')
+    refreshTokens(@Req() req: any): Promise<AuthResponseDto> {
+        return this.authService.refreshTokens(
+            req.user.username,
+            req.user.refreshToken,
+        );
+    }
 
-  @UseGuards(AccessTokenGuard)
-  @Get('/check')
-  checkAuth(): boolean {
-    return true;
-  }
+    @UseGuards(AccessTokenGuard)
+    @Get('/check')
+    checkAuth(): boolean {
+        return true;
+    }
 }

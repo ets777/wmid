@@ -1,0 +1,9 @@
+<h2>Цели</h2>
+
+<div class="goal" *ngFor="let goal of goalProgress">
+    <div class="goal-header">
+        <div>{{ goal.text }}</div>
+        <div>{{ (goal.completed * 100 / goal.total) | number: '1.0-0' }} %</div>
+    </div>
+    <ion-progress-bar value="{{ goal.completed / goal.total }}"></ion-progress-bar>
+</div>

@@ -8,10 +8,11 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from '@backend/users/dto/create-user.dto';
 import { UsersService } from '@backend/users/users.service';
 import * as bcrypt from 'bcryptjs';
-import { IUser } from '@backend/users/users.interface';
 import { ConfigService } from '@nestjs/config';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { UserCredentialsDto } from '@backend/users/dto/user-credentials.dto';
+import { UserBasicAttrDto } from '@backend/users/dto/user-basic-attr.dto';
+import { User } from '@backend/users/users.model';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +22,7 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async signIn(userDto: UserCredentialsDto): Promise<AuthResponseDto> {
+  async signIn(userDto: UserBasicAttrDto): Promise<AuthResponseDto> {
     const user = await this.validateUser(userDto);
     const tokens = await this.getTokens(user);
     await this.updateRefreshToken(user.username, tokens.refreshToken);
@@ -87,7 +88,7 @@ export class AuthService {
     return tokens;
   }
 
-  private async getTokens(user: IUser): Promise<AuthResponseDto> {
+  private async getTokens(user: User): Promise<AuthResponseDto> {
     const payload = {
       username: user.username,
       id: user.id,
@@ -128,7 +129,7 @@ export class AuthService {
     return password ? await bcrypt.hash(password, 5) : null;
   }
 
-  private async validateUser(userDto: UserCredentialsDto): Promise<IUser> {
+  private async validateUser(userDto: UserCredentialsDto): Promise<User> {
     const user = await this.usersService.getUserByName(userDto.username);
     const passwordsEqual = await bcrypt.compare(
       userDto.password,

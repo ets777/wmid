@@ -1,18 +1,22 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "target": "ES2022",
-    "sourceMap": true,
-    "outDir": "../../dist/backend",
-    "baseUrl": "./",
-    "incremental": true,
-    "paths": { 
-      "@backend/*": ["./*"] 
-    }
-  },
-  "exclude": ["common"]
+    "compilerOptions": {
+        "module": "commonjs",
+        "declaration": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "target": "ES2022",
+        "sourceMap": true,
+        "outDir": "../../dist/backend",
+        "baseUrl": "./",
+        "incremental": true,
+        "paths": {
+            "@backend/*": [
+                "./*"
+            ]
+        }
+    },
+    "exclude": [
+        "common"
+    ]
 }

@@ -1,0 +1,60 @@
+<form [formGroup]="addMealForm" (ngSubmit)="onSubmit()">
+    <h3>Добавить задание</h3>
+
+    <div>
+        <ion-item>
+            <ion-label position="floating">Дата</ion-label>
+            <ion-datetime displayFormat="MM/DD/YYYY" formControlName="date"></ion-datetime>
+        </ion-item>
+    </div>
+
+    <div>
+        <ion-item>
+            <ion-label position="floating">Приём пищи</ion-label>
+            <ion-select formControlName="mealTypeId">
+                <ion-select-option *ngFor="let mealType of mealTypes" [value]="mealType.id">
+                    {{ mealType.name }}
+                </ion-select-option>
+            </ion-select>
+        </ion-item>
+    </div>
+
+    <div formArrayName="products">
+        <ion-button expand="full" (click)="addProduct()" type="button">
+            Добавить продукт
+        </ion-button>
+        <div *ngFor="let product of getProducts().controls; let i = index" [formGroupName]="i">
+            <ion-item>
+                <ion-checkbox slot="start" formControlName="new"></ion-checkbox>
+                <ion-label>Новый</ion-label>
+            </ion-item>
+            <div *ngIf="!getNewCheckboxValue(i)">
+                <ion-item>
+                    <ion-label position="floating">Продукт</ion-label>
+                    <ion-input type="text" formControlName="id"></ion-input>
+                </ion-item>
+            </div>
+            <div *ngIf="getNewCheckboxValue(i)">
+                <ion-item>
+                    <ion-label position="floating">Название</ion-label>
+                    <ion-input type="text" formControlName="name"></ion-input>
+                </ion-item>
+                <ion-item>
+                    <ion-label position="floating">Калорийность</ion-label>
+                    <ion-input type="text" formControlName="calories"></ion-input>
+                </ion-item>
+            </div>
+            <ion-item>
+                <ion-label position="floating">Вес</ion-label>
+                <ion-input type="text" formControlName="weight"></ion-input>
+            </ion-item>
+            <ion-button expand="full" color="danger" (click)="removeProduct(i)" type="button">
+                Удалить продукт
+            </ion-button>
+        </div>
+    </div>
+
+    <div>
+        <ion-button expand="full" color="primary" type="submit">Добавить</ion-button>
+    </div>
+</form>
