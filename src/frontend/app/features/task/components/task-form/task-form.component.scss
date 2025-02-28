@@ -1,5 +1,7 @@
 .period-header {
     padding: 15px;
+    display: flex;
+    align-items: center;
     
     .period-number {
         font-size: 1.5rem;
@@ -13,7 +15,11 @@
     }
 
     .period-link {
-        margin-right: 10px;
+        margin-right: 15px;
+        padding: 10px;
+        color: white;
+        border-radius: 15px;
+        background-color: var(--ion-color-primary);
     }
 }
 

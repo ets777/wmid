@@ -10,13 +10,17 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { LayoutsModule } from 'app/layouts/layouts.module';
 import { SharedModule } from 'app/shared/shared.module';
 import { MaskitoDirective } from '@maskito/angular';
+import { TaskListPageComponent } from './pages/task-list-page/task-list-page.component';
+import { TaskRandomComponent } from './components/task-random/task-random.component';
 
 @NgModule({
     declarations: [
         TaskAddPageComponent,
         TaskEditPageComponent,
+        TaskListPageComponent,
         TaskListComponent,
         TaskFormComponent,
+        TaskRandomComponent,
     ],
     imports: [
         CommonModule,
@@ -26,6 +30,9 @@ import { MaskitoDirective } from '@maskito/angular';
         LayoutsModule,
         SharedModule,
         MaskitoDirective,
+    ],
+    exports: [
+        TaskRandomComponent,
     ],
 })
 export class TaskModule { }

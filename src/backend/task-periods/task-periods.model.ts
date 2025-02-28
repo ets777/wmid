@@ -7,7 +7,7 @@ import {
     Table,
 } from 'sequelize-typescript';
 import { ApiProperty } from '@nestjs/swagger';
-import { Task } from '../tasks/tasks.model';
+import { Task } from '@backend/tasks/tasks.model';
 import { Month, TaskPeriodType, Weekday } from './task-periods.enum';
 import { TaskAppointment } from '@backend/task-appointments/task-appointments.model';
 
@@ -21,14 +21,14 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.INTEGER,
         allowNull: false,
     })
-    declare typeId: TaskPeriodType;
+    public declare typeId: TaskPeriodType;
 
     @ApiProperty({
         example: 1,
         description: 'Task id',
     })
     @ForeignKey(() => Task)
-    declare taskId: number;
+    public declare taskId: number;
 
     @ApiProperty({
         example: '07:58:00',
@@ -38,7 +38,7 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.TIME,
         allowNull: true,
     })
-    declare startTime: string;
+    public declare startTime: string;
 
     @ApiProperty({
         example: '17:58:00',
@@ -48,7 +48,7 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.TIME,
         allowNull: true,
     })
-    declare endTime: string;
+    public declare endTime: string;
 
     @ApiProperty({
         example: 1,
@@ -58,7 +58,7 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.INTEGER,
         allowNull: true,
     })
-    declare weekday: Weekday;
+    public declare weekday: Weekday;
 
     @ApiProperty({
         example: 1,
@@ -68,7 +68,7 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.INTEGER,
         allowNull: true,
     })
-    declare day: number;
+    public declare day: number;
 
     @ApiProperty({
         example: 1,
@@ -78,7 +78,7 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.INTEGER,
         allowNull: true,
     })
-    declare month: Month;
+    public declare month: Month;
     
     @ApiProperty({
         example: '2024-10-28',
@@ -88,7 +88,7 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.DATEONLY,
         allowNull: true,
     })
-    declare date: string;
+    public declare date: string;
 
     @ApiProperty({
         example: 10,
@@ -98,7 +98,7 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.NUMBER,
         allowNull: true,
     })
-    declare cooldown: number;
+    public declare cooldown: number;
 
     @ApiProperty({
         example: 15,
@@ -108,7 +108,7 @@ export class TaskPeriod extends Model<TaskPeriod> {
         type: DataType.INTEGER,
         allowNull: true,
     })
-    declare offset: number;
+    public declare offset: number;
 
     @ApiProperty({
         example: false,
@@ -119,8 +119,8 @@ export class TaskPeriod extends Model<TaskPeriod> {
         allowNull: false,
         defaultValue: false,
     })
-    declare isImportant: boolean;
+    public declare isImportant: boolean;
 
     @HasMany(() => TaskAppointment)
-    declare appointments: TaskAppointment[];
+    public declare appointments: TaskAppointment[];
 }

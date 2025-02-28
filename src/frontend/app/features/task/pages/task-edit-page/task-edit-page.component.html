@@ -1,3 +1,3 @@
-<app-page>
-    <app-task-form></app-task-form>
+<app-page title="Edit task">
+    <app-task-form *ngIf="task" [task]="task"></app-task-form>
 </app-page>

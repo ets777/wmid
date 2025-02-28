@@ -9,7 +9,7 @@ import { Observable, catchError, map, throwError } from 'rxjs';
 export class AuthGuard {
     constructor(private router: Router, private authService: AuthService) { }
 
-    canActivate(): Observable<boolean> | boolean {
+    public canActivate(): Observable<boolean> | boolean {
         const accessToken = this.authService.getAccessTokenBody();
         const refreshToken = this.authService.getRefreshTokenBody();
 
@@ -32,7 +32,7 @@ export class AuthGuard {
         }
     }
 
-    getCheckAuthObservable(): Observable<boolean> {
+    private getCheckAuthObservable(): Observable<boolean> {
         return this.authService.checkAuth().pipe(
             catchError((err) => {
                 this.router.navigate(['/auth/sign-in']);
@@ -44,7 +44,7 @@ export class AuthGuard {
         );
     }
 
-    getRefreshTokenObservable(): Observable<boolean> {
+    private getRefreshTokenObservable(): Observable<boolean> {
         return this.authService.refreshToken().pipe(
             catchError((err) => {
                 this.router.navigate(['/auth/sign-in']);
@@ -56,7 +56,7 @@ export class AuthGuard {
         );
     }
 
-    redirect(): boolean {
+    private redirect(): boolean {
         this.router.navigate(['/auth/sign-in']);
         return false;
     }

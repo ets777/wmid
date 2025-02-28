@@ -5,7 +5,15 @@ import {
     TaskPeriodType,
     Weekday,
 } from '@backend/task-periods/task-periods.enum';
-export class CreateTaskPeriodDto {
+
+export class UpdateTaskPeriodDto {
+    @ApiProperty({
+        example: 1,
+        description: 'Task period ID',
+    })
+    @IsNumber(null, { message: 'Must be a number' })
+    public id?: number;
+
     @ApiProperty({
         example: 1,
         description: 'ID типа периода',
