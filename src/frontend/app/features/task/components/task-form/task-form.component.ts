@@ -1,7 +1,8 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Task } from '@backend/tasks/tasks.model';
 import { CreateTaskDto } from '@backend/tasks/dto/create-task.dto';
+import { UpdateTaskDto } from '@backend/tasks/dto/update-task.dto';
 import { TaskCategory } from '@backend/task-categories/task-categories.model';
 import { TaskService } from 'app/features/task/services/task.service';
 import { TaskCategoryService } from 'app/features/task/services/task-category.service';
@@ -12,9 +13,11 @@ import { sameTimeValidator } from 'app/features/task/validators/same-time.valida
 import { daysInMonthValidator } from 'app/features/task/validators/days-in-month.validator';
 import { MaskitoElementPredicate, MaskitoOptions } from '@maskito/core';
 import { maskitoTimeOptionsGenerator, maskitoDateOptionsGenerator } from '@maskito/kit';
-import { Subject, takeUntil } from 'rxjs';
+import { forkJoin, Subject, takeUntil } from 'rxjs';
 import { CreateTaskPeriodDto } from '@backend/task-periods/dto/create-task-period.dto';
-
+import { ITask } from '@backend/tasks/tasks.interface';
+import { UpdateTaskPeriodDto } from '@backend/task-periods/dto/update-task-period.dto';
+import { Router } from '@angular/router';
 
 interface IPeriodForm {
     uid: number;
@@ -36,6 +39,8 @@ interface IPeriodForm {
     standalone: false,
 })
 export class TaskFormComponent implements OnInit, OnDestroy {
+    @Input() private task: ITask;
+
     private unsubscribe: Subject<void>;
     protected formTitle = '';
     protected taskForm: FormGroup;
@@ -50,16 +55,16 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     protected previousNextTaskIdValue: number;
     protected previousDurationValue: number;
     protected arePeriodsLinked = true;
-    readonly durationMask: MaskitoOptions = {
+    protected readonly durationMask: MaskitoOptions = {
         mask: [/\d/, /\d/, ':', /[0-5]/, /\d/],
     };
-    readonly timeMask: MaskitoOptions = maskitoTimeOptionsGenerator({
+    protected readonly timeMask: MaskitoOptions = maskitoTimeOptionsGenerator({
         mode: 'HH:MM',
     });
-    readonly dateMask: MaskitoOptions = maskitoDateOptionsGenerator({
+    protected readonly dateMask: MaskitoOptions = maskitoDateOptionsGenerator({
         mode: 'yyyy/mm/dd',
     });
-    readonly maskPredicate: MaskitoElementPredicate =
+    protected readonly maskPredicate: MaskitoElementPredicate =
         async (el) => (el as HTMLIonInputElement).getInputElement();
 
     constructor(
@@ -67,39 +72,18 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         private readonly taskCategoryService: TaskCategoryService,
         private readonly taskService: TaskService,
         private modalController: ModalController,
+        private router: Router,
     ) {
-        this.taskForm = this.formBuilder.group({
-            text: [null, Validators.required],
-            // startDate: [''],
-            // endDate: [''],
-            duration: [null, Validators.required],
-            categoryId: [null, Validators.required],
-            periodTypeId: [null, Validators.required],
-            periods: this.formBuilder.array([], sameTimeValidator()),
-            previousTaskId: [null, Validators.min(1)],
-            previousTaskBreak: [null, Validators.min(0)],
-            nextTaskId: [null, Validators.min(1)],
-            nextTaskBreak: [null, Validators.min(0)],
-            isPartOfChain: [false],
-        });
-
+        this.createForm();
         this.unsubscribe = new Subject<void>();
     }
 
     ngOnInit(): void {
-        this.taskService.getAll()
-            .pipe(takeUntil(this.unsubscribe))
-            .subscribe((tasks: Task[]) => {
-                this.tasks = tasks;
-            });
+        this.setData();
 
-        this.taskCategoryService.getCategories()
-            .pipe(takeUntil(this.unsubscribe))
-            .subscribe((categories: TaskCategory[]) => {
-                this.categories = categories;
-            });
-
-        this.addPeriod();
+        if (this.isAddMode()) {
+            this.addPeriod();
+        }
     }
 
     ngOnDestroy(): void {
@@ -107,16 +91,40 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         this.unsubscribe.complete();
     }
 
-    get periodsForm(): FormArray {
+    protected get periodsForm(): FormArray {
         return this.taskForm.get('periods') as FormArray;
     }
 
-    get previousTaskId(): number {
+    protected get previousTaskId(): number {
         return this.taskForm.value.previousTaskId;
     }
 
-    get nextTaskId(): number {
+    protected get nextTaskId(): number {
         return this.taskForm.value.nextTaskId;
+    }
+
+    private isAddMode(): boolean {
+        return !this.task;
+    }
+
+    private isEditMode(): boolean {
+        return !this.isAddMode();
+    }
+
+    private setData(): void {
+        forkJoin([
+            this.taskService.getAll(),
+            this.taskCategoryService.getCategories(),
+        ])
+            .pipe(takeUntil(this.unsubscribe))
+            .subscribe(([tasks, categories]: [Task[], TaskCategory[]]) => {
+                this.categories = categories;
+                this.tasks = tasks;
+
+                if (this.isEditMode()) {
+                    this.fillForm();
+                }
+            });
     }
 
     protected getAvailableNextTasks(): Task[] {
@@ -127,13 +135,20 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         return this.tasks.filter((task) => task.id !== this.nextTaskId);
     }
 
-    addPeriod(): void {
+    protected addPeriod(): void {
+        const startTime = this.arePeriodsLinked
+            ? this.periodsForm.controls[0]?.value?.startTime
+            : null;
+        const endTime = this.arePeriodsLinked
+            ? this.periodsForm.controls[0]?.value?.endTime
+            : null;
+
         this.periodsForm.push(
             this.formBuilder.group(
                 {
                     uid: [this.lastPeriodUid],
-                    startTime: [null],
-                    endTime: [null],
+                    startTime: [startTime],
+                    endTime: [endTime],
                     weekday: [null, [Validators.min(1), Validators.max(7)]],
                     day: [null, [Validators.min(1), Validators.max(31)]],
                     month: [null, [Validators.min(1), Validators.max(12)]],
@@ -144,14 +159,14 @@ export class TaskFormComponent implements OnInit, OnDestroy {
                 },
                 {
                     validators: daysInMonthValidator(),
-                }
+                },
             ),
         );
 
         this.lastPeriodUid++;
     }
 
-    removePeriod(periodUid: number): void {
+    protected removePeriod(periodUid: number): void {
         const periods = this.periodsForm.value;
         const index = periods.findIndex((period) => period.uid === periodUid);
 
@@ -163,7 +178,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     /**
      * TODO: reset values before hiding
      */
-    getDateParamVisibility(dateParamName: string): boolean {
+    protected getDateParamVisibility(dateParamName: string): boolean {
         const periodType = this.taskForm.value.periodTypeId;
         const isWeekly = periodType === TaskPeriodType.WEEKLY;
         const isMonthly = periodType === TaskPeriodType.MONTHLY;
@@ -181,7 +196,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         return map.find((item) => item.name === dateParamName)?.condition ?? false;
     }
 
-    getPeriodFormGroup(periodUid: number): FormGroup {
+    protected getPeriodFormGroup(periodUid: number): FormGroup {
         const periods = this.periodsForm.value;
         const index = periods.findIndex((period) => period.uid === periodUid);
         const periodGroup = this.periodsForm.at(index) as FormGroup;
@@ -189,7 +204,17 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         return periodGroup;
     }
 
-    onSubmit(): void {
+    protected onSubmit(): void {
+        if (this.isAddMode()) {
+            this.addNewTask();
+        }
+
+        if (this.isEditMode()) {
+            this.updateTask();
+        }
+    }
+
+    private addNewTask(): void {
         const form = this.taskForm.value;
         const createTaskDto: CreateTaskDto = {
             text: form.text,
@@ -201,18 +226,61 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             previousTaskBreak: Number(form.previousTaskBreak) || null,
             isActive: true,
             periods: form.periods.map(
-                (periodForm: IPeriodForm) => this.convertPeriodForm(periodForm)
+                (periodForm: IPeriodForm) => this.convertPeriodFormForCreate(periodForm),
             ),
         };
 
         this.taskService.add(createTaskDto).subscribe((response) => {
-            console.log(response);
+            if (response?.id) {
+                this.goToTaskList();
+            }
         });
-
-        console.log(createTaskDto);
     }
 
-    private convertPeriodForm(periodForm: IPeriodForm): CreateTaskPeriodDto {
+    private goToTaskList(): void {
+        this.router.navigate(['/task/list']);
+    }
+
+    private updateTask(): void {
+        const form = this.taskForm.value;
+        const updateTaskDto: UpdateTaskDto = {
+            id: this.task.id,
+            text: form.text,
+            duration: this.getMinutesFromTimeString(form.duration),
+            categoryId: Number(form.categoryId) || null,
+            nextTaskId: Number(form.nextTaskId) || null,
+            nextTaskBreak: Number(form.nextTaskBreak) || null,
+            previousTaskId: Number(form.previousTaskId) || null,
+            previousTaskBreak: Number(form.previousTaskBreak) || null,
+            isActive: true,
+            periods: form.periods.map(
+                (periodForm: IPeriodForm) => this.convertPeriodFormForUpdate(periodForm),
+            ),
+        };
+
+        this.taskService.update(updateTaskDto).subscribe((response) => {
+            if (response > 0) {
+                this.goToTaskList();
+            }
+        });
+    }
+
+    private convertPeriodFormForUpdate(periodForm: IPeriodForm): UpdateTaskPeriodDto {
+        return {
+            id: periodForm.uid,
+            typeId: this.taskForm.value.periodTypeId,
+            startTime: periodForm.startTime,
+            endTime: periodForm.endTime,
+            weekday: Number(periodForm.weekday) || null,
+            day: Number(periodForm.day) || null,
+            month: Number(periodForm.month) || null,
+            date: periodForm.date,
+            cooldown: Number(periodForm.cooldown) || null,
+            isImportant: periodForm.isImportant,
+        };
+    }
+
+    private convertPeriodFormForCreate(periodForm: IPeriodForm): CreateTaskPeriodDto {
         return {
             typeId: this.taskForm.value.periodTypeId,
             startTime: periodForm.startTime,
@@ -232,7 +300,14 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         return Number(hours) * 60 + Number(minutes);
     }
 
-    getBreakTimeUnits(): string {
+    private getTimeStringFromMinutes(totalMinutes: number): string {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes - hours * 60;
+
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    protected getBreakTimeUnits(): string {
         switch (this.taskForm.value.periodTypeId) {
             case TaskPeriodType.DAILY:
                 return '(hours)';
@@ -246,10 +321,10 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         }
     }
 
-    async checkPreviousTask(e: CustomEvent): Promise<void> {
+    protected async checkPreviousTask(e: CustomEvent): Promise<void> {
         const selectedTaskId = e.detail.value;
         const selectedTask = this.tasks.find(
-            (task) => task.id === selectedTaskId
+            (task) => task.id === selectedTaskId,
         );
 
         if (selectedTask.nextTaskId) {
@@ -303,24 +378,16 @@ export class TaskFormComponent implements OnInit, OnDestroy {
 
     protected changePeriodLinking(): void {
         this.arePeriodsLinked = !this.arePeriodsLinked;
+
+        this.fillPeriodsTimeFromFirstPeriod();
     }
 
-    protected getLinkIcon(): string {
-        return this.arePeriodsLinked ? 'link-slash' : 'link';
-    }
-
-    protected onPeriodValueChanged(): void {
-        console.log('arePeriodsLinked', this.arePeriodsLinked);
-
-        if (!this.arePeriodsLinked) {
+    private fillPeriodsTimeFromFirstPeriod(): void {
+        if (!this.periodsForm.length || !this.arePeriodsLinked) {
             return;
         }
 
         const firstPeriod = this.periodsForm.controls[0].value;
-
-        console.log('firstPeriod', firstPeriod.startTime);
-        console.log('this.periodsForm.controls', this.periodsForm.controls
-            .filter((_, i) => i > 0));
 
         this.periodsForm.controls
             .filter((_, i) => i > 0)
@@ -337,15 +404,99 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             });
     }
 
-    clearField(control: AbstractControl): void {
+    private deteleSeconds(time: string): string {
+        if (!time) {
+            return;
+        }
+
+        const [hours, minutes] = time.split(':');
+
+        return `${hours}:${minutes}`;
+    }
+
+    protected getLinkIcon(): string {
+        return this.arePeriodsLinked ? 'link-slash' : 'link';
+    }
+
+    protected onPeriodValueChanged(): void {
+        this.fillPeriodsTimeFromFirstPeriod();
+    }
+
+    protected clearField(control: AbstractControl): void {
         control.setValue(null);
     }
 
-    validateSameTime(period: AbstractControl): boolean {
+    protected validateSameTime(period: AbstractControl): boolean {
         return this.periodsForm.hasError('timesNotMatching')
             && !period.value.date
             && !period.value.month
             && !period.value.day
             && !period.value.weekday;
+    }
+
+    private createForm(): void {
+        this.taskForm = this.formBuilder.group({
+            text: [null, Validators.required],
+            // startDate: [''],
+            // endDate: [''],
+            duration: [null, Validators.required],
+            categoryId: [null, Validators.required],
+            periodTypeId: [null, Validators.required],
+            periods: this.formBuilder.array([], sameTimeValidator()),
+            previousTaskId: [null, Validators.min(1)],
+            previousTaskBreak: [null, Validators.min(0)],
+            nextTaskId: [null, Validators.min(1)],
+            nextTaskBreak: [null, Validators.min(0)],
+            isPartOfChain: [false],
+        });
+    }
+
+    private fillForm(): void {
+        if (!this.isEditMode()) {
+            return;
+        }
+        
+        const periods = this.task.periods.map(
+            (period) => this.formBuilder.group(
+                {
+                    uid: [period.id],
+                    startTime: [this.deteleSeconds(period.startTime)],
+                    endTime: [this.deteleSeconds(period.endTime)],
+                    weekday: [period.weekday ?? null, [Validators.min(1), Validators.max(7)]],
+                    day: [period.day ?? null, [Validators.min(1), Validators.max(31)]],
+                    month: [period.month ?? null, [Validators.min(1), Validators.max(12)]],
+                    date: [period.date ?? null],
+                    isImportant: [period.isImportant ?? false],
+                    offset: [period.offset ?? null, Validators.min(0)],
+                    cooldown: [period.cooldown ?? null],
+                },
+                {
+                    validators: daysInMonthValidator(),
+                },
+            ),
+        );
+
+        this.lastPeriodUid = this.getMaxPeriodId() + 1;
+
+        this.taskForm = this.formBuilder.group({
+            text: [this.task.text, Validators.required],
+            // startDate: [''],
+            // endDate: [''],
+            duration: [this.getTimeStringFromMinutes(this.task.duration), Validators.required],
+            categoryId: [this.task.categoryId, Validators.required],
+            periodTypeId: [this.task.periods[0].typeId, Validators.required],
+            periods: this.formBuilder.array(periods, sameTimeValidator()),
+            previousTaskId: [this.task.previousTask?.id, Validators.min(1)],
+            previousTaskBreak: [this.task.previousTask?.nextTaskBreak, Validators.min(0)],
+            nextTaskId: [this.task.nextTaskId, Validators.min(1)],
+            nextTaskBreak: [this.task.nextTaskBreak, Validators.min(0)],
+            isPartOfChain: [Boolean(this.task.nextTaskId || this.task.previousTask)],
+        });
+    }
+
+    private getMaxPeriodId(): number {
+        const ids = this.task.periods.map((period) => period.id);
+
+        return Math.max(...ids);
     }
 }

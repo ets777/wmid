@@ -17,6 +17,8 @@ import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-per
 import { IProcessOptions, PeriodFilter } from '@backend/filters/process-options.interface';
 import { TasksFilterService } from '@backend/filters/tasks/task.filter';
 import { TaskLoggerService } from '@backend/services/task-logger.service';
+import { UpdateTaskPeriodDto } from '@backend/task-periods/dto/update-task-period.dto';
+import { ITask } from './tasks.interface';
 
 @Injectable()
 export class TasksService {
@@ -31,10 +33,10 @@ export class TasksService {
         private readonly taskLoggerService: TaskLoggerService,
     ) { }
 
-    async createTask(
+    public async createTask(
         createTaskDto: CreateTaskDto,
         userFromTokenDto: UserFromTokenDto,
-    ): Promise<Task> {
+    ): Promise<ITask> {
         createTaskDto = {
             ...createTaskDto,
             userId: userFromTokenDto.id,
@@ -55,8 +57,8 @@ export class TasksService {
         }
 
         if (
-            Array.isArray(createTaskDto.periods) &&
-            createTaskDto.periods.length > 0
+            Array.isArray(createTaskDto.periods)
+            && createTaskDto.periods.length > 0
         ) {
             createTaskDto.periods
                 .forEach((period: CreateTaskPeriodDto) => {
@@ -68,7 +70,7 @@ export class TasksService {
         return task;
     }
 
-    async deleteTask(id: number): Promise<number> {
+    public async deleteTask(id: number): Promise<number> {
         const task = await this.getTaskById(id);
 
         if (!task) {
@@ -82,19 +84,22 @@ export class TasksService {
         return affectedRows;
     }
 
-    async getTaskById(id: number): Promise<Task> {
+    public async getTaskById(id: number): Promise<Task> {
         const task = await this.taskRepository.findOne({
             include: [
                 { all: true },
                 this.includeService.getPeriodsWithAppointments(),
             ],
-            where: { id },
+            where: { 
+                id,
+                isDeleted: false,
+            },
         });
 
         return task;
     }
 
-    async getTaskByAppointment(appointment: TaskAppointment): Promise<Task> {
+    public async getTaskByAppointment(appointment: TaskAppointment): Promise<Task> {
         const task = await this.taskRepository.findOne({
             include: {
                 model: TaskPeriod,
@@ -108,7 +113,7 @@ export class TasksService {
         return task;
     }
 
-    async getTaskByPeriod(period: TaskPeriod): Promise<Task> {
+    public async getTaskByPeriod(period: TaskPeriod): Promise<Task> {
         if (!period) {
             return null;
         }
@@ -126,7 +131,7 @@ export class TasksService {
         return task;
     }
 
-    async getAllTasks(): Promise<Task[]> {
+    public async getAllTasks(): Promise<Task[]> {
         const tasks = await this.taskRepository.findAll({
             include: [
                 { all: true },
@@ -140,7 +145,7 @@ export class TasksService {
         return tasks;
     }
 
-    async getCurrentTask(): Promise<Task> {
+    public async getCurrentTask(): Promise<Task> {
         const currentPeriod = await this.taskPeriodsService.getCurrentPeriod();
 
         console.log('currentPeriod', currentPeriod);
@@ -148,26 +153,110 @@ export class TasksService {
         return this.getTaskByPeriod(currentPeriod);
     }
 
-    async updateTask(id: number, data: UpdateTaskDto): Promise<number> {
+    public async updateTask(id: number, updateTaskDto: UpdateTaskDto): Promise<number> {
         const task = await this.taskRepository.findOne({ where: { id } });
+        const previousTask = await this.taskRepository.findOne({ where: { nextTaskId: id } });
 
         if (!task) {
             throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
         }
 
-        const updatedData = {
-            ...task,
-            ...data,
-        };
-        const updatedTask = await this.taskRepository.update(updatedData, {
-            where: { id },
-        });
-        const [affectedRows] = updatedTask;
+        const isPreviousTaskChanged = updateTaskDto.previousTaskId && previousTask?.id !== updateTaskDto.previousTaskId;
+        const isPreviousTaskRemoved = previousTask && !updateTaskDto.previousTaskId;
+
+        if (isPreviousTaskChanged) {
+            this.taskRepository.update(
+                {
+                    nextTaskId: task.id,
+                    nextTaskBreak: updateTaskDto.previousTaskBreak,
+                },
+                {
+                    where: { id: updateTaskDto.previousTaskId },
+                },
+            );
+        }
+
+        if (isPreviousTaskRemoved || isPreviousTaskChanged) {
+            this.taskRepository.update(
+                {
+                    nextTaskId: null,
+                    nextTaskBreak: null,
+                },
+                {
+                    where: { id: previousTask.id },
+                },
+            );
+        }
+
+        const [affectedRows] = await this.taskRepository.update(
+            {
+                text: updateTaskDto.text,
+                duration: updateTaskDto.duration,
+                categoryId: updateTaskDto.categoryId,
+                nextTaskId: updateTaskDto.nextTaskId,
+                nextTaskBreak: updateTaskDto.nextTaskBreak,
+                isDeleted: updateTaskDto.isDeleted,
+            },
+            {
+                where: { id },
+            },
+        );
+
+        if (updateTaskDto.periods) {
+            const currentTaskPeriods = await this.taskPeriodsService
+                .getTaskPeriodsByTaskId(task.id);
+
+            const newTaskPeriods = updateTaskDto.periods;
+
+            const taskPeriodsToDelete = currentTaskPeriods.filter(
+                (oldTaskPeriod) => !newTaskPeriods.some(
+                    (newTaskPeriod) => newTaskPeriod.id === oldTaskPeriod.id,
+                ),
+            );
+
+            if (taskPeriodsToDelete.length > 0) {
+                taskPeriodsToDelete
+                    .forEach((period: TaskPeriod) => {
+                        this.taskPeriodsService.deleteTaskPeriod(period.id);
+                    });
+            }
+
+            const taskPeriodsToCreate = newTaskPeriods.filter(
+                (oldTaskPeriod) => !currentTaskPeriods.some(
+                    (newTaskPeriod) => newTaskPeriod.id === oldTaskPeriod.id,
+                ),
+            );
+
+            if (taskPeriodsToCreate.length > 0) {
+                taskPeriodsToCreate
+                    .forEach((period: UpdateTaskPeriodDto) => {
+                        period.taskId = task.id;
+                        // The ID was incremented on the frontend and may not be 
+                        // reliable, so it is removed here.  
+                        delete period.id;
+                        this.taskPeriodsService.createTaskPeriod(period);
+                    });
+            }
+
+            const taskPeriodsToUpdate = newTaskPeriods.filter(
+                (oldTaskPeriod) => currentTaskPeriods.some(
+                    (newTaskPeriod) => newTaskPeriod.id === oldTaskPeriod.id,
+                ),
+            );
+
+            if (taskPeriodsToUpdate.length > 0) {
+                taskPeriodsToUpdate
+                    .forEach((period: UpdateTaskPeriodDto) => {
+                        period.taskId = task.id;
+                        this.taskPeriodsService.updateTaskPeriod(period);
+                    });
+            }
+        }
 
         return affectedRows;
     }
 
-    async completeTask(taskId: number): Promise<number> {
+    public async completeTask(taskId: number): Promise<number> {
         const task = await this.getTaskById(taskId);
         const appointedPeriod = this.taskPeriodsService.getAppointedPeriod(
             task.periods,
@@ -243,7 +332,7 @@ export class TasksService {
     //     return updateResult.affectedRows;
     // }
 
-    async appointTask(): Promise<Task | null> {
+    public async appointTask(): Promise<Task | null> {
         this.taskLoggerService.init();
         this.taskLoggerService.collect('Searching for task to appoint...');
         this.taskLoggerService.collect('Checking next task...');
@@ -251,7 +340,7 @@ export class TasksService {
         const nextTask = await this.appointNextTask();
 
         if (nextTask) {
-            this.taskLoggerService.collect(`Next task (ID: ${nextTask.id}) found and appointed!`);
+            this.taskLoggerService.collect(`Next task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return nextTask;
         }
@@ -262,7 +351,7 @@ export class TasksService {
         const timeTask = await this.appointTimeTask();
 
         if (timeTask) {
-            this.taskLoggerService.collect(`Time task (ID: ${nextTask.id}) found and appointed!`);
+            this.taskLoggerService.collect(`Time task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return timeTask;
         }
@@ -273,7 +362,7 @@ export class TasksService {
         const datedTask = await this.appointDatedTask();
 
         if (datedTask) {
-            this.taskLoggerService.collect(`Dated task (ID: ${nextTask.id}) found and appointed!`);
+            this.taskLoggerService.collect(`Dated task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return datedTask;
         }
@@ -284,7 +373,7 @@ export class TasksService {
         const overdueResult = await this.appointOverdueTask();
 
         if (overdueResult) {
-            this.taskLoggerService.collect(`Overdue task (ID: ${nextTask.id}) found and appointed!`);
+            this.taskLoggerService.collect(`Overdue task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return overdueResult;
         }
@@ -295,7 +384,7 @@ export class TasksService {
         const postponedTask = await this.appointPostponedTask();
 
         if (postponedTask) {
-            this.taskLoggerService.collect(`Postponed task (ID: ${nextTask.id}) found and appointed!`);
+            this.taskLoggerService.collect(`Postponed task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return postponedTask;
         }
@@ -306,7 +395,7 @@ export class TasksService {
         const randomTask = await this.appointRandomTask();
 
         if (randomTask) {
-            this.taskLoggerService.collect(`Random task (ID: ${nextTask.id}) found and appointed!`);
+            this.taskLoggerService.collect(`Random task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return randomTask;
         }
@@ -318,7 +407,7 @@ export class TasksService {
         return null;
     }
 
-    async appointNextTask(): Promise<Task> {
+    public async appointNextTask(): Promise<Task> {
         this.taskLoggerService.collect('Searching for last appointment...');
         const lastAppointment = await this.taskAppointmentsService
             .getLastTaskAppointment();
@@ -333,8 +422,8 @@ export class TasksService {
 
         const lastTask = await this.getTaskByAppointment(lastAppointment);
 
-        this.taskLoggerService.collect(`Last task (ID: ${lastTask.id}) found.`);
-        this.taskLoggerService.collect('Getting chain of tasks after last task...');
+        this.taskLoggerService.collect(`Last task "${lastTask.text}" (ID: ${lastTask.id}) found.`);
+        this.taskLoggerService.collect('Getting next task for last task...');
 
         const [nextTask] = await this.getFilteredTaskChain(
             lastTask,
@@ -342,6 +431,7 @@ export class TasksService {
         );
 
         if (!nextTask) {
+            this.taskLoggerService.collect('Next task not found.');
             return null;
         }
 
@@ -351,7 +441,7 @@ export class TasksService {
                 {
                     statusId: Status.POSTPONED,
                     timeBreak: lastTask.nextTaskBreak,
-                }
+                },
             );
 
             /**
@@ -361,6 +451,9 @@ export class TasksService {
 
             return null;
         }
+
+        this.taskLoggerService.collect(`Next task "${nextTask.text}" (ID: ${nextTask.id}) found.`);
+        this.taskLoggerService.collect('Looking for nearest time task...');
 
         const nearestTimeTask = await this.getNearestTimeTask();
 
@@ -414,6 +507,19 @@ export class TasksService {
             return null;
         }
 
+        this.taskLoggerService.collect('Nearest time task not found.');
+        this.taskLoggerService.collect(`Appointing next task "${nextTask.text}" (ID: ${nextTask.id})...`);
+
+        await this.taskAppointmentsService.createTaskAppointment(nextTask);
+
+        const additionalTasks = await this.appointAdditionalTasks(
+            nextTask,
+        );
+
+        if (additionalTasks?.length > 0) {
+            nextTask.additionalTasks = additionalTasks;
+        }
+
         return nextTask;
     }
 
@@ -421,7 +527,7 @@ export class TasksService {
      * Checks if there is sufficient time to complete the task before the 
      * specified time-bound task begins.
      */
-    hasTimeBeforeTimeTask(task: Task, timeTask: Task): boolean {
+    public hasTimeBeforeTimeTask(task: Task, timeTask: Task): boolean {
         const [timePeriod] = this.taskPeriodsService
             .processTaskPeriods(timeTask.periods, {
                 periodFilters: [
@@ -465,7 +571,7 @@ export class TasksService {
      * Retrieves the task that has the earliest associated period based on start 
      * time.
      */
-    async getNearestTimeTask(): Promise<Task> {
+    public async getNearestTimeTask(): Promise<Task> {
         const tasks = await this.getAllTasks();
 
         /**
@@ -498,7 +604,7 @@ export class TasksService {
      * Retrieves the task that has the earliest associated period based on start 
      * time.
      */
-    async getFirstTaskFromTimedChain(): Promise<Task> {
+    private async getFirstTaskFromTimedChain(): Promise<Task> {
         const timeTask = await this.getNearestTimeTask();
 
         const chain = await this.getFilteredTaskChain(
@@ -535,7 +641,7 @@ export class TasksService {
         return firstAvailableChainTask;
     }
 
-    processTasks(tasks: Task[], options: IProcessOptions): Task[] {
+    public processTasks(tasks: Task[], options: IProcessOptions): Task[] {
         tasks = this.filterTasks(tasks, options);
 
         /**
@@ -552,13 +658,13 @@ export class TasksService {
     /**
      * Filters using the specified filters.
      */
-    filterTasks(tasks: Task[], options: IProcessOptions): Task[] {
+    private filterTasks(tasks: Task[], options: IProcessOptions): Task[] {
         return tasks
             .map((task) => this.filterPeriods(task, options))
             .filter((task) => task.periods.length);
     }
 
-    filterPeriods(task: Task, options: IProcessOptions): Task {
+    private filterPeriods(task: Task, options: IProcessOptions): Task {
         task.periods = this.taskPeriodsService.processTaskPeriods(
             task.periods,
             options,
@@ -570,7 +676,7 @@ export class TasksService {
     /**
      * Sorts tasks by ascending start time of the earliest period.
      */
-    sortTasks(tasks: Task[]): Task[] {
+    private sortTasks(tasks: Task[]): Task[] {
         return tasks.sort(
             (taskA, taskB) =>
                 /**
@@ -581,7 +687,7 @@ export class TasksService {
         );
     }
 
-    async appointAdditionalTasks(task: Task): Promise<Task[]> {
+    public async appointAdditionalTasks(task: Task): Promise<Task[]> {
         const regularAdditionalTasks = await this.appointRegularAdditionalTasks(task);
         const postponedAdditionalTasks = await this.appointPostponedAdditionalTasks(task);
 
@@ -591,7 +697,7 @@ export class TasksService {
         ];
     }
 
-    async appointRegularAdditionalTasks(task: Task): Promise<Task[]> {
+    private async appointRegularAdditionalTasks(task: Task): Promise<Task[]> {
         const additionalTasks = await this.getRegularAdditionalTasks(task);
 
         if (!additionalTasks?.length) {
@@ -607,7 +713,7 @@ export class TasksService {
         return additionalTasks;
     }
 
-    async appointPostponedAdditionalTasks(task: Task): Promise<Task[]> {
+    private async appointPostponedAdditionalTasks(task: Task): Promise<Task[]> {
         const additionalTasks = await this.getPostponedAdditionalTasks(task);
 
         if (!additionalTasks?.length) {
@@ -624,7 +730,7 @@ export class TasksService {
                 {
                     statusId: Status.APPOINTED,
                     startDate: this.dateTimeService.getCurrentDateTime(),
-                }
+                },
             );
         });
 
@@ -784,7 +890,7 @@ export class TasksService {
      * Retrieves a chain of filtered tasks. If no tasks are available, returns 
      * empty array.
      */
-    async getFilteredTaskChain(
+    public async getFilteredTaskChain(
         task: Task,
         getChainFunction: (task: Task) => Promise<Task[]>,
     ): Promise<Task[]> {
@@ -825,7 +931,7 @@ export class TasksService {
      * Retrieves the task chain starting from the task with the given task ID.
      * If the task is not part of any chain, returns empty array.
      */
-    async getTaskChainAfterCurrentTask(task: Task): Promise<Task[]> {
+    public async getTaskChainAfterCurrentTask(task: Task): Promise<Task[]> {
         const chain: Task[] = [];
         let currentTask = task;
 
@@ -850,7 +956,7 @@ export class TasksService {
      * ending before the task with the given task ID.
      * If the task is not part of any chain, returns empty array.
      */
-    async getTaskChainBeforeCurrentTask(task: Task): Promise<Task[]> {
+    private async getTaskChainBeforeCurrentTask(task: Task): Promise<Task[]> {
         const chain: Task[] = [];
         let currentTask = task;
 
@@ -870,7 +976,7 @@ export class TasksService {
         return chain;
     }
 
-    async checkChainBelonging(taskA: Task, taskB: Task): Promise<boolean> {
+    public async checkChainBelonging(taskA: Task, taskB: Task): Promise<boolean> {
         const taskChainId = (await this.getFullTaskChain(taskA)).map(
             (task) => task.id,
         );
@@ -915,7 +1021,7 @@ export class TasksService {
         return processedAdditionalTasks;
     }
 
-    async appointTimeTask(): Promise<Task> {
+    private async appointTimeTask(): Promise<Task> {
         const timeTask = await this.getFirstTaskFromTimedChain();
 
         if (!timeTask) {

@@ -20,6 +20,7 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Task } from './tasks.model';
 import { TaskAppointmentsService } from '@backend/task-appointments/task-appointments.service';
 import { TaskPeriodsService } from '@backend/task-periods/task-periods.service';
+import { ITask } from './tasks.interface';
 
 @ApiTags('Tasks')
 @Controller('tasks')
@@ -33,7 +34,7 @@ export class TasksController {
     ) { }
 
     @Get('test')
-    async test(): Promise<Task> {
+    public async test(): Promise<Task> {
         const lastTask = await this.tasksService.getTaskById(6);
         const [nextTask] = await this.tasksService.getFilteredTaskChain(
             lastTask,
@@ -47,10 +48,10 @@ export class TasksController {
     @ApiResponse({ status: 200, type: Task })
     @ApiBody({ type: CreateTaskDto })
     @Post()
-    create(
+    public create(
         @Body() dto: CreateTaskDto,
         @Req() req: any,
-    ): Promise<Task> {
+    ): Promise<ITask> {
         delete req.user.iat;
         delete req.user.exp;
 
@@ -61,15 +62,15 @@ export class TasksController {
     @ApiResponse({ status: 200, type: Number })
     @UseGuards(AuthorGuard)
     @Delete('/:id')
-    delete(@Param('id') id: number): Promise<number> {
+    public delete(@Param('id') id: number): Promise<number> {
         return this.tasksService.deleteTask(id);
     }
 
-    @ApiOperation({ summary: 'Обновление задания' })
+    @ApiOperation({ summary: 'Task update' })
     @ApiResponse({ status: 200, type: Number })
-    @UseGuards(AuthorGuard)
+    // @UseGuards(AuthorGuard)
     @Patch('/:id')
-    update(
+    public update(
         @Param('id') id: number,
         @Body() taskDto: UpdateTaskDto,
     ): Promise<number> {
@@ -79,14 +80,14 @@ export class TasksController {
     @ApiOperation({ summary: 'Назначение задания' })
     @ApiResponse({ status: 200, type: Task })
     @Post('/appoint')
-    appoint(): Promise<Task | null> {
+    public appoint(): Promise<Task | null> {
         return this.tasksService.appointTask();
     }
 
     @ApiOperation({ summary: 'Завершение задания' })
     @ApiResponse({ status: 200, type: Number })
     @Post('/complete/:id')
-    complete(@Param('id') id: number): Promise<number> {
+    public complete(@Param('id') id: number): Promise<number> {
         return this.tasksService.completeTask(id);
     }
 
@@ -107,14 +108,14 @@ export class TasksController {
     @ApiOperation({ summary: 'Получение всех заданий' })
     @ApiResponse({ status: 200, type: [Task] })
     @Get()
-    getAll(): Promise<Task[]> {
+    public getAll(): Promise<Task[]> {
         return this.tasksService.getAllTasks();
     }
 
     @ApiOperation({ summary: 'Получение текущего задания' })
     @ApiResponse({ status: 200, type: Task })
     @Get('/getCurrent')
-    getCurrent(): Promise<Task> {
+    public getCurrent(): Promise<Task> {
         return this.tasksService.getCurrentTask();
     }
 
@@ -122,7 +123,7 @@ export class TasksController {
     @ApiResponse({ status: 200, type: Task })
     //@UseGuards(AuthorGuard)
     @Get('/:id')
-    getById(@Param('id') id: number): Promise<Task> {
+    public getById(@Param('id') id: number): Promise<Task> {
         return this.tasksService.getTaskById(id);
     }
 }

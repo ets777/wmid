@@ -6,13 +6,13 @@ export class AddRoleDto {
         example: 'admin',
         description: 'Код роли',
     })
-    @IsString({ message: 'Должно быть строкой' })
-    readonly code: string;
+    @IsString({ message: 'Must be a string' })
+    public readonly code: string;
 
     @ApiProperty({
         example: 'user',
         description: 'Имя пользователя',
     })
-    @IsString({ message: 'Должно быть строкой' })
-    readonly username: string;
+    @IsString({ message: 'Must be a string' })
+    public readonly username: string;
 }

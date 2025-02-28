@@ -8,73 +8,73 @@ export class CreateTaskDto {
         example: 'Заправить кровать',
         description: 'Текст задания',
     })
-    @IsString({ message: 'Должно быть строкой' })
-    text: string;
+    @IsString({ message: 'Must be a string' })
+    public text: string;
 
     @ApiProperty({
         example: 20,
         description: 'Продолжительность задания в минутах',
     })
     @IsNumber(null, { message: 'Must be a number' })
-    duration: number;
+    public duration: number;
 
     @ApiProperty({
         example: 1,
         description: 'ID категории задания',
     })
     @IsNumber(null, { message: 'Must be a number' })
-    categoryId: number;
+    public categoryId: number;
 
     @ApiProperty({
         example: true,
         description: 'Флаг активности',
     })
     @IsBoolean({ message: 'Должно быть булевым значением' })
-    isActive?: boolean;
+    public isActive?: boolean;
 
     @ApiProperty({
         example: '2050-01-01',
         description: 'Дата, до которой задание будет активно',
     })
-    @IsString({ message: 'Должно быть строкой' })
-    endDate?: string;
+    @IsString({ message: 'Must be a string' })
+    public endDate?: string;
 
     @ApiProperty({
         example: 1,
         description: 'Next task ID',
     })
-    @Min(1, { message: 'Must be greater than one' })
+    @Min(1, { message: 'Must be greater than zero' })
     @IsNumber(null, { message: 'Must be a number' })
-    nextTaskId?: number;
+    public nextTaskId?: number;
 
     @ApiProperty({
         example: 10,
         description: 'Break before next task in minutes',
     })
     @IsNumber(null, { message: 'Must be a number' })
-    nextTaskBreak?: number;
+    public nextTaskBreak?: number;
 
     @ApiProperty({
         example: 1,
         description: 'Previous task ID',
     })
-    @Min(1, { message: 'Must be greater than one' })
+    @Min(1, { message: 'Must be greater than zero' })
     @IsNumber(null, { message: 'Must be a number' })
-    previousTaskId?: number;
+    public previousTaskId?: number;
 
     @ApiProperty({
         example: 10,
         description: 'Break after previous task in minutes',
     })
     @IsNumber(null, { message: 'Must be a number' })
-    previousTaskBreak?: number;
+    public previousTaskBreak?: number;
 
     @ApiProperty({
         example: 1,
         description: 'ID автора',
     })
     @IsNumber(null, { message: 'Must be a number' })
-    userId?: number;
+    public userId?: number;
 
     @ApiProperty({
         example: [
@@ -86,7 +86,7 @@ export class CreateTaskDto {
         ],
         description: 'Task periods',
     })
-    periods: CreateTaskPeriodDto[];
+    public periods: CreateTaskPeriodDto[];
 }
 
 // {

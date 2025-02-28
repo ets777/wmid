@@ -15,6 +15,7 @@ import { User } from '@backend/users/users.model';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskPeriod } from '@backend/task-periods/task-periods.model';
 import { TaskRelation } from '@backend/task-relations/task-relations.model';
+import { ITask } from './tasks.interface';
 
 @Scopes(() => ({
     additionalTasks: {
@@ -25,7 +26,7 @@ import { TaskRelation } from '@backend/task-relations/task-relations.model';
     },
 }))
 @Table({ tableName: 'tasks' })
-export class Task extends Model<Task, CreateTaskDto> {
+export class Task extends Model<Task, CreateTaskDto> implements ITask {
     @ApiProperty({
         example: 'Заправить кровать',
         description: 'Текст задания',
@@ -34,7 +35,7 @@ export class Task extends Model<Task, CreateTaskDto> {
         type: DataType.STRING,
         allowNull: false,
     })
-    declare text: string;
+    public declare text: string;
 
     @ApiProperty({
         example: 10,
@@ -44,7 +45,7 @@ export class Task extends Model<Task, CreateTaskDto> {
         type: DataType.INTEGER,
         allowNull: true,
     })
-    declare nextTaskBreak: number;
+    public declare nextTaskBreak: number;
 
     @ApiProperty({
         example: '2010-01-01',
@@ -54,7 +55,7 @@ export class Task extends Model<Task, CreateTaskDto> {
         type: DataType.DATEONLY,
         allowNull: true,
     })
-    declare startDate: string;
+    public declare startDate: string;
 
     @ApiProperty({
         example: '2050-01-01',
@@ -64,7 +65,7 @@ export class Task extends Model<Task, CreateTaskDto> {
         type: DataType.DATEONLY,
         allowNull: true,
     })
-    declare endDate: string;
+    public declare endDate: string;
 
     @ApiProperty({
         example: 20,
@@ -74,7 +75,7 @@ export class Task extends Model<Task, CreateTaskDto> {
         type: DataType.INTEGER,
         allowNull: false,
     })
-    declare duration: number;
+    public declare duration: number;
 
     @ApiProperty({
         example: true,
@@ -85,7 +86,7 @@ export class Task extends Model<Task, CreateTaskDto> {
         allowNull: false,
         defaultValue: true,
     })
-    declare isActive: boolean;
+    public declare isActive: boolean;
 
     @ApiProperty({
         example: false,
@@ -96,37 +97,37 @@ export class Task extends Model<Task, CreateTaskDto> {
         allowNull: false,
         defaultValue: false,
     })
-    declare isDeleted: boolean;
+    public declare isDeleted: boolean;
 
     @ApiProperty({
         example: 1,
         description: 'ID следующего задания',
     })
     @ForeignKey(() => Task)
-    declare nextTaskId: number;
+    public declare nextTaskId: number;
 
     @ApiProperty({
         example: 1,
         description: 'ID категории',
     })
     @ForeignKey(() => TaskCategory)
-    declare categoryId: number;
+    public declare categoryId: number;
 
     @ApiProperty({
         example: 1,
         description: 'ID автора',
     })
     @ForeignKey(() => User)
-    declare userId: number;
+    public declare userId: number;
 
     @HasOne(() => Task, { foreignKey: 'nextTaskId', sourceKey: 'id' })
-    declare previousTask: Task;
+    public declare previousTask: Task;
 
     @HasMany(() => TaskPeriod)
-    declare periods: TaskPeriod[];
+    public declare periods: TaskPeriod[];
 
     @HasMany(() => TaskRelation, 'mainTaskId')
-    declare relatedTasks: TaskRelation[];
+    public declare relatedTasks: TaskRelation[];
 
     @BelongsToMany(() => Task, {
         through: {
@@ -138,5 +139,5 @@ export class Task extends Model<Task, CreateTaskDto> {
         otherKey: 'relatedTaskId',
         as: 'additionalTasks',
     })
-    declare additionalTasks: Task[];
+    public declare additionalTasks: Task[];
 }

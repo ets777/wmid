@@ -1,18 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 import { TaskService } from 'app/features/task/services/task.service';
-import { Task } from '@backend/tasks/tasks.model';
 import { ToastController } from '@ionic/angular';
+import { TaskAddPageComponent } from 'app/features/task/pages/task-add-page/task-add-page.component';
+import { ITask } from '@backend/tasks/tasks.interface';
 
 @Component({
-    selector: 'app-index-page',
-    templateUrl: './index-page.component.html',
-    styleUrls: ['./index-page.component.scss'],
+    selector: 'app-task-random',
+    templateUrl: './task-random.component.html',
+    styleUrls: ['./task-random.component.scss'],
     standalone: false,
 })
-export class IndexPageComponent implements OnInit {
-    protected appointedTask: Task;
+export class TaskRandomComponent implements OnInit {
+    protected appointedTask: ITask;
     protected loading = false;
     protected isMenuOpen = false;
+    protected taskAddPageComponent = TaskAddPageComponent;
 
     constructor(
         private taskService: TaskService,
@@ -108,12 +110,12 @@ export class IndexPageComponent implements OnInit {
         await toast.present();
     }
 
-    openMenu(a) {
+    openMenu(a): void {
         this.isMenuOpen = true;
         console.log('lalala');
     }
 
-    closeMenu() {
+    closeMenu(): void {
         this.isMenuOpen = false;
         console.log('lalala');
     }

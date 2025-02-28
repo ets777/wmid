@@ -3,7 +3,7 @@ import { getModelToken } from '@nestjs/sequelize';
 import { TaskPeriodsService } from '@backend/task-periods/task-periods.service';
 import { DateTimeService } from '@backend/services/date-time.service';
 import { TaskPeriod } from './task-periods.model';
-import { TaskPeriodsFilterService } from '../filters/task-periods/task-periods.filter';
+import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-periods.filter';
 import { TaskAppointmentsService } from '@backend/task-appointments/task-appointments.service';
 import { IncludeService } from '@backend/services/include.service';
 

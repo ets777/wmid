@@ -185,7 +185,7 @@
                     <ion-input
                         labelPlacement="floating"
                         formControlName="cooldown"
-                        (ionChange)="onPeriodValueChanged()"
+                        (ionInput)="onPeriodValueChanged()"
                     >
                         <div slot="label">
                             Break until next period {{ getBreakTimeUnits() }}
@@ -199,7 +199,7 @@
                         [maskito]="timeMask"
                         [maskitoElement]="maskPredicate"
                         placeholder="HH:SS"
-                        (ionChange)="onPeriodValueChanged()"
+                        (ionInput)="onPeriodValueChanged()"
                     >
                         <div slot="label">Start time</div>
                     </ion-input>
@@ -210,7 +210,7 @@
                             labelPlacement="end"
                             justify="start"
                             formControlName="isImportant"
-                            (ionChange)="onPeriodValueChanged()"
+                            (ionInput)="onPeriodValueChanged()"
                         >
                             Is important
                         </ion-checkbox>
@@ -219,7 +219,7 @@
                         <ion-input
                             labelPlacement="floating"
                             formControlName="offset"
-                            (ionChange)="onPeriodValueChanged()"
+                            (ionInput)="onPeriodValueChanged()"
                         >
                             <div slot="label">Offset (minutes)</div>
                         </ion-input>
@@ -232,7 +232,7 @@
                         [maskito]="timeMask"
                         [maskitoElement]="maskPredicate"
                         placeholder="HH:SS"
-                        (ionChange)="onPeriodValueChanged()"
+                        (ionInput)="onPeriodValueChanged()"
                     >
                         <div slot="label">End time</div>
                     </ion-input>

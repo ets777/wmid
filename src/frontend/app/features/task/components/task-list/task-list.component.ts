@@ -1,15 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { TaskService } from 'app/features/task/services/task.service';
-import { Task } from '@backend/tasks/tasks.model';
+import { ITask } from '@backend/tasks/tasks.interface';
 
 @Component({
     selector: 'app-task-list',
     templateUrl: './task-list.component.html',
-    styleUrl: './task-list.component.sass',
+    styleUrl: './task-list.component.scss',
     standalone: false,
 })
 export class TaskListComponent implements OnInit {
-    tasks: Task[] = [];
+    protected tasks: ITask[] = [];
 
     constructor(
         private readonly taskService: TaskService,
@@ -19,5 +19,13 @@ export class TaskListComponent implements OnInit {
         this.taskService.getAll().subscribe((tasks) => {
             this.tasks = tasks;
         });
+    }
+
+    protected deleteTask(taskId: number): void {
+        this.taskService.delete(taskId).subscribe((response) => {
+            if (response > 0) {
+                this.tasks = this.tasks.filter((task) => task.id !== taskId)
+            }
+        })
     }
 }

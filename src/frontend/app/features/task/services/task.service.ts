@@ -3,7 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Config } from 'app/core/classes/Config';
 import { Observable } from 'rxjs';
 import { CreateTaskDto } from '@backend/tasks/dto/create-task.dto';
-import { Task } from '@backend/tasks/tasks.model';
+import { ITask } from '@backend/tasks/tasks.interface';
+import { UpdateTaskDto } from '@backend/tasks/dto/update-task.dto';
 
 @Injectable({
     providedIn: 'root',
@@ -11,46 +12,62 @@ import { Task } from '@backend/tasks/tasks.model';
 export class TaskService {
     constructor(private http: HttpClient) { }
 
-    getAll(): Observable<Task[]> {
-        return this.http.get<Task[]>(`${Config.getApiPath()}/tasks`);
+    public getAll(): Observable<ITask[]> {
+        return this.http.get<ITask[]>(`${Config.getApiPath()}/tasks`);
     }
 
-    getCurrent(): Observable<Task> {
-        return this.http.get<Task>(
+    public getById(id: number): Observable<ITask> {
+        return this.http.get<ITask>(`${Config.getApiPath()}/tasks/${id}`);
+    }
+
+    public getCurrent(): Observable<ITask> {
+        return this.http.get<ITask>(
             `${Config.getApiPath()}/tasks/getCurrent`,
         );
     }
 
-    add(task: CreateTaskDto): Observable<CreateTaskDto> {
-        
-        return this.http.post<CreateTaskDto>(
+    public add(task: CreateTaskDto): Observable<ITask> {
+        return this.http.post<ITask>(
             `${Config.getApiPath()}/tasks`,
             task,
         );
     }
 
-    complete(task: Task): Observable<number> {
+    public update(task: UpdateTaskDto): Observable<number> {
+        return this.http.patch<number>(
+            `${Config.getApiPath()}/tasks/${task.id}`,
+            task,
+        );
+    }
+
+    public delete(taskId: number): Observable<number> {
+        return this.http.delete<number>(
+            `${Config.getApiPath()}/tasks/${taskId}`,
+        );
+    }
+
+    public complete(task: ITask): Observable<number> {
         return this.http.post<number>(
             `${Config.getApiPath()}/tasks/complete/${task.id}`,
             {},
         );
     }
 
-    postpone(task: Task): Observable<number> {
+    public postpone(task: ITask): Observable<number> {
         return this.http.post<number>(
             `${Config.getApiPath()}/tasks/postpone`,
             task,
         );
     }
 
-    appoint(): Observable<Task> {
-        return this.http.post<Task>(
+    public appoint(): Observable<ITask> {
+        return this.http.post<ITask>(
             `${Config.getApiPath()}/tasks/appoint`,
             {},
         );
     }
 
-    reject(task: Task): Observable<number> {
+    public reject(task: ITask): Observable<number> {
         return this.http.post<number>(
             `${Config.getApiPath()}/tasks/reject`,
             task,
