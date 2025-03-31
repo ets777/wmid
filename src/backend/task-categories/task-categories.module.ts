@@ -8,14 +8,16 @@ import { User } from '@backend/users/users.model';
 import { UserRole } from '@backend/roles/user-roles.model';
 import { TaskCategory } from './task-categories.model';
 import { Task } from '@backend/tasks/tasks.model';
+import { SessionModule } from '@backend/session/session.module';
 
 @Module({
-  providers: [TaskCategoriesService],
-  controllers: [TaskCategoriesController],
-  imports: [
-    SequelizeModule.forFeature([Role, User, UserRole, Task, TaskCategory]),
-    AuthModule,
-  ],
-  exports: [],
+    providers: [TaskCategoriesService],
+    controllers: [TaskCategoriesController],
+    imports: [
+        SequelizeModule.forFeature([Role, User, UserRole, Task, TaskCategory]),
+        AuthModule,
+        SessionModule,
+    ],
+    exports: [],
 })
-export class TaskCategoriesModule {}
+export class TaskCategoriesModule { }

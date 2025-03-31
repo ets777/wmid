@@ -1,7 +1,7 @@
 import { DateTimeService } from '@backend/services/date-time.service';
 import { Injectable } from '@nestjs/common';
-import { TaskPeriod } from '../../task-periods/task-periods.model';
-import { TaskPeriodType } from '../../task-periods/task-periods.enum';
+import { TaskPeriod } from '@backend/task-periods/task-periods.model';
+import { TaskPeriodType } from '@backend/task-periods/task-periods.enum';
 import { format } from 'date-fns';
 import { Status } from '@backend/task-appointments/task-appointments.enum';
 
@@ -34,7 +34,7 @@ export class TaskPeriodsFilterService {
     /**
      * TODO: take isImportant into consideration while checking the time
      */
-    timeInterval(period: TaskPeriod): boolean {
+    public timeInterval(period: TaskPeriod): boolean {
         return this.dateTimeService.checkTime(
             period.startTime,
             period.endTime,

@@ -61,5 +61,5 @@ export class TaskAppointment extends Model<TaskAppointment> {
     declare taskPeriodId: number;
 
     @BelongsTo(() => TaskPeriod)
-    taskPeriod: TaskPeriod;
+    declare taskPeriod: TaskPeriod;
 }

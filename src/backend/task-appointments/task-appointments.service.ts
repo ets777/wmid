@@ -82,7 +82,7 @@ export class TaskAppointmentsService {
         return appointmentCount;
     }
 
-    async createTaskAppointment(
+    public async createTaskAppointment(
         task: Task,
         options?: { timeBreak?: number, isAdditional?: boolean, statusId?: Status },
     ): Promise<TaskAppointment> {
@@ -108,13 +108,9 @@ export class TaskAppointmentsService {
     }
 
     async getCurrentAppointmentPeriodId(): Promise<number> {
-        console.log('test3');
-
         const [taskAppointment] = await this.taskAppointmentRepository.findAll({
             where: { statusId: Status.APPOINTED },
         });
-
-        console.log('taskAppointment', taskAppointment);
 
         return taskAppointment?.taskPeriodId ?? null;
     }

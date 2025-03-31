@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Length } from 'class-validator';
+import { IsString, Length, IsArray } from 'class-validator';
+import { Role } from '@backend/roles/roles.model';
 
 export class UserBasicAttrDto {
     @ApiProperty({
@@ -8,10 +9,14 @@ export class UserBasicAttrDto {
     })
     @IsString({ message: 'Значение должно быть строкой' })
     @Length(4, 16, { message: 'Значение должно быть длиной от 4 до 16 символов' })
-    readonly username: string;
+    public readonly username: string;
     
     @ApiProperty({ example: 'Password999!', description: 'Пароль' })
     @IsString({ message: 'Значение должно быть строкой' })
     @Length(4, 16, { message: 'Значение должно быть длиной от 4 до 16 символов' })
-    readonly password: string;
+    public readonly password: string;
+
+    @ApiProperty({ type: [Role], description: 'User roles' })
+    @IsArray()
+    public readonly roles?: Role[];
 }

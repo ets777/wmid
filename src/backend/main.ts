@@ -7,7 +7,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap(): Promise<void> {
     const app = await NestFactory.create(AppModule);
     app.setGlobalPrefix('api');
-    app.enableCors();
+    app.enableCors({
+        origin: 'http://localhost:8100',
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-ID'],
+    });
 
     if (Number(process.env.SWAGGER) === 1) {
         const config = new DocumentBuilder()

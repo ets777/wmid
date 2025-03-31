@@ -9,12 +9,12 @@ import { IUser } from 'app/features/auth/interfaces/User.interface';
 @Component({
     selector: 'app-sign-in',
     templateUrl: './sign-in.component.html',
-    styleUrls: ['./sign-in.component.sass'],
+    styleUrls: ['./sign-in.component.scss'],
     standalone: false,
 })
 export class SignInComponent {
-    signInForm: FormGroup;
-    errorMessage: string;
+    protected signInForm: FormGroup;
+    protected errorMessage: string;
 
     constructor(
         private formBuilder: FormBuilder,
@@ -27,7 +27,7 @@ export class SignInComponent {
         });
     }
 
-    onSubmit(): void {
+    protected onSubmit(): void {
         const username = this.signInForm.value.username;
         const password = this.signInForm.value.password;
 
@@ -37,9 +37,9 @@ export class SignInComponent {
             .subscribe({
                 next: (user: IUser) => {
                     this.authService.setUser(user);
-                    this.router.navigate(['/']);
+                    this.goHome();
                 },
-                error: (error: any) => {
+                error: (error) => {
                     this.errorMessage = error.toString().replace('Error: ', '');
                 },
             });
@@ -55,5 +55,9 @@ export class SignInComponent {
         }
 
         return throwError(() => new Error(message));
+    }
+
+    private goHome(): void {
+        this.router.navigate(['/']);
     }
 }

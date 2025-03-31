@@ -1,55 +1,67 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { CreateUserDto } from '@backend/users/dto/create-user.dto';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { AccessTokenGuard } from './guards/accessToken.guard';
+import { SessionGuard } from '@backend/session/guards/session.guard';
 import { UserCredentialsDto } from '@backend/users/dto/user-credentials.dto';
-import { RefreshTokenGuard } from './guards/refreshToken.guard';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { UserBasicAttrDto } from '../users/dto/user-basic-attr.dto';
+import { UserBasicAttrDto } from '@backend/users/dto/user-basic-attr.dto';
+import { Response, Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) { }
 
-    @ApiOperation({ summary: 'Вход' })
+    @ApiOperation({ summary: 'Sign in' })
     @ApiResponse({ status: 200, type: AuthResponseDto })
     @ApiBody({ type: UserBasicAttrDto })
     @Post('/sign-in')
-    signIn(@Body() userDto: UserCredentialsDto): Promise<AuthResponseDto> {
-        return this.authService.signIn(userDto);
+    public async signIn(
+        @Body() userDto: UserCredentialsDto,
+        @Res({ passthrough: true }) res: Response,
+    ): Promise<AuthResponseDto> {
+        const response = await this.authService.signIn(userDto);
+        this.authService.setSessionCookie(res, response.sessionId);
+        return response;
     }
 
-    @ApiOperation({ summary: 'Выход' })
+    @ApiOperation({ summary: 'Sign out' })
     @ApiResponse({ status: 200, type: Boolean })
-    @UseGuards(AccessTokenGuard)
+    @UseGuards(SessionGuard)
     @Get('/sign-out')
-    signOut(@Req() req: any): Promise<boolean> {
-        return this.authService.signOut(req.user.username);
+    public async signOut(
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response,
+    ): Promise<boolean> {
+        const sessionId = req.headers['x-session-id'] as string;
+        const result = await this.authService.signOut(sessionId);
+        this.authService.clearSessionCookie(res);
+        
+        return result;
     }
 
-    @ApiOperation({ summary: 'Регистрация' })
+    @ApiOperation({ summary: 'Sign up' })
     @ApiResponse({ status: 200, type: AuthResponseDto })
     @ApiBody({ type: CreateUserDto })
     @Post('/sign-up')
-    signUp(@Body() userDto: CreateUserDto): Promise<AuthResponseDto> {
-        return this.authService.signUp(userDto);
+    public async signUp(
+        @Body() userDto: CreateUserDto,
+        @Res({ passthrough: true }) res: Response,
+    ): Promise<AuthResponseDto> {
+        const response = await this.authService.signUp(userDto);
+        this.authService.setSessionCookie(res, response.sessionId);
+        return response;
     }
 
-    @ApiOperation({ summary: 'Обновление токенов' })
+    @ApiOperation({ summary: 'Check auth' })
     @ApiResponse({ status: 200, type: AuthResponseDto })
-    @UseGuards(RefreshTokenGuard)
-    @Get('/refresh')
-    refreshTokens(@Req() req: any): Promise<AuthResponseDto> {
-        return this.authService.refreshTokens(
-            req.user.username,
-            req.user.refreshToken,
-        );
-    }
-
-    @UseGuards(AccessTokenGuard)
     @Get('/check')
-    checkAuth(): boolean {
-        return true;
+    public async checkAuth(@Req() req: Request): Promise<AuthResponseDto> {
+        const sessionId = req.headers['x-session-id'] as string;
+        
+        if (!sessionId) {
+            return null;
+        }
+        return await this.authService.checkAuth(sessionId);
     }
 }

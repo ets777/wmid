@@ -1,0 +1,25 @@
+.sign-in-note {
+    margin: 20px;
+    text-align: center;
+}
+
+.sign-up-button-container {
+    display: flex;
+    justify-content: center;
+}
+
+.validation-error {
+    padding: 15px 0 0 15px;
+    display: block;
+}
+
+.password-visibility-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    margin-right: -8px;
+}
+
+.no-ripple {
+    --ripple-color: transparent;
+}

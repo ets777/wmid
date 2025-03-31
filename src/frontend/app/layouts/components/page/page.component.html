@@ -1,15 +1,33 @@
-<ion-header>
-    <ion-toolbar>
-        <ion-buttons slot="start">
-            <ion-back-button
-                *ngIf="!isHomePage()"
-                (click)="goBack()"
-                defaultHref="/"
-            ></ion-back-button>
-        </ion-buttons>
-        <ion-title>{{ title }}</ion-title>
-    </ion-toolbar>
-</ion-header>
-<ion-content>
-    <ng-content></ng-content>
-</ion-content>
+<ion-tabs>
+    <ion-tab>
+        <ion-header>
+            <ion-toolbar>
+                <ion-buttons slot="start">
+                    <ion-back-button
+                        *ngIf="!isHomePage()"
+                        (click)="goBack()"
+                        defaultHref="/"
+                    ></ion-back-button>
+                </ion-buttons>
+                <ion-title>{{ title }}</ion-title>
+            </ion-toolbar>
+        </ion-header>
+        <ion-content>
+            <ng-content></ng-content>
+        </ion-content>
+    </ion-tab>
+    <ion-tab-bar slot="bottom">
+        <ion-tab-button href="/" title="home">
+            <ion-icon name="home-outline"></ion-icon>
+        </ion-tab-button>
+        <ion-tab-button href="/task/add" title="add task">
+            <ion-icon name="add-outline"></ion-icon>
+        </ion-tab-button>
+        <ion-tab-button href="/task/list" title="task list">
+            <ion-icon name="list-outline"></ion-icon>
+        </ion-tab-button>
+        <ion-tab-button href="/user/profile" title="profile">
+            <ion-icon name="person-outline"></ion-icon>
+        </ion-tab-button>
+    </ion-tab-bar>
+</ion-tabs>

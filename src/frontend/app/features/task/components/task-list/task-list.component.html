@@ -1,1 +1,1 @@
-<p *ngFor="let task of tasks">{{ task.text }} (<a routerLink="/task/edit/{{ task.id }}">edit</a>, <a (click)="deleteTask(task.id)">delete</a>)</p>
+<p *ngFor="let task of tasks">{{ task.text }} (<a routerLink="/task/edit/{{ task.id }}">edit</a>, <a routerLink="/task/copy/{{ task.id }}">copy</a>, <a (click)="deleteTask(task.id)">delete</a>)</p>

@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { User } from '@backend/users/users.model';
 
 export class AuthResponseDto {
-  @ApiProperty({ example: 'string', description: 'Refresh-токен' })
-  refreshToken: string;
+    @ApiProperty({ type: User })
+    public user: User;
 
-  @ApiProperty({ example: 'string', description: 'Access-токен' })
-  accessToken: string;
+    @ApiProperty({ description: 'Session ID for authentication' })
+    public sessionId: string;
 }
