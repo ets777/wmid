@@ -21,14 +21,6 @@ export default [
                 'error',
                 { 'allowSameFolder': true },
             ],
-            '@typescript-eslint/explicit-member-accessibility': [
-                'warn',
-                {
-                    'accessibility': 'explicit',
-                    'ignoredMethodNames': ['ngOnInit', 'ngOnDestroy'],
-                    'overrides': { 'constructors': 'no-public' },
-                },
-            ],
         },
         plugins: {
             typescriptEslint,

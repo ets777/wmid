@@ -2,121 +2,115 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { ConfigModule } from '@nestjs/config';
 import { AuthController } from './auth.controller';
-import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '@backend/users/users.service';
 import { RolesService } from '@backend/roles/roles.service';
 import { UsersController } from '@backend/users/users.controller';
 import { createPool } from 'mysql2/promise';
-import { DB_CONNECTION } from '@backend/database/database.module';
+import { SessionService } from '@backend/session/session.service';
+import { Response, Request } from 'express';
 
 const pool = createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME_TEST,
-  timezone: process.env.DB_TIMEZONE,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME_TEST,
+    timezone: process.env.DB_TIMEZONE,
 });
 
 describe('AuthController', () => {
-  let authController: AuthController;
-  let usersController: UsersController;
-  let module: TestingModule;
-  const testUsername = 'authTest';
-  const testToken = 'token';
+    let authController: AuthController;
+    let usersController: UsersController;
+    let module: TestingModule;
+    const testUsername = 'authTest';
+    const testSessionId = 'test-session-id';
 
-  beforeAll(async () => {
-    module = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          envFilePath: `.${process.env.NODE_ENV}.env`,
-        }),
-      ],
-      providers: [
-        AuthService,
-        UsersService,
-        RolesService,
-        {
-          provide: JwtService,
-          useValue: {
-            signAsync: jest.fn().mockImplementation(() => testToken),
-          },
-        },
-        {
-          provide: DB_CONNECTION,
-          useValue: pool,
-        },
-      ],
-      controllers: [AuthController, UsersController],
-    }).compile();
+    beforeAll(async () => {
+        module = await Test.createTestingModule({
+            imports: [
+                ConfigModule.forRoot({
+                    envFilePath: `.${process.env.NODE_ENV}.env`,
+                }),
+            ],
+            providers: [
+                AuthService,
+                UsersService,
+                RolesService,
+                SessionService,
+            ],
+            controllers: [AuthController, UsersController],
+        }).compile();
 
-    authController = module.get<AuthController>(AuthController);
-    usersController = module.get<UsersController>(UsersController);
-  });
-
-  afterAll(async () => {
-    await usersController.delete(testUsername);
-    await pool.end();
-    await module.close();
-  });
-
-  describe('signUp', () => {
-    it(`should sign up user ${testUsername}`, async () => {
-      const dto = {
-        username: testUsername,
-        email: `${testUsername}@example.com`,
-        password: 'Password999!',
-      };
-      const result = await authController.signUp(dto);
-
-      expect(result).toStrictEqual({
-        accessToken: testToken,
-        refreshToken: testToken,
-      });
+        authController = module.get<AuthController>(AuthController);
+        usersController = module.get<UsersController>(UsersController);
     });
-  });
 
-  describe('signIn', () => {
-    it(`should sign in user ${testUsername}`, async () => {
-      const dto = {
-        username: testUsername,
-        password: 'Password999!',
-      };
-      const result = await authController.signIn(dto);
-
-      expect(result).toStrictEqual({
-        accessToken: testToken,
-        refreshToken: testToken,
-      });
+    afterAll(async () => {
+        await usersController.delete(testUsername);
+        await pool.end();
+        await module.close();
     });
-  });
 
-  describe('refreshTokens', () => {
-    it(`should refresh tokens for user ${testUsername}`, async () => {
-      const req = {
-        user: {
-          username: testUsername,
-          refreshToken: testToken,
-        },
-      };
-      const result = await authController.refreshTokens(req);
+    describe('signUp', () => {
+        it(`should sign up user ${testUsername}`, async () => {
+            const dto = {
+                username: testUsername,
+                email: `${testUsername}@example.com`,
+                password: 'Password999!',
+            };
+            const mockResponse = {
+                cookie: jest.fn(),
+            } as unknown as Response;
 
-      expect(result).toStrictEqual({
-        accessToken: testToken,
-        refreshToken: testToken,
-      });
+            const result = await authController.signUp(dto, mockResponse);
+
+            expect(result).toHaveProperty('user');
+            expect(result).toHaveProperty('sessionId');
+            expect(mockResponse.cookie).toHaveBeenCalledWith(
+                'sessionId',
+                result.sessionId,
+                expect.any(Object),
+            );
+        });
     });
-  });
 
-  describe('signOut', () => {
-    it(`should sign out user ${testUsername}`, async () => {
-      const req = {
-        user: {
-          username: testUsername,
-        },
-      };
-      const result = await authController.signOut(req);
+    describe('signIn', () => {
+        it(`should sign in user ${testUsername}`, async () => {
+            const dto = {
+                username: testUsername,
+                password: 'Password999!',
+            };
+            const mockResponse = {
+                cookie: jest.fn(),
+            } as unknown as Response;
 
-      expect(result).toStrictEqual(true);
+            const result = await authController.signIn(dto, mockResponse);
+
+            expect(result).toHaveProperty('user');
+            expect(result).toHaveProperty('sessionId');
+            expect(mockResponse.cookie).toHaveBeenCalledWith(
+                'sessionId',
+                result.sessionId,
+                expect.any(Object),
+            );
+        });
     });
-  });
+
+    describe('signOut', () => {
+        it(`should sign out user ${testUsername}`, async () => {
+            const mockRequest = {
+                cookies: {
+                    sessionId: testSessionId,
+                },
+            } as unknown as Request;
+
+            const mockResponse = {
+                clearCookie: jest.fn(),
+            } as unknown as Response;
+
+            const result = await authController.signOut(mockRequest, mockResponse);
+
+            expect(result).toBe(true);
+            expect(mockResponse.clearCookie).toHaveBeenCalledWith('sessionId');
+        });
+    });
 });

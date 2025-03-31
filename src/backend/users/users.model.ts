@@ -7,7 +7,7 @@ import {
     Table,
 } from 'sequelize-typescript';
 import { Role } from '@backend/roles/roles.model';
-import { UserRole } from '../roles/user-roles.model';
+import { UserRole } from '@backend/roles/user-roles.model';
 import { ApiProperty } from '@nestjs/swagger';
 import { Task } from '@backend/tasks/tasks.model';
 

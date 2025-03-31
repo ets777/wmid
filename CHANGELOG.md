@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.0
+
+- Registration form added.
+
 ## v0.2.0
 
 - Task list added.

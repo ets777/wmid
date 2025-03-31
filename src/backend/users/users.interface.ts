@@ -1,5 +1,5 @@
 import { Task } from '@backend/tasks/tasks.model';
-import { IRole } from '../roles/roles.interface';
+import { IRole } from '@backend/roles/roles.interface';
 
 export interface IUser {
     id?: number;

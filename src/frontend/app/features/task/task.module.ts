@@ -12,11 +12,13 @@ import { SharedModule } from 'app/shared/shared.module';
 import { MaskitoDirective } from '@maskito/angular';
 import { TaskListPageComponent } from './pages/task-list-page/task-list-page.component';
 import { TaskRandomComponent } from './components/task-random/task-random.component';
+import { TaskCopyPageComponent } from './pages/task-copy-page/task-copy-page.component';
 
 @NgModule({
     declarations: [
         TaskAddPageComponent,
         TaskEditPageComponent,
+        TaskCopyPageComponent,
         TaskListPageComponent,
         TaskListComponent,
         TaskFormComponent,

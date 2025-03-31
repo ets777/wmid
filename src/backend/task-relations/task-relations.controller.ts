@@ -11,15 +11,15 @@ import {
 import { TaskRelationsService } from './task-relations.service';
 import { Roles } from '@backend/auth/roles-auth.decorator';
 import { CreateTaskRelationDto } from './dto/create-task-relation.dto';
-import { RolesGuard } from '@backend/auth/guards/roles.guard';
-import { AccessTokenGuard } from '@backend/auth/guards/accessToken.guard';
+import { RolesGuard } from '@backend/roles/guards/roles.guard';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TaskRelation } from './task-relations.model';
+import { SessionGuard } from '@backend/session/guards/session.guard';
 
 @ApiTags('Task relations')
 @Controller('task-relations')
 @Roles('admin')
-@UseGuards(RolesGuard, AccessTokenGuard)
+@UseGuards(RolesGuard, SessionGuard)
 export class TaskRelationsController {
     constructor(private taskRelationsService: TaskRelationsService) { }
 

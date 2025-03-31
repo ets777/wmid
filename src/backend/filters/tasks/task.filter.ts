@@ -1,11 +1,13 @@
 import { DateTimeService } from '@backend/services/date-time.service';
 import { Injectable } from '@nestjs/common';
 import { Task } from '@backend/tasks/tasks.model';
+import { CurrentUserService } from '@backend/services/current-user.service';
 
 @Injectable()
 export class TasksFilterService {
     constructor(
         private readonly dateTimeService: DateTimeService,
+        private readonly currentUserService: CurrentUserService,
     ) { }
 
     actual(task: Task): boolean {
@@ -21,5 +23,10 @@ export class TasksFilterService {
 
     active(task: Task): boolean {
         return task.isActive;
+    }
+
+    byAuthor(task: Task): boolean {
+        const currentUser = this.currentUserService.getCurrentUser();
+        return currentUser && task.userId === currentUser.id;
     }
 }

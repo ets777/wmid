@@ -8,6 +8,7 @@ CREATE TABLE `tsk_tasks` (
   `duration` int NOT NULL,
   `isActive` tinyint(1) NOT NULL DEFAULT 1,
   `isDeleted` tinyint(1) NOT NULL DEFAULT 0,
+  `willBeAppointedIfOverdue` tinyint(1) NOT NULL DEFAULT 0,
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   `userId` int DEFAULT NULL,

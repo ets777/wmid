@@ -19,6 +19,7 @@ import { TasksFilterService } from '@backend/filters/tasks/task.filter';
 import { TaskLoggerService } from '@backend/services/task-logger.service';
 import { UpdateTaskPeriodDto } from '@backend/task-periods/dto/update-task-period.dto';
 import { ITask } from './tasks.interface';
+import { CurrentUserService } from '@backend/services/current-user.service';
 
 @Injectable()
 export class TasksService {
@@ -31,6 +32,7 @@ export class TasksService {
         private readonly periodsFilter: TaskPeriodsFilterService,
         private readonly tasksFilter: TasksFilterService,
         private readonly taskLoggerService: TaskLoggerService,
+        private readonly currentUserService: CurrentUserService,
     ) { }
 
     public async createTask(
@@ -93,6 +95,7 @@ export class TasksService {
             where: { 
                 id,
                 isDeleted: false,
+                userId: this.currentUserService.getCurrentUser()?.id,
             },
         });
 
@@ -107,6 +110,9 @@ export class TasksService {
                 where: {
                     id: appointment.taskPeriodId,
                 },
+            },
+            where: {
+                userId: this.currentUserService.getCurrentUser()?.id,
             },
         });
 
@@ -126,6 +132,9 @@ export class TasksService {
                     id: period.id,
                 },
             },
+            where: {
+                userId: this.currentUserService.getCurrentUser()?.id,
+            },
         });
 
         return task;
@@ -139,6 +148,7 @@ export class TasksService {
             ],
             where: {
                 isDeleted: false,
+                userId: this.currentUserService.getCurrentUser()?.id,
             },
         });
 
@@ -147,8 +157,6 @@ export class TasksService {
 
     public async getCurrentTask(): Promise<Task> {
         const currentPeriod = await this.taskPeriodsService.getCurrentPeriod();
-
-        console.log('currentPeriod', currentPeriod);
 
         return this.getTaskByPeriod(currentPeriod);
     }
@@ -351,18 +359,18 @@ export class TasksService {
         const timeTask = await this.appointTimeTask();
 
         if (timeTask) {
-            this.taskLoggerService.collect(`Time task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
+            this.taskLoggerService.collect(`Time task "${timeTask.text}" (ID: ${timeTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return timeTask;
         }
 
-        this.taskLoggerService.collect('There\'s no next task.');
+        this.taskLoggerService.collect('There\'s no time task.');
         this.taskLoggerService.collect('Checking dated task...');
 
         const datedTask = await this.appointDatedTask();
 
         if (datedTask) {
-            this.taskLoggerService.collect(`Dated task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
+            this.taskLoggerService.collect(`Dated task "${datedTask.text}" (ID: ${datedTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return datedTask;
         }
@@ -370,12 +378,12 @@ export class TasksService {
         this.taskLoggerService.collect('There\'s no dated task.');
         this.taskLoggerService.collect('Checking overdue task...');
 
-        const overdueResult = await this.appointOverdueTask();
+        const overdueTask = await this.appointOverdueTask();
 
-        if (overdueResult) {
-            this.taskLoggerService.collect(`Overdue task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
+        if (overdueTask) {
+            this.taskLoggerService.collect(`Overdue task "${overdueTask.text}" (ID: ${overdueTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
-            return overdueResult;
+            return overdueTask;
         }
 
         this.taskLoggerService.collect('There\'s no overdue task.');
@@ -384,7 +392,7 @@ export class TasksService {
         const postponedTask = await this.appointPostponedTask();
 
         if (postponedTask) {
-            this.taskLoggerService.collect(`Postponed task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
+            this.taskLoggerService.collect(`Postponed task "${postponedTask.text}" (ID: ${postponedTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return postponedTask;
         }
@@ -395,7 +403,7 @@ export class TasksService {
         const randomTask = await this.appointRandomTask();
 
         if (randomTask) {
-            this.taskLoggerService.collect(`Random task "${nextTask.text}" (ID: ${nextTask.id}) successfully appointed!`);
+            this.taskLoggerService.collect(`Random task "${randomTask.text}" (ID: ${randomTask.id}) successfully appointed!`);
             this.taskLoggerService.save();
             return randomTask;
         }
@@ -458,6 +466,8 @@ export class TasksService {
         const nearestTimeTask = await this.getNearestTimeTask();
 
         if (nearestTimeTask) {
+            this.taskLoggerService.collect(`Nearest time task "${nearestTimeTask.text}" (ID: ${nearestTimeTask.id}) found.`);
+
             const isEnoughTime = this.hasTimeBeforeTimeTask(
                 nextTask,
                 nearestTimeTask,
@@ -553,25 +563,29 @@ export class TasksService {
          * entirely. Currently, the offset is inverted for important tasks, but 
          * non-important tasks might not need a time-based check at all.
          */
-        const timeTaskOffset = timeTask.periods[0].offset
-            * (timeTask.periods[0].isImportant ? -1 : 1);
+        const timeTaskOffset = timePeriod.offset
+            * (timePeriod.isImportant ? -1 : 1);
 
-        const timeTaskStartTime = new Time(timeTask.periods[0].startTime)
+        const timeTaskStartTime = new Time(timePeriod.startTime)
             .addMinutes(timeTaskOffset);
 
-        const nextTaskEndTime = new Time(this.dateTimeService.getCurrentTime())
+        const taskEndTime = new Time(this.dateTimeService.getCurrentTime())
             .addMinutes(task.duration);
 
-        const isEnoughTime = timeTaskStartTime >= nextTaskEndTime;
+        const isEnoughTime = timeTaskStartTime >= taskEndTime;
+
+        this.taskLoggerService.collect('Checking is there enough time until time task...');
+        this.taskLoggerService.collect(`Time task will start at ${timeTaskStartTime} (offset: ${timeTaskOffset} minutes)`);
+        this.taskLoggerService.collect(`Task "${task.text}" (ID: ${task.id}) will end at ${taskEndTime}`);
 
         return isEnoughTime;
     }
 
     /**
      * Retrieves the task that has the earliest associated period based on start 
-     * time.
+     * time or underfined if there's no such task.
      */
-    public async getNearestTimeTask(): Promise<Task> {
+    public async getNearestTimeTask(): Promise<Task | null> {
         const tasks = await this.getAllTasks();
 
         /**
@@ -597,15 +611,19 @@ export class TasksService {
         });
         const [nearestTimeTask] = timeTasks;
 
-        return nearestTimeTask;
+        return nearestTimeTask ?? null;
     }
 
     /**
      * Retrieves the task that has the earliest associated period based on start 
      * time.
      */
-    private async getFirstTaskFromTimedChain(): Promise<Task> {
+    private async getFirstTaskFromTimedChain(): Promise<Task | null> {
         const timeTask = await this.getNearestTimeTask();
+
+        if (!timeTask) {
+            return null;
+        }
 
         const chain = await this.getFilteredTaskChain(
             timeTask,
@@ -894,9 +912,18 @@ export class TasksService {
         task: Task,
         getChainFunction: (task: Task) => Promise<Task[]>,
     ): Promise<Task[]> {
-        const chain = await getChainFunction.call(this, task);
+        this.taskLoggerService.collect(`Getting task chain for "${task.text}" (ID: ${task.id})...`);
 
-        console.log(chain.map((task) => task.id).join(', '));
+        const chain: Task[] = await getChainFunction.call(this, task);
+
+        if (!chain.length) {
+            this.taskLoggerService.collect('Chain not found.');
+            return [];
+        }
+
+        const chainTaskTexts = chain.map((task) => task.text).join('", "');
+        this.taskLoggerService.collect(`Chain found. It contains tasks: "${chainTaskTexts}"`);
+        this.taskLoggerService.collect('Filtering chain of tasks...');
 
         const filteredChain = this.processTasks(chain, {
             periodFilters: [
@@ -910,6 +937,14 @@ export class TasksService {
             ],
             sort: false,
         });
+
+        if (!filteredChain.length) {
+            this.taskLoggerService.collect('After filtering there\'s no tasks left.');
+            return [];
+        }
+
+        const filterdChainTaskTexts = chain.map((task) => task.text).join('", "');
+        this.taskLoggerService.collect(`After filtering chain contains tasks: "${filterdChainTaskTexts}"`);
 
         return filteredChain;
     }
@@ -1021,7 +1056,7 @@ export class TasksService {
         return processedAdditionalTasks;
     }
 
-    private async appointTimeTask(): Promise<Task> {
+    private async appointTimeTask(): Promise<Task | null> {
         const timeTask = await this.getFirstTaskFromTimedChain();
 
         if (!timeTask) {

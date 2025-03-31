@@ -1,185 +1,88 @@
 import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-  UnauthorizedException,
+    Injectable,
+    UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from '@backend/users/dto/create-user.dto';
 import { UsersService } from '@backend/users/users.service';
 import * as bcrypt from 'bcryptjs';
-import { ConfigService } from '@nestjs/config';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { UserCredentialsDto } from '@backend/users/dto/user-credentials.dto';
-import { UserBasicAttrDto } from '@backend/users/dto/user-basic-attr.dto';
 import { User } from '@backend/users/users.model';
+import { SessionService } from '@backend/session/session.service';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
-    private configService: ConfigService,
-  ) {}
+    constructor(
+        private usersService: UsersService,
+        private sessionService: SessionService,
+    ) { }
 
-  async signIn(userDto: UserBasicAttrDto): Promise<AuthResponseDto> {
-    const user = await this.validateUser(userDto);
-    const tokens = await this.getTokens(user);
-    await this.updateRefreshToken(user.username, tokens.refreshToken);
+    async signIn(userDto: UserCredentialsDto): Promise<AuthResponseDto> {
+        const user = await this.validateUser(userDto);
+        if (!user) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
 
-    return tokens;
-  }
-
-  async signOut(username: string): Promise<boolean> {
-    const user = await this.usersService.getUserByName(username);
-
-    if (!user) {
-      throw new HttpException(
-        'Пользователя с таким именем не существует',
-        HttpStatus.NOT_FOUND,
-      );
+        const session = await this.sessionService.createSession(user);
+        return { user, sessionId: session.sessionId };
     }
 
-    const updateSucceed = await this.updateRefreshToken(user.username, null);
-
-    if (!updateSucceed) {
-      throw new HttpException(
-        'Не удалось удалить токен. Выход не выполнен.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+    async signOut(sessionId: string): Promise<boolean> {
+        await this.sessionService.invalidateSession(sessionId);
+        return true;
     }
 
-    return updateSucceed;
-  }
-
-  async signUp(userDto: CreateUserDto): Promise<AuthResponseDto> {
-    const existingUser = await this.usersService.getUserByNameOrEmail(
-      userDto.username,
-      userDto.email,
-    );
-
-    if (existingUser) {
-      throw new HttpException(
-        'Пользователь с таким именем или email уже существует',
-        HttpStatus.BAD_REQUEST,
-      );
+    public async signUp(userDto: CreateUserDto): Promise<AuthResponseDto> {
+        const user = await this.usersService.createUser(userDto);
+        const session = await this.sessionService.createSession(user);
+        return { user, sessionId: session.sessionId };
     }
 
-    const hashPassword = await this.hashData(userDto.password);
-    const user = await this.usersService.createUser({
-      ...userDto,
-      password: hashPassword,
-    });
+    public async checkAuth(sessionId: string): Promise<AuthResponseDto | null> {
+        if (!sessionId) {
+            return null;
+        }
 
-    const tokens = await this.getTokens(user);
+        const session = await this.sessionService.getSession(sessionId);
+        if (!session || !session.isValid) {
+            return null;
+        }
 
-    const updateSucceed = await this.updateRefreshToken(
-      user.username,
-      tokens.refreshToken,
-    );
+        const user = await this.usersService.getUserById(session.userId);
+        if (!user) {
+            return null;
+        }
 
-    if (!updateSucceed) {
-      throw new HttpException(
-        'Не удалось сохранить токен. Вход не выполнен.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+        return { user, sessionId: session.sessionId };
     }
 
-    return tokens;
-  }
+    private async validateUser(userDto: UserCredentialsDto): Promise<User> {
+        const user = await this.usersService.getUserByName(userDto.username);
+        const passwordsEqual = await bcrypt.compare(
+            userDto.password,
+            user?.password || '',
+        );
 
-  private async getTokens(user: User): Promise<AuthResponseDto> {
-    const payload = {
-      username: user.username,
-      id: user.id,
-      roles: user.roles,
-    };
+        if (!user || !passwordsEqual) {
+            throw new UnauthorizedException({
+                message: 'Invalid username or password',
+            });
+        }
 
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-        expiresIn: '30m',
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: '30d',
-      }),
-    ]);
-
-    return {
-      accessToken,
-      refreshToken,
-    };
-  }
-
-  private async updateRefreshToken(
-    username: string,
-    refreshToken: string,
-  ): Promise<boolean> {
-    const hashedRefreshToken = await this.hashData(refreshToken);
-    const affectedRows = await this.usersService.updateRefreshToken(
-      username,
-      hashedRefreshToken,
-    );
-
-    return affectedRows === 1;
-  }
-
-  private async hashData(password: string): Promise<string> {
-    return password ? await bcrypt.hash(password, 5) : null;
-  }
-
-  private async validateUser(userDto: UserCredentialsDto): Promise<User> {
-    const user = await this.usersService.getUserByName(userDto.username);
-    const passwordsEqual = await bcrypt.compare(
-      userDto.password,
-      user?.password || '',
-    );
-
-    if (!user || !passwordsEqual) {
-      throw new UnauthorizedException({
-        message: 'Некорректное имя пользователя или пароль',
-      });
+        return user;
     }
 
-    return user;
-  }
-
-  async refreshTokens(
-    username: string,
-    refreshToken: string,
-  ): Promise<AuthResponseDto> {
-    const existingUser = await this.usersService.getUserByName(username);
-
-    if (!existingUser?.refreshToken) {
-      throw new UnauthorizedException({
-        message: 'Пользователь не авторизован',
-      });
-    }
-    const refreshTokensEqual = await bcrypt.compare(
-      refreshToken,
-      existingUser.refreshToken,
-    );
-
-    if (!refreshTokensEqual) {
-      throw new UnauthorizedException({
-        message: 'Пользователь не авторизован',
-      });
+    setSessionCookie(res: Response, sessionId: string): void {
+        res.cookie('sessionId', sessionId, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        });
     }
 
-    const tokens = await this.getTokens(existingUser);
-    const updateSucceed = await this.updateRefreshToken(
-      existingUser.username,
-      tokens.refreshToken,
-    );
-
-    if (!updateSucceed) {
-      throw new HttpException(
-        'Не удалось сохранить токен. Вход не выполнен.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+    clearSessionCookie(res: Response): void {
+        res.clearCookie('sessionId');
     }
-
-    return tokens;
-  }
 }

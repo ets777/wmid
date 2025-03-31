@@ -11,56 +11,78 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
-import { Roles } from '../auth/roles-auth.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '@backend/auth/roles-auth.decorator';
+import { RolesGuard } from '@backend/roles/guards/roles.guard';
 import { AddRoleDto } from './dto/add-role.dto';
-import { ValidationPipe } from '../pipes/validation.pipe';
-import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
+import { ValidationPipe } from '@backend/pipes/validation.pipe';
+import { SessionGuard } from '@backend/session/guards/session.guard';
 import { User } from './users.model';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Пользователи')
-@Roles('admin')
-@UseGuards(AccessTokenGuard, RolesGuard)
+@ApiTags('Users')
 @Controller('users')
 export class UsersController {
     constructor(private userService: UsersService) { }
 
-    @ApiOperation({ summary: 'Создание пользователя' })
+    @ApiOperation({ summary: 'Check username availability' })
+    @ApiResponse({ status: 200, type: Boolean })
+    @Get('check-username/:username')
+    public async checkUsername(@Param('username') username: string): Promise<boolean> {
+        return this.userService.isUsernameAvailable(username);
+    }
+
+    @ApiOperation({ summary: 'Check email availability' })
+    @ApiResponse({ status: 200, type: Boolean })
+    @Get('check-email/:email')
+    public async checkEmail(@Param('email') email: string): Promise<boolean> {
+        return this.userService.isEmailAvailable(email);
+    }
+
+    @ApiOperation({ summary: 'Create user' })
     @ApiResponse({ status: 200, type: User })
     @ApiBody({ type: CreateUserDto })
+    @Roles('admin')
+    @UseGuards(SessionGuard, RolesGuard)
     @UsePipes(ValidationPipe)
     @Post()
-    create(@Body() userDto: CreateUserDto): Promise<User> {
+    public create(@Body() userDto: CreateUserDto): Promise<User> {
         return this.userService.createUser(userDto);
     }
 
-    @ApiOperation({ summary: 'Получение всех пользователей' })
+    @ApiOperation({ summary: 'Get all users' })
     @ApiResponse({ status: 200, type: [User] })
+    @Roles('admin')
+    @UseGuards(SessionGuard, RolesGuard)
     @Get()
-    getAll(): Promise<User[]> {
+    public getAll(): Promise<User[]> {
         return this.userService.getAllUsers();
     }
 
-    @ApiOperation({ summary: 'Выдача ролей' })
+    @ApiOperation({ summary: 'Assign role to user' })
     @ApiResponse({ status: 200, type: AddRoleDto })
     @ApiBody({ type: AddRoleDto })
+    @Roles('admin')
+    @UseGuards(SessionGuard, RolesGuard)
     @Post('/role')
-    addRole(@Body() dto: AddRoleDto): Promise<AddRoleDto> {
+    public addRole(@Body() dto: AddRoleDto): Promise<AddRoleDto> {
         return this.userService.addRole(dto);
     }
 
-    @ApiOperation({ summary: 'Удаление пользователя' })
+    @ApiOperation({ summary: 'Delete user' })
     @ApiResponse({ status: 200, type: Number })
+    @Roles('admin')
+    @UseGuards(SessionGuard, RolesGuard)
     @Delete('/:username')
-    delete(@Param('username') username: string): Promise<number> {
+    public delete(@Param('username') username: string): Promise<number> {
         return this.userService.deleteUser(username);
     }
 
-    @ApiOperation({ summary: 'Изменение пользователя' })
+    @ApiOperation({ summary: 'Update user' })
     @ApiResponse({ status: 200, type: Number })
+    @Roles('admin')
+    @UseGuards(SessionGuard, RolesGuard)
     @Patch('/:username')
-    update(
+    public update(
         @Param('username') username: string,
         @Body() userDto: CreateUserDto,
     ): Promise<number> {

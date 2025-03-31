@@ -1,21 +1,13 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtModule } from '@nestjs/jwt';
 import { UsersModule } from '@backend/users/users.module';
-import { AccessTokenStrategy } from './strategies/access-token.strategy';
-import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
-import { ConfigService } from '@nestjs/config';
+import { SessionModule } from '@backend/session/session.module';
 
 @Module({
-  controllers: [AuthController],
-  providers: [
-    AuthService,
-    ConfigService,
-    AccessTokenStrategy,
-    RefreshTokenStrategy,
-  ],
-  imports: [forwardRef(() => UsersModule), JwtModule.register({})],
-  exports: [AuthService, JwtModule],
+    controllers: [AuthController],
+    providers: [AuthService],
+    imports: [UsersModule, SessionModule],
+    exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule { }

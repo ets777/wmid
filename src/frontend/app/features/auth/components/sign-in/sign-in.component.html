@@ -1,35 +1,41 @@
-<ion-header>
-    <ion-toolbar>
-        <ion-title>Sign In</ion-title>
-    </ion-toolbar>
-</ion-header>
-<ion-content>
+<form
+    class="custom"
+    [formGroup]="signInForm"
+    (ngSubmit)="onSubmit()"
+>
 
-    <form class="custom" [formGroup]="signInForm" (ngSubmit)="onSubmit()">
-    
-        <div class="error" *ngIf="errorMessage">
-            {{ errorMessage }}
-        </div>
-    
-        <ion-item>
-            <ion-input labelPlacement="floating" formControlName="username">
-                <div slot="label">Username</div>
-            </ion-input>
-        </ion-item>
-    
-        <ion-item>
-            <ion-input 
-                labelPlacement="floating" 
-                formControlName="password"
-                type="password"
-            >
-                <div slot="label">Password</div>
-            </ion-input>
-        </ion-item>
-    
-        <div class="center">
-            <ion-button type="submit">Sign In</ion-button>
-        </div>
-    
-    </form>
-</ion-content>
+    <div
+        class="error"
+        *ngIf="errorMessage"
+    >
+        {{ errorMessage }}
+    </div>
+
+    <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="username"
+        >
+            <div slot="label">Username</div>
+        </ion-input>
+    </ion-item>
+
+    <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="password"
+            type="password"
+        >
+            <div slot="label">Password</div>
+        </ion-input>
+    </ion-item>
+
+    <div class="sign-up-note">
+        Don't have account? <a [routerLink]="['/auth/sign-up']">Sign Up</a>
+    </div>
+
+    <div class="sign-in-button-container">
+        <ion-button type="submit">Sign In</ion-button>
+    </div>
+
+</form>

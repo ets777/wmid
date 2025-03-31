@@ -100,6 +100,17 @@ export class Task extends Model<Task, CreateTaskDto> implements ITask {
     public declare isDeleted: boolean;
 
     @ApiProperty({
+        example: false,
+        description: 'Is task should be appointed if overdue.',
+    })
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    })
+    public declare willBeAppointedIfOverdue: boolean;
+
+    @ApiProperty({
         example: 1,
         description: 'ID следующего задания',
     })

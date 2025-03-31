@@ -4,6 +4,7 @@ import { TaskAddPageComponent } from './pages/task-add-page/task-add-page.compon
 import { AuthGuard } from 'app/core/guards/auth.guard';
 import { TaskListPageComponent } from './pages/task-list-page/task-list-page.component';
 import { TaskEditPageComponent } from './pages/task-edit-page/task-edit-page.component';
+import { TaskCopyPageComponent } from './pages/task-copy-page/task-copy-page.component';
 
 const routes: Routes = [
     {
@@ -14,6 +15,11 @@ const routes: Routes = [
     {
         path: 'edit/:id',
         component: TaskEditPageComponent,
+        canActivate: [AuthGuard],
+    },
+    {
+        path: 'copy/:id',
+        component: TaskCopyPageComponent,
         canActivate: [AuthGuard],
     },
     {

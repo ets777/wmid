@@ -11,38 +11,22 @@ import {
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { RolesGuard } from '@backend/auth/guards/roles.guard';
-import { AccessTokenGuard } from '@backend/auth/guards/accessToken.guard';
+import { RolesGuard } from '@backend/roles/guards/roles.guard';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AuthorGuard } from './guards/author.guard';
 import { Roles } from '@backend/auth/roles-auth.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Task } from './tasks.model';
-import { TaskAppointmentsService } from '@backend/task-appointments/task-appointments.service';
-import { TaskPeriodsService } from '@backend/task-periods/task-periods.service';
 import { ITask } from './tasks.interface';
 
 @ApiTags('Tasks')
 @Controller('tasks')
 @Roles('user')
-@UseGuards(AccessTokenGuard, RolesGuard)
+@UseGuards(RolesGuard)
 export class TasksController {
     constructor(
         private readonly tasksService: TasksService,
-        private readonly taskAppointmentsService: TaskAppointmentsService,
-        private readonly taskPeriodsService: TaskPeriodsService,
     ) { }
-
-    @Get('test')
-    public async test(): Promise<Task> {
-        const lastTask = await this.tasksService.getTaskById(6);
-        const [nextTask] = await this.tasksService.getFilteredTaskChain(
-            lastTask,
-            this.tasksService.getTaskChainAfterCurrentTask,
-        );
-
-        return nextTask;
-    }
 
     @ApiOperation({ summary: 'Create a task' })
     @ApiResponse({ status: 200, type: Task })
@@ -52,9 +36,6 @@ export class TasksController {
         @Body() dto: CreateTaskDto,
         @Req() req: any,
     ): Promise<ITask> {
-        delete req.user.iat;
-        delete req.user.exp;
-
         return this.tasksService.createTask(dto, req.user);
     }
 
@@ -68,7 +49,7 @@ export class TasksController {
 
     @ApiOperation({ summary: 'Task update' })
     @ApiResponse({ status: 200, type: Number })
-    // @UseGuards(AuthorGuard)
+    @UseGuards(AuthorGuard)
     @Patch('/:id')
     public update(
         @Param('id') id: number,
@@ -86,6 +67,7 @@ export class TasksController {
 
     @ApiOperation({ summary: 'Завершение задания' })
     @ApiResponse({ status: 200, type: Number })
+    @UseGuards(AuthorGuard)
     @Post('/complete/:id')
     public complete(@Param('id') id: number): Promise<number> {
         return this.tasksService.completeTask(id);
@@ -121,7 +103,7 @@ export class TasksController {
 
     @ApiOperation({ summary: 'Выбор задания по ID' })
     @ApiResponse({ status: 200, type: Task })
-    //@UseGuards(AuthorGuard)
+    @UseGuards(AuthorGuard)
     @Get('/:id')
     public getById(@Param('id') id: number): Promise<Task> {
         return this.tasksService.getTaskById(id);

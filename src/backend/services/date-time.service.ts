@@ -7,49 +7,49 @@ type AddTimeFunction = (date: string, amount: number) => Date;
 
 @Injectable()
 export class DateTimeService {
-    getCurrentTime(): string {
+    public getCurrentTime(): string {
         return format(
             new Date(),
             'HH:mm:ss',
         );
     }
 
-    getCurrentDate(): string {
+    public getCurrentDate(): string {
         return format(new Date(), 'yyyy-MM-dd');
     }
 
-    getChainableCurrentDate(): ChainableDate {
+    public getChainableCurrentDate(): ChainableDate {
         return new ChainableDate().setCurrentDate();
     }
 
-    getCurrentDay(): number {
+    public getCurrentDay(): number {
         return new Date().getDate();
     }
 
-    getCurrentWeekday(): number {
+    public getCurrentWeekday(): number {
         const weekday = new Date().getDay();
 
         return weekday == 0 ? 7 : weekday;
     }
 
-    getCurrentWeek(): number {
+    public getCurrentWeek(): number {
         return getWeek(new Date());
     }
 
-    getCurrentMonth(): number {
+    public getCurrentMonth(): number {
         return new Date().getMonth() + 1;
     }
 
-    getCurrentYear(): number {
+    public getCurrentYear(): number {
         return new Date().getFullYear();
     }
 
-    getCurrentDateTime(): string {
+    public getCurrentDateTime(): string {
         return format(new Date(), 'yyyy-MM-dd HH:mm:ss');
     }
 
-    checkTime(startTime: string, endTime: string): boolean {
-        const currentTime = this.getCurrentTime();
+    public checkTime(startTime: string, endTime: string): boolean {
+        const currentTime = this.getCurrentTime();        
 
         if (!startTime && !endTime) {
             return true;
@@ -57,7 +57,7 @@ export class DateTimeService {
 
         startTime = startTime ?? '00:00:00';
         endTime = endTime ?? '23:59:00';
-    
+        
         if (endTime > startTime) {
             return startTime <= currentTime && endTime > currentTime;
         } else {
@@ -65,7 +65,7 @@ export class DateTimeService {
         }
     }
 
-    getTimeFunctionDuePeriodType(periodTypeId: TaskPeriodType): AddTimeFunction {
+    public getTimeFunctionDuePeriodType(periodTypeId: TaskPeriodType): AddTimeFunction {
         switch (periodTypeId) {
             case TaskPeriodType.DAILY:
                 return addHours;

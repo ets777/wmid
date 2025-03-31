@@ -107,8 +107,6 @@ export class TaskPeriodsService {
         const periodId = await this.taskAppointmentsService
             .getCurrentAppointmentPeriodId();
 
-        console.log('periodId', periodId);
-
         if (!periodId) {
             return null;
         }

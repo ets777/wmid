@@ -1,118 +1,138 @@
 import { Injectable } from '@angular/core';
-import { Config } from '../../../core/classes/Config';
+import { Config } from 'app/core/classes/Config';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { AuthResponseDto } from '@backend/auth/dto/auth-response.dto';
-import { IUser } from '../interfaces/User.interface';
-import { CookieService } from 'ngx-cookie-service';
+import { IUser } from 'app/features/auth/interfaces/User.interface';
+import { CookieOptions, CookieService } from 'ngx-cookie-service';
+import { Router } from '@angular/router';
 
 @Injectable({
-  providedIn: 'root',
+    providedIn: 'root',
 })
 export class AuthService {
-  private user: IUser;
-
-  constructor(private http: HttpClient, private cookieService: CookieService) {}
-
-  signIn(username: string, password: string): Observable<IUser> {
-    return this.http
-      .post<any>(`${Config.getApiPath()}/auth/sign-in`, {
-        username,
-        password,
-      })
-      .pipe(
-        map((authResponse: AuthResponseDto) => {
-          this.saveTokens(authResponse);
-          return this.getUserFromToken(authResponse.accessToken);
-        }),
-      );
-  }
-
-  signOut(): Observable<boolean> {
-    this.cookieService.delete('access-token');
-    this.cookieService.delete('refresh-token');
-    this.user = null;
-
-    return this.http.get<any>(`${Config.getApiPath()}/auth/sign-out`);
-  }
-
-  getUser(): IUser {
-    return this.user;
-  }
-
-  setUser(user: IUser): void {
-    this.user = user;
-  }
-
-  checkAuth(): Observable<boolean> {
-    return this.http.get<any>(`${Config.getApiPath()}/auth/check`).pipe(
-      map((result: boolean) => {
-        if (result) {
-          this.user = this.getUserFromToken(this.getAccessToken());
-        }
-
-        return result;
-      }),
-    );
-  }
-
-  refreshToken(): Observable<any> {
-    return this.http.get<any>(`${Config.getApiPath()}/auth/refresh`).pipe(
-      map((authResponse: AuthResponseDto) => {
-        this.saveTokens(authResponse);
-        return authResponse.accessToken;
-      }),
-    );
-  }
-
-  private saveTokens(authResponse: AuthResponseDto): void {
-    this.cookieService.set('access-token', authResponse.accessToken);
-    this.cookieService.set('refresh-token', authResponse.refreshToken);
-  }
-
-  private getUserFromToken(token: string): IUser {
-    const tokenBody = this.parseJwt(token);
-
-    return {
-      username: tokenBody.username,
-      roles: tokenBody.roles.map((role: any) => ({
-        code: role.code,
-        name: role.name,
-      })),
+    private user: IUser;
+    private defaultCookieOptions: CookieOptions = { 
+        path: '/', 
+        secure: true, 
+        sameSite: 'Lax',
+        domain: undefined,
     };
-  }
+    private httpOptions = { withCredentials: true };
 
-  getAccessToken(): string {
-    return this.cookieService.get('access-token');
-  }
+    constructor(
+        private http: HttpClient, 
+        private cookieService: CookieService,
+        private router: Router,
+    ) { }
 
-  getRefreshToken(): string {
-    return this.cookieService.get('refresh-token');
-  }
+    public signIn(username: string, password: string): Observable<IUser> {
+        return this.http
+            .post<AuthResponseDto>(`${Config.getApiPath()}/auth/sign-in`, {
+                username,
+                password,
+            }, this.httpOptions)
+            .pipe(
+                map((authResponse: AuthResponseDto) => {
+                    this.saveSession(authResponse);
+                    this.user = this.mapUserFromResponse(authResponse);
+                    return this.user;
+                }),
+            );
+    }
 
-  getAccessTokenBody(): any {
-    const tokenFromCookie = this.getAccessToken();
+    public signUp(username: string, password: string, email: string): Observable<IUser> {
+        return this.http
+            .post<AuthResponseDto>(`${Config.getApiPath()}/auth/sign-up`, {
+                username,
+                password,
+                email,
+            }, this.httpOptions)
+            .pipe(
+                map((authResponse: AuthResponseDto) => {
+                    this.saveSession(authResponse);
+                    this.user = this.mapUserFromResponse(authResponse);
+                    return this.user;
+                }),
+            );
+    }
 
-    return tokenFromCookie ? this.parseJwt(tokenFromCookie) : '';
-  }
+    public signOut(): Observable<boolean> {
+        return this.http.get<boolean>(
+            `${Config.getApiPath()}/auth/sign-out`, 
+            this.httpOptions,
+        ).pipe(
+            tap(() => {
+                const { path, secure, domain, sameSite } = this.defaultCookieOptions;
+                this.cookieService.delete(
+                    'session-id',
+                    path,
+                    domain,
+                    secure,
+                    sameSite,
+                );
+                this.user = null;
+                this.router.navigate(['/auth/sign-in']);
+            }),
+        );
+    }
 
-  getRefreshTokenBody(): any {
-    const tokenFromCookie = this.getRefreshToken();
+    public getUser(): IUser {
+        return this.user;
+    }
 
-    return tokenFromCookie ? this.parseJwt(tokenFromCookie) : '';
-  }
+    public setUser(user: IUser): void {
+        this.user = user;
+    }
 
-  private parseJwt(token: string): any {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(''),
-    );
+    public checkAuth(): Observable<boolean> {
+        return this.http.get<AuthResponseDto>(
+            `${Config.getApiPath()}/auth/check`, 
+            this.httpOptions,
+        ).pipe(
+            map((authResponse: AuthResponseDto) => {
+                if (authResponse) {
+                    this.user = this.mapUserFromResponse(authResponse);
+                    return true;
+                }
+                return false;
+            }),
+        );
+    }
 
-    return JSON.parse(jsonPayload);
-  }
+    private saveSession(authResponse: AuthResponseDto): void {
+        this.cookieService.set(
+            'session-id', 
+            authResponse.sessionId,
+            this.defaultCookieOptions,
+        );
+    }
+
+    private mapUserFromResponse(authResponse: AuthResponseDto): IUser {
+        return {
+            username: authResponse.user.username,
+            roles: authResponse.user.roles?.map(role => ({
+                code: role.code,
+                name: role.name,
+            })) || [],
+        };
+    }
+
+    public getSessionId(): string {
+        return this.cookieService.get('session-id');
+    }
+
+    public checkUsernameAvailability(username: string): Observable<boolean> {
+        return this.http.get<boolean>(
+            `${Config.getApiPath()}/users/check-username/${username}`, 
+            this.httpOptions,
+        );
+    }
+
+    public checkEmailAvailability(email: string): Observable<boolean> {
+        return this.http.get<boolean>(
+            `${Config.getApiPath()}/users/check-email/${email}`, 
+            this.httpOptions,
+        );
+    }
 }

@@ -108,7 +108,11 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     }
 
     private isEditMode(): boolean {
-        return !this.isAddMode();
+        return Boolean(this.task?.id);
+    }
+
+    private isCopyMode(): boolean {
+        return this.task && !this.task.id;
     }
 
     private setData(): void {
@@ -121,9 +125,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
                 this.categories = categories;
                 this.tasks = tasks;
 
-                if (this.isEditMode()) {
-                    this.fillForm();
-                }
+                this.fillForm();
             });
     }
 
@@ -205,7 +207,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     }
 
     protected onSubmit(): void {
-        if (this.isAddMode()) {
+        if (this.isAddMode() || this.isCopyMode()) {
             this.addNewTask();
         }
 
@@ -269,8 +271,8 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         return {
             id: periodForm.uid,
             typeId: this.taskForm.value.periodTypeId,
-            startTime: periodForm.startTime,
-            endTime: periodForm.endTime,
+            startTime: periodForm.startTime || null,
+            endTime: periodForm.endTime || null,
             weekday: Number(periodForm.weekday) || null,
             day: Number(periodForm.day) || null,
             month: Number(periodForm.month) || null,
@@ -452,7 +454,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     }
 
     private fillForm(): void {
-        if (!this.isEditMode()) {
+        if (this.isAddMode()) {
             return;
         }
         

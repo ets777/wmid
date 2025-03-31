@@ -4,10 +4,9 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from './users.model';
 import { ConfigModule } from '@nestjs/config';
 import { UsersController } from './users.controller';
-import { UserRole } from '../roles/user-roles.model';
-import { Role } from '../roles/roles.model';
-import { RolesService } from '../roles/roles.service';
-import { JwtService } from '@nestjs/jwt';
+import { UserRole } from '@backend/roles/user-roles.model';
+import { Role } from '@backend/roles/roles.model';
+import { RolesService } from '@backend/roles/roles.service';
 
 describe('UsersController', () => {
     let controller: UsersController;
@@ -33,7 +32,7 @@ describe('UsersController', () => {
                 }),
                 SequelizeModule.forFeature([Role, User, UserRole]),
             ],
-            providers: [UsersService, RolesService, JwtService],
+            providers: [UsersService, RolesService],
             controllers: [UsersController],
         }).compile();
 

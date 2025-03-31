@@ -1,0 +1,123 @@
+<form
+    class="custom"
+    [formGroup]="signUpForm"
+    (ngSubmit)="onSubmit()"
+>
+
+    <div
+        class="error"
+        *ngIf="errorMessage"
+    >
+        {{ errorMessage }}
+    </div>
+
+    <ion-note
+        color="danger"
+        class="validation-error"
+        *ngIf="signUpForm.get('username')?.invalid && signUpForm.get('username')?.touched"
+    >
+        {{ getErrorMessage(signUpForm.get('username')) }}
+    </ion-note>
+
+    <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="username"
+        >
+            <div slot="label">Username</div>
+        </ion-input>
+        <ion-spinner
+            *ngIf="isCheckingUsername"
+            name="dots"
+            slot="end"
+        ></ion-spinner>
+        <ion-icon
+            *ngIf="!isCheckingUsername && signUpForm.get('username')?.value && !signUpForm.get('username')?.errors?.['usernameTaken']"
+            name="checkmark-circle"
+            color="success"
+            slot="end"
+        ></ion-icon>
+        <ion-icon
+            *ngIf="!isCheckingUsername && signUpForm.get('username')?.value && signUpForm.get('username')?.errors?.['usernameTaken']"
+            name="close-circle"
+            color="danger"
+            slot="end"
+        ></ion-icon>
+    </ion-item>
+
+    <ion-note
+        color="danger"
+        class="validation-error"
+        *ngIf="signUpForm.get('email')?.invalid && signUpForm.get('email')?.touched"
+    >
+        {{ getErrorMessage(signUpForm.get('email')) }}
+    </ion-note>
+
+    <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="email"
+        >
+            <div slot="label">Email</div>
+        </ion-input>
+        <ion-spinner
+            *ngIf="isCheckingEmail"
+            name="dots"
+            slot="end"
+        ></ion-spinner>
+        <ion-icon
+            *ngIf="!isCheckingEmail && signUpForm.get('email')?.value && !signUpForm.get('email')?.errors?.['emailTaken']"
+            name="checkmark-circle"
+            color="success"
+            slot="end"
+        ></ion-icon>
+        <ion-icon
+            *ngIf="!isCheckingEmail && signUpForm.get('email')?.value && signUpForm.get('email')?.errors?.['emailTaken']"
+            name="close-circle"
+            color="danger"
+            slot="end"
+        ></ion-icon>
+    </ion-item>
+
+    <ion-note
+        color="danger"
+        class="validation-error"
+        *ngIf="signUpForm.get('password')?.invalid && signUpForm.get('password')?.touched"
+    >
+        {{ getErrorMessage(signUpForm.get('password')) }}
+    </ion-note>
+
+    <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="password"
+            [type]="isPasswordVisible ? 'text' : 'password'"
+        >
+            <div slot="label">Password</div>
+        </ion-input>
+        <ion-button
+            fill="clear"
+            slot="end"
+            (click)="togglePasswordVisibility()"
+            class="no-ripple"
+        >
+            <ion-icon
+                [name]="isPasswordVisible ? 'eye-off' : 'eye'"
+                slot="icon-only"
+                class="password-visibility-icon"
+            ></ion-icon>
+        </ion-button>
+    </ion-item>
+
+    <div class="sign-in-note">
+        Already have account? <a [routerLink]="['/auth/sign-in']">Sign In</a>
+    </div>
+
+    <div class="sign-up-button-container">
+        <ion-button
+            type="submit"
+            [disabled]="!signUpForm.valid || isCheckingUsername || isCheckingEmail"
+        >Sign Up</ion-button>
+    </div>
+
+</form>
