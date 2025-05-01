@@ -1,7 +1,6 @@
 import { DateTimeService } from '@backend/services/date-time.service';
 import { Injectable } from '@nestjs/common';
 import { TaskPeriod } from '@backend/task-periods/task-periods.model';
-import { TaskPeriodType } from '@backend/task-periods/task-periods.enum';
 import { format } from 'date-fns';
 import { Status } from '@backend/task-appointments/task-appointments.enum';
 
@@ -12,10 +11,10 @@ export class TaskPeriodsFilterService {
     ) { }
 
     available(period: TaskPeriod): boolean {
-        return (!period.date || period.date === this.dateTimeService.getCurrentDate())
-            && (!period.month || period.month === this.dateTimeService.getCurrentMonth())
-            && (!period.day || period.day === this.dateTimeService.getCurrentDay())
-            && (!period.weekday || period.weekday === this.dateTimeService.getCurrentWeekday());
+        return (!period.date || period.date === this.dateTimeService.getUserCurrentDate())
+            && (!period.month || period.month === this.dateTimeService.getUserCurrentMonth())
+            && (!period.day || period.day === this.dateTimeService.getUserCurrentDay())
+            && (!period.weekday || period.weekday === this.dateTimeService.getUserCurrentWeekday());
     }
 
     dated(period: TaskPeriod): boolean {
@@ -32,13 +31,29 @@ export class TaskPeriodsFilterService {
     }
 
     /**
-     * TODO: take isImportant into consideration while checking the time
+     * TODO: take isImportant and offset into consideration while checking 
+     * the time
      */
     public timeInterval(period: TaskPeriod): boolean {
-        return this.dateTimeService.checkTime(
+        const result = this.dateTimeService.checkTimeInterval(
             period.startTime,
             period.endTime,
         );
+
+        return result
+    }
+
+    /**
+     * TODO: take isImportant and offset into consideration while checking 
+     * the time
+     */
+    public inFuture(period: TaskPeriod): boolean {
+        const result = this.dateTimeService.checkTimeInFuture(
+            period.startTime,
+            period.endTime,
+        );
+
+        return result
     }
 
     startTime(period: TaskPeriod): boolean {
@@ -47,29 +62,6 @@ export class TaskPeriodsFilterService {
 
     noStartTime(period: TaskPeriod): boolean {
         return !period.startTime;
-    }
-
-    cooldown(period: TaskPeriod): boolean {
-        if (
-            !period.cooldown
-            || period.typeId == TaskPeriodType.ONCE
-            || !period.appointments.length
-        ) {
-            return true;
-        }
-
-        const timeFunction = this.dateTimeService
-            .getTimeFunctionDuePeriodType(period.typeId);
-
-        const [lastestAppointment] = period.appointments.sort(
-            (appointmentA, appointmentB) =>
-                appointmentA.startDate > appointmentB.startDate ? -1 : 1,
-        );
-
-        return format(
-            timeFunction(lastestAppointment.startDate, period.cooldown),
-            'yyyy-MM-dd HH:mm:ss',
-        ) <= this.dateTimeService.getCurrentDateTime();
     }
 
     postponed(period: TaskPeriod): boolean {
@@ -82,9 +74,10 @@ export class TaskPeriodsFilterService {
 
     overdue(period: TaskPeriod): boolean {
         const currentDate = this.dateTimeService.getChainableCurrentDate();
-        const currentDay = this.dateTimeService.getCurrentDay();
-        const currentMonth = this.dateTimeService.getCurrentMonth();
+        const currentDay = this.dateTimeService.getUserCurrentDay();
+        const currentMonth = this.dateTimeService.getUserCurrentMonth();
         const currentYear = this.dateTimeService.getCurrentYear();
+
         /**
          * TODO: add conditions for weekdays as well.
          */
@@ -130,7 +123,8 @@ export class TaskPeriodsFilterService {
         const lastAppointmentDate = period.appointments[0]?.startDate;
         const lastPlannedDate = map.find((item) => item.condition)?.date;
 
-        return !lastAppointmentDate
-            || format(lastAppointmentDate, 'yyyy-MM-dd') < lastPlannedDate;
+        return lastAppointmentDate 
+            && lastPlannedDate
+            && format(lastAppointmentDate, 'yyyy-MM-dd') < lastPlannedDate;
     }
 }

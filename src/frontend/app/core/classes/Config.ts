@@ -6,6 +6,6 @@ export class Config {
     }
 
     public static getApiPath(): string {
-        return isDevMode() ? 'http://localhost:3000/api' : 'https://etsbox.ru/wmid';
+        return isDevMode() ? 'http://localhost:2999/api' : 'https://etsbox.ru/wmid';
     }
 }

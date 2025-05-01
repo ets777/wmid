@@ -15,7 +15,7 @@ export class IncludeService {
     constructor(private readonly dateTimeService: DateTimeService) { }
 
     getPeriodsWithAppointments(): Includeable {
-        const currentDate = format(new Date(), 'yyyy-MM-dd');
+        const currentDate = this.dateTimeService.getUserCurrentDate();
 
         return {
             model: TaskPeriod,
@@ -43,7 +43,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'WEEK',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('WEEK', currentDate),
@@ -51,7 +51,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),
@@ -64,7 +64,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'MONTH',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('MONTH', currentDate),
@@ -72,7 +72,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),
@@ -85,7 +85,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),
@@ -115,7 +115,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'DATE',
-                                        Sequelize.col('appointments.startDate')
+                                        Sequelize.col('appointments.startDate'),
                                     ),
                                     Op.eq,
                                     currentDate,
@@ -128,7 +128,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'WEEK',
-                                        Sequelize.col('appointments.startDate')
+                                        Sequelize.col('appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('WEEK', currentDate),
@@ -136,7 +136,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('appointments.startDate')
+                                        Sequelize.col('appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),
@@ -149,7 +149,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'MONTH',
-                                        Sequelize.col('appointments.startDate')
+                                        Sequelize.col('appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('MONTH', currentDate),
@@ -157,7 +157,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('appointments.startDate')
+                                        Sequelize.col('appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),
@@ -170,7 +170,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('appointments.startDate')
+                                        Sequelize.col('appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),
@@ -199,7 +199,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'DATE',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     currentDate,
@@ -212,7 +212,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'WEEK',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('WEEK', currentDate),
@@ -220,7 +220,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),
@@ -233,7 +233,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'MONTH',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('MONTH', currentDate),
@@ -241,7 +241,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),
@@ -254,7 +254,7 @@ export class IncludeService {
                                 Sequelize.where(
                                     Sequelize.fn(
                                         'YEAR',
-                                        Sequelize.col('periods.appointments.startDate')
+                                        Sequelize.col('periods.appointments.startDate'),
                                     ),
                                     Op.eq,
                                     Sequelize.fn('YEAR', currentDate),

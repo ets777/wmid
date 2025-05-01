@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DateTimeService } from '@backend/services/date-time.service';
 import { TasksFilterService } from './task.filter';
 import { Task } from '@backend/tasks/tasks.model';
+import { CurrentUserService } from '@backend/services/current-user.service';
 
 describe('TasksFilterService', () => {
     let dateTimeService: DateTimeService;
@@ -11,10 +12,11 @@ describe('TasksFilterService', () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 TasksFilterService,
+                CurrentUserService,
                 {
                     provide: DateTimeService,
                     useValue: {
-                        getCurrentDate: jest.fn(),
+                        getUserCurrentDate: jest.fn(),
                     },
                 },
             ],
@@ -28,7 +30,7 @@ describe('TasksFilterService', () => {
         it('should return true, because the task is actual', async () => {
             const task = { startDate: '2024-10-31', endDate: '2024-10-31' } as Task;
 
-            jest.spyOn(dateTimeService, 'getCurrentDate')
+            jest.spyOn(dateTimeService, 'getUserCurrentDate')
                 .mockReturnValue('2024-10-31');
 
             const result = tasksFilterService.actual(task);

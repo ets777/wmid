@@ -42,11 +42,38 @@ export class User extends Model<User> {
     })
     declare password: string;
 
+    @ApiProperty({
+        example: 1000,
+        description: 'Total points earned by the user',
+    })
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    })
+    declare totalEarnedPoints: number;
+
+    @ApiProperty({
+        example: 500,
+        description: 'Total points spent by the user',
+    })
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    })
+    declare totalSpentPoints: number;
+
+    @ApiProperty({
+        example: '+07:00',
+        description: 'User\'s timezone',
+    })
     @Column({
         type: DataType.STRING,
-        allowNull: true,
+        allowNull: false,
+        defaultValue: '+00:00',
     })
-    declare refreshToken: string;
+    declare timezone: string;
 
     @BelongsToMany(() => Role, () => UserRole)
     declare roles: Role[];

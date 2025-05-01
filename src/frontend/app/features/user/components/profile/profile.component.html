@@ -7,6 +7,10 @@
         </div>
         <div class="user-info">
             <h2>{{ user?.username }}</h2>
+            <div class="points-info">
+                <ion-icon name="star-outline"></ion-icon>
+                <span>Current Points: {{ getCurrentPoints() }}</span>
+            </div>
         </div>
     </div>
     <ion-button (click)="signOut()">Sign Out</ion-button>

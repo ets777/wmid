@@ -5,17 +5,8 @@ import { AuthController } from './auth.controller';
 import { UsersService } from '@backend/users/users.service';
 import { RolesService } from '@backend/roles/roles.service';
 import { UsersController } from '@backend/users/users.controller';
-import { createPool } from 'mysql2/promise';
 import { SessionService } from '@backend/session/session.service';
 import { Response, Request } from 'express';
-
-const pool = createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME_TEST,
-    timezone: process.env.DB_TIMEZONE,
-});
 
 describe('AuthController', () => {
     let authController: AuthController;
@@ -46,7 +37,6 @@ describe('AuthController', () => {
 
     afterAll(async () => {
         await usersController.delete(testUsername);
-        await pool.end();
         await module.close();
     });
 
@@ -56,6 +46,7 @@ describe('AuthController', () => {
                 username: testUsername,
                 email: `${testUsername}@example.com`,
                 password: 'Password999!',
+                timezone: '+00:00',
             };
             const mockResponse = {
                 cookie: jest.fn(),

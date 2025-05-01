@@ -56,18 +56,10 @@ export class CreateTaskPeriodDto {
     public date?: string;
 
     @ApiProperty({
-        example: 2,
-        description:
-            'Перерыв до следующего назначения. Единицы зависят от периодичности задания. Часы для ежедневного, дни для еженедельного, недели для ежемесячного, месяцы для годового.',
-    })
-    @IsNumber(null, { message: 'Must be a number' })
-    public cooldown?: number;
-
-    @ApiProperty({
         example: false,
         description: 'Флаг важности',
     })
-    @IsBoolean({ message: 'Должно быть булевым значением' })
+    @IsBoolean({ message: 'Must be boolean' })
     public isImportant?: boolean;
 
     @ApiProperty({
@@ -76,18 +68,22 @@ export class CreateTaskPeriodDto {
     })
     @IsNumber(null, { message: 'Must be a number' })
     public taskId?: number;
+
+    @ApiProperty({
+        example: 1,
+        description: 'Offset from task period time in minutes',
+    })
+    @IsNumber(null, { message: 'Must be a number' })
+    public offset?: number;
 }
 
-
 // {
-//             "uid": 0,
-//             "startTime": null,
-//             "endTime": null,
-//             "weekday": null,
-//             "day": null,
-//             "month": null,
-//             "date": null,
-//             "isImportant": false,
-//             "offset": null,
-//             "cooldown": null
-//         }
+//     "uid": 0,
+//     "startTime": null,
+//     "endTime": null,
+//     "weekday": null,
+//     "day": null,
+//     "month": null,
+//     "date": null,
+//     "isImportant": false,
+// }

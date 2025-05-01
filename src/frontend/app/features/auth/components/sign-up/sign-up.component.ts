@@ -6,6 +6,7 @@ import { IUser } from 'app/features/auth/interfaces/User.interface';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { getErrorMessage } from 'app/helpers/validation.helper';
+import { getClientTimezone } from 'app/helpers/common.helper';
 
 @Component({
     selector: 'app-sign-up',
@@ -108,12 +109,15 @@ export class SignUpComponent {
             return;
         }
 
-        const username = this.signUpForm.value.username;
-        const password = this.signUpForm.value.password;
-        const email = this.signUpForm.value.email;
+        const credentials = {
+            username: this.signUpForm.value.username,
+            password: this.signUpForm.value.password,
+            email: this.signUpForm.value.email,
+            timezone: getClientTimezone(),
+        };
 
         this.authService
-            .signUp(username, password, email)
+            .signUp(credentials)
             .pipe(catchError(this.handleError))
             .subscribe({
                 next: (user: IUser) => {
@@ -138,3 +142,4 @@ export class SignUpComponent {
         return throwError(() => new Error(message));
     }
 }
+

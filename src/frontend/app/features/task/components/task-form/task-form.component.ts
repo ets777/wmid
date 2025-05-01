@@ -6,10 +6,9 @@ import { UpdateTaskDto } from '@backend/tasks/dto/update-task.dto';
 import { TaskCategory } from '@backend/task-categories/task-categories.model';
 import { TaskService } from 'app/features/task/services/task.service';
 import { TaskCategoryService } from 'app/features/task/services/task-category.service';
-import { TaskPeriodType, taskPeriodTypes, weekdays, months } from '@backend/task-periods/task-periods.enum';
+import { TaskPeriodType, taskPeriodTypes, weekdays, months, Weekday, IItem } from '@backend/task-periods/task-periods.enum';
 import { ModalController } from '@ionic/angular';
 import { ConfirmModalComponent } from 'app/shared/modals/confirm-modal/confirm-modal.component';
-import { sameTimeValidator } from 'app/features/task/validators/same-time.validator';
 import { daysInMonthValidator } from 'app/features/task/validators/days-in-month.validator';
 import { MaskitoElementPredicate, MaskitoOptions } from '@maskito/core';
 import { maskitoTimeOptionsGenerator, maskitoDateOptionsGenerator } from '@maskito/kit';
@@ -29,7 +28,6 @@ interface IPeriodForm {
     date: string;
     isImportant: boolean;
     offset: number;
-    cooldown: number;
 }
 
 @Component({
@@ -69,7 +67,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
 
     constructor(
         private formBuilder: FormBuilder,
-        private readonly taskCategoryService: TaskCategoryService,
+            private readonly taskCategoryService: TaskCategoryService,
         private readonly taskService: TaskService,
         private modalController: ModalController,
         private router: Router,
@@ -126,6 +124,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
                 this.tasks = tasks;
 
                 this.fillForm();
+                this.setPeriodsLinking();
             });
     }
 
@@ -157,7 +156,6 @@ export class TaskFormComponent implements OnInit, OnDestroy {
                     date: [null],
                     isImportant: [false],
                     offset: [null, Validators.min(0)],
-                    cooldown: [null],
                 },
                 {
                     validators: daysInMonthValidator(),
@@ -226,8 +224,12 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             nextTaskBreak: Number(form.nextTaskBreak) || null,
             previousTaskId: Number(form.previousTaskId) || null,
             previousTaskBreak: Number(form.previousTaskBreak) || null,
+            cost: Number(form.cost) || null,
+            cooldown: Number(form.cooldown) || null,
             isActive: true,
-            periods: form.periods.map(
+            willBeAppointedIfOverdue: Boolean(form.willBeAppointedIfOverdue),
+            isReward: Boolean(form.isReward),
+            periods: form.periods.flatMap(
                 (periodForm: IPeriodForm) => this.convertPeriodFormForCreate(periodForm),
             ),
         };
@@ -254,8 +256,13 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             nextTaskBreak: Number(form.nextTaskBreak) || null,
             previousTaskId: Number(form.previousTaskId) || null,
             previousTaskBreak: Number(form.previousTaskBreak) || null,
+            cost: Number(form.cost) || null,
+            cooldown: Number(form.cooldown) || null,
             isActive: true,
-            periods: form.periods.map(
+            willBeAppointedIfOverdue: Boolean(form.willBeAppointedIfOverdue),
+            isReward: Boolean(form.isReward),
+            additionalTaskIds: form.additionalTaskIds,
+            periods: form.periods.flatMap(
                 (periodForm: IPeriodForm) => this.convertPeriodFormForUpdate(periodForm),
             ),
         };
@@ -267,33 +274,81 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         });
     }
 
-    private convertPeriodFormForUpdate(periodForm: IPeriodForm): UpdateTaskPeriodDto {
-        return {
-            id: periodForm.uid,
+    private convertPeriodFormForUpdate(periodForm: IPeriodForm): UpdateTaskPeriodDto[] {
+        const isDailyWithWeekdays = this.taskForm.value.periodTypeId === TaskPeriodType.DAILY
+            && this.taskForm.value.showWeekdays
+            && this.taskForm.value.weekdays;
+
+        if (!isDailyWithWeekdays) {
+            return [{
+                id: periodForm.uid,
+                typeId: this.taskForm.value.periodTypeId,
+                startTime: periodForm.startTime || null,
+                endTime: periodForm.endTime || null,
+                weekday: Number(periodForm.weekday) || null,
+                day: Number(periodForm.day) || null,
+                month: Number(periodForm.month) || null,
+                date: periodForm.date,
+                isImportant: periodForm.isImportant,
+                offset: Number(periodForm.offset),
+            }];
+        }
+
+        // Get selected weekdays
+        const selectedWeekdays = Object.entries(this.taskForm.value.weekdays)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([weekdayId]) => Number(weekdayId));
+
+        // Create a period for each selected weekday
+        return selectedWeekdays.map(weekday => ({
+            id: this.lastPeriodUid++,
             typeId: this.taskForm.value.periodTypeId,
             startTime: periodForm.startTime || null,
             endTime: periodForm.endTime || null,
-            weekday: Number(periodForm.weekday) || null,
-            day: Number(periodForm.day) || null,
-            month: Number(periodForm.month) || null,
-            date: periodForm.date,
-            cooldown: Number(periodForm.cooldown) || null,
+            weekday: weekday,
+            day: null,
+            month: null,
+            date: null,
             isImportant: periodForm.isImportant,
-        };
+            offset: Number(periodForm.offset),
+        }));
     }
 
-    private convertPeriodFormForCreate(periodForm: IPeriodForm): CreateTaskPeriodDto {
-        return {
+    private convertPeriodFormForCreate(periodForm: IPeriodForm): CreateTaskPeriodDto[] {
+        const isDailyWithWeekdays = this.taskForm.value.periodTypeId === TaskPeriodType.DAILY
+            && this.taskForm.value.showWeekdays
+            && this.taskForm.value.weekdays;
+
+        if (!isDailyWithWeekdays) {
+            return [{
+                typeId: this.taskForm.value.periodTypeId,
+                startTime: periodForm.startTime,
+                endTime: periodForm.endTime,
+                weekday: Number(periodForm.weekday) || null,
+                day: Number(periodForm.day) || null,
+                month: Number(periodForm.month) || null,
+                date: periodForm.date,
+                isImportant: periodForm.isImportant,
+                offset: Number(periodForm.offset),
+            }];
+        }
+
+        // Get selected weekdays
+        const selectedWeekdays = Object.entries(this.taskForm.value.weekdays)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([weekdayId]) => Number(weekdayId));
+
+        // Create a period for each selected weekday
+        return selectedWeekdays.map(weekday => ({
             typeId: this.taskForm.value.periodTypeId,
             startTime: periodForm.startTime,
             endTime: periodForm.endTime,
-            weekday: Number(periodForm.weekday) || null,
-            day: Number(periodForm.day) || null,
-            month: Number(periodForm.month) || null,
-            date: periodForm.date,
-            cooldown: Number(periodForm.cooldown) || null,
+            weekday: weekday,
+            day: null,
+            month: null,
+            date: null,
             isImportant: periodForm.isImportant,
-        };
+        }));
     }
 
     private getMinutesFromTimeString(time: string): number {
@@ -312,7 +367,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     protected getBreakTimeUnits(): string {
         switch (this.taskForm.value.periodTypeId) {
             case TaskPeriodType.DAILY:
-                return '(hours)';
+                return '(minutes)';
             case TaskPeriodType.WEEKLY:
             case TaskPeriodType.MONTHLY:
             case TaskPeriodType.YEARLY:
@@ -384,6 +439,23 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         this.fillPeriodsTimeFromFirstPeriod();
     }
 
+    private setPeriodsLinking(): void {
+        if (!this.task?.periods || this.task.periods.length <= 1) {
+            this.arePeriodsLinked = true;
+            return;
+        }
+
+        const firstPeriod = this.task.periods[0];
+        this.arePeriodsLinked = this.task.periods.every(
+            (period) =>
+                period.startTime === firstPeriod.startTime
+                && period.endTime === firstPeriod.endTime
+                && period.isImportant === firstPeriod.isImportant
+                && period.offset === firstPeriod.offset
+                && (period.weekday === firstPeriod.weekday || this.isDailyWithWeekday()),
+        );
+    }
+
     private fillPeriodsTimeFromFirstPeriod(): void {
         if (!this.periodsForm.length || !this.arePeriodsLinked) {
             return;
@@ -398,7 +470,6 @@ export class TaskFormComponent implements OnInit, OnDestroy {
                     startTime: firstPeriod.startTime,
                     endTime: firstPeriod.endTime,
                     isImportant: firstPeriod.isImportant,
-                    cooldown: firstPeriod.cooldown,
                     offset: firstPeriod.offset,
                 });
 
@@ -406,7 +477,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             });
     }
 
-    private deteleSeconds(time: string): string {
+    private deleteSeconds(time: string): string {
         if (!time) {
             return;
         }
@@ -428,15 +499,9 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         control.setValue(null);
     }
 
-    protected validateSameTime(period: AbstractControl): boolean {
-        return this.periodsForm.hasError('timesNotMatching')
-            && !period.value.date
-            && !period.value.month
-            && !period.value.day
-            && !period.value.weekday;
-    }
-
     private createForm(): void {
+        const weekdayControls = this.getWeekdayFormGroupValues(() => true);
+
         this.taskForm = this.formBuilder.group({
             text: [null, Validators.required],
             // startDate: [''],
@@ -444,39 +509,98 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             duration: [null, Validators.required],
             categoryId: [null, Validators.required],
             periodTypeId: [null, Validators.required],
-            periods: this.formBuilder.array([], sameTimeValidator()),
+            periods: this.formBuilder.array([]),
             previousTaskId: [null, Validators.min(1)],
             previousTaskBreak: [null, Validators.min(0)],
             nextTaskId: [null, Validators.min(1)],
             nextTaskBreak: [null, Validators.min(0)],
             isPartOfChain: [false],
+            showWeekdays: [false],
+            weekdays: this.formBuilder.group(weekdayControls),
+            cost: [null, Validators.min(0)],
+            cooldown: [null, Validators.min(0)],
+            isReward: [false],
+            willBeAppointedIfOverdue: [false],
+            additionalTaskIds: [[]],
         });
+    }
+
+    isDailyWithWeekday(): boolean {
+        const isDailyWithWeekday = this.task.periods.some(
+            (period) => period.typeId === TaskPeriodType.DAILY && period.weekday,
+        );
+
+        return isDailyWithWeekday;
+    }
+
+    getWeekdayFormGroupValuesToFill(weekdays: Weekday[] = null): unknown {
+        if (weekdays) {
+            return this.getWeekdayFormGroupValues(
+                (weekday) => weekdays.includes(weekday.id),
+            );
+        }
+
+        return this.getWeekdayFormGroupValues(() => true);
+    }
+
+    getWeekdayFormGroupValues(getValue: (weekday: IItem) => boolean): unknown {
+        return this.weekdays.reduce(
+            (acc, weekday) => ({
+                ...acc,
+                [weekday.id.toString()]: [getValue(weekday)],
+            }),
+            {},
+        );
+    }
+
+    getPeriodFormArrayValuesToFill(): unknown[] {
+        const weekdays = this.getWeekdaysFromPeriodsToFill();
+
+        return this.task.periods
+            .filter(
+                (period) => !this.isDailyWithWeekday()
+                    || period.weekday == weekdays[0],
+            )
+            .map(
+                (period) => this.formBuilder.group(
+                    {
+                        uid: [period.id],
+                        startTime: this.deleteSeconds(period.startTime),
+                        endTime: this.deleteSeconds(period.endTime),
+                        weekday: [
+                            this.isDailyWithWeekday()
+                                ? null
+                                : period.weekday, [Validators.min(1), Validators.max(7)],
+                        ],
+                        day: [period.day ?? null, [Validators.min(1), Validators.max(31)]],
+                        month: [period.month ?? null, [Validators.min(1), Validators.max(12)]],
+                        date: [period.date ?? null],
+                        isImportant: [period.isImportant ?? false],
+                        offset: [period.offset ?? null, Validators.min(0)],
+                    },
+                    {
+                        validators: daysInMonthValidator(),
+                    },
+                ),
+            );
+    }
+
+    getWeekdaysFromPeriodsToFill(): Weekday[] | null {
+        const weekdays = this.isDailyWithWeekday()
+            ? [...new Set(this.task.periods.map((period) => period.weekday))]
+            : null;
+
+        return weekdays;
     }
 
     private fillForm(): void {
         if (this.isAddMode()) {
             return;
         }
-        
-        const periods = this.task.periods.map(
-            (period) => this.formBuilder.group(
-                {
-                    uid: [period.id],
-                    startTime: [this.deteleSeconds(period.startTime)],
-                    endTime: [this.deteleSeconds(period.endTime)],
-                    weekday: [period.weekday ?? null, [Validators.min(1), Validators.max(7)]],
-                    day: [period.day ?? null, [Validators.min(1), Validators.max(31)]],
-                    month: [period.month ?? null, [Validators.min(1), Validators.max(12)]],
-                    date: [period.date ?? null],
-                    isImportant: [period.isImportant ?? false],
-                    offset: [period.offset ?? null, Validators.min(0)],
-                    cooldown: [period.cooldown ?? null],
-                },
-                {
-                    validators: daysInMonthValidator(),
-                },
-            ),
-        );
+
+        const weekdays = this.getWeekdaysFromPeriodsToFill();
+        const weekdayFormGroupValues = this.getWeekdayFormGroupValuesToFill(weekdays);
+        const periods = this.getPeriodFormArrayValuesToFill();
 
         this.lastPeriodUid = this.getMaxPeriodId() + 1;
 
@@ -487,12 +611,21 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             duration: [this.getTimeStringFromMinutes(this.task.duration), Validators.required],
             categoryId: [this.task.categoryId, Validators.required],
             periodTypeId: [this.task.periods[0].typeId, Validators.required],
-            periods: this.formBuilder.array(periods, sameTimeValidator()),
+            periods: this.formBuilder.array(periods),
             previousTaskId: [this.task.previousTask?.id, Validators.min(1)],
             previousTaskBreak: [this.task.previousTask?.nextTaskBreak, Validators.min(0)],
             nextTaskId: [this.task.nextTaskId, Validators.min(1)],
             nextTaskBreak: [this.task.nextTaskBreak, Validators.min(0)],
             isPartOfChain: [Boolean(this.task.nextTaskId || this.task.previousTask)],
+            showWeekdays: [this.isDailyWithWeekday()],
+            weekdays: this.formBuilder.group(weekdayFormGroupValues),
+            cost: [this.task.cost, Validators.min(0)],
+            cooldown: [this.task.cooldown, Validators.min(0)],
+            isReward: [this.task.isReward],
+            willBeAppointedIfOverdue: [this.task.willBeAppointedIfOverdue],
+            additionalTaskIds: [
+                this.task.additionalTasks.map((additionalTask) => additionalTask.id),
+            ],
         });
     }
 
@@ -500,5 +633,17 @@ export class TaskFormComponent implements OnInit, OnDestroy {
         const ids = this.task.periods.map((period) => period.id);
 
         return Math.max(...ids);
+    }
+
+    protected toggleWeekdays(event: CustomEvent): void {
+        const isChecked = event.detail.checked;
+        const weekdaysGroup = this.taskForm.get('weekdays');
+        this.weekdays.forEach(weekday => {
+            weekdaysGroup.get(weekday.id.toString()).setValue(isChecked);
+        });
+    }
+
+    protected getAvailableAdditionalTasks(): ITask[] {
+        return this.tasks.filter((task) => task.id !== this.task.id);
     }
 }

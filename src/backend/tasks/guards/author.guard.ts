@@ -24,7 +24,7 @@ export class AuthorGuard implements CanActivate {
 
             return task.userId === userId;
         } catch {
-            throw new HttpException('Нет доступа', HttpStatus.FORBIDDEN);
+            throw new HttpException('Available only for author', HttpStatus.FORBIDDEN);
         }
     }
 }

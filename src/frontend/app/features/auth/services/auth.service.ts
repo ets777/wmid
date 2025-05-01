@@ -3,6 +3,8 @@ import { Config } from 'app/core/classes/Config';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { AuthResponseDto } from '@backend/auth/dto/auth-response.dto';
+import { CreateUserDto } from '@backend/users/dto/create-user.dto';
+import { UserCredentialsDto } from '@backend/users/dto/user-credentials.dto';
 import { IUser } from 'app/features/auth/interfaces/User.interface';
 import { CookieOptions, CookieService } from 'ngx-cookie-service';
 import { Router } from '@angular/router';
@@ -26,12 +28,13 @@ export class AuthService {
         private router: Router,
     ) { }
 
-    public signIn(username: string, password: string): Observable<IUser> {
+    public signIn(userCredentialsDto: UserCredentialsDto): Observable<IUser> {
         return this.http
-            .post<AuthResponseDto>(`${Config.getApiPath()}/auth/sign-in`, {
-                username,
-                password,
-            }, this.httpOptions)
+            .post<AuthResponseDto>(
+                `${Config.getApiPath()}/auth/sign-in`, 
+                userCredentialsDto, 
+                this.httpOptions,
+            )
             .pipe(
                 map((authResponse: AuthResponseDto) => {
                     this.saveSession(authResponse);
@@ -41,13 +44,13 @@ export class AuthService {
             );
     }
 
-    public signUp(username: string, password: string, email: string): Observable<IUser> {
+    public signUp(createUserDto: CreateUserDto): Observable<IUser> {
         return this.http
-            .post<AuthResponseDto>(`${Config.getApiPath()}/auth/sign-up`, {
-                username,
-                password,
-                email,
-            }, this.httpOptions)
+            .post<AuthResponseDto>(
+                `${Config.getApiPath()}/auth/sign-up`, 
+                createUserDto, 
+                this.httpOptions,
+            )
             .pipe(
                 map((authResponse: AuthResponseDto) => {
                     this.saveSession(authResponse);

@@ -1,4 +1,4 @@
-import { TaskRelationType } from '../task-relations.enum';
+import { TaskRelationType } from '@backend/task-relations/task-relations.enum';
 
 export class CreateTaskRelationDto {
     mainTaskId: number;

@@ -36,7 +36,7 @@ export class UpdateTaskDto {
         example: true,
         description: 'Флаг активности',
     })
-    @IsBoolean({ message: 'Должно быть булевым значением' })
+    @IsBoolean({ message: 'Must be boolean' })
     public isActive?: boolean;
 
     @ApiProperty({
@@ -58,7 +58,7 @@ export class UpdateTaskDto {
         example: 10,
         description: 'Break before next task in minutes',
     })
-    @IsNumber(null, { message: 'Must be a number' })
+    @IsNumber(null, { message: 'Must be number' })
     public nextTaskBreak?: number;
 
     @ApiProperty({
@@ -92,6 +92,42 @@ export class UpdateTaskDto {
         example: false,
         description: 'Флаг удалённого задания',
     })
-    @IsBoolean({ message: 'Должно быть булевым значением' })
+    @IsBoolean({ message: 'Must be boolean' })
     public isDeleted?: boolean;
+
+    @ApiProperty({
+        example: 100,
+        description: 'Task cost in points',
+    })
+    @IsNumber(null, { message: 'Must be a number' })
+    @Min(0, { message: 'Must be greater than or equal to zero' })
+    public cost?: number;
+
+    @ApiProperty({
+        example: 10,
+        description: 'Cooldown from last appointment. Units depends on period type (minutes for daily, days for weekly, monthly, yearly and once)',
+    })
+    @IsNumber(null, { message: 'Must be a number' })
+    @Min(0, { message: 'Must be greater than or equal to zero' })
+    public cooldown?: number;
+    
+    @ApiProperty({
+        example: true,
+        description: 'Is task a reward',
+    })
+    @IsBoolean({ message: 'Must be a boolean' })
+    public isReward?: boolean;
+
+    @ApiProperty({
+        example: false,
+        description: 'Is task should be appointed if overdue.',
+    })
+    @IsBoolean({ message: 'Must be boolean' })
+    public declare willBeAppointedIfOverdue?: boolean;
+
+    @ApiProperty({
+        example: [1, 2, 3],
+        description: 'IDs of additional tasks',
+    })
+    public additionalTaskIds?: number[];
 }

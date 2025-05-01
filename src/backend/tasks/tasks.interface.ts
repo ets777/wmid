@@ -17,4 +17,8 @@ export interface ITask {
     periods: TaskPeriod[];
     relatedTasks: TaskRelation[];
     additionalTasks: ITask[];
+    cost?: number;
+    cooldown?: number;
+    isReward: boolean;
+    willBeAppointedIfOverdue: boolean;
 }

@@ -6,6 +6,6 @@ export class DeleteTaskDto {
         example: false,
         description: 'Флаг удалённого задания',
     })
-    @IsBoolean({ message: 'Должно быть булевым значением' })
-    deleted: boolean;
+    @IsBoolean({ message: 'Must be boolean' })
+    public deleted: boolean;
 }

@@ -23,7 +23,10 @@ import { RouterModule } from '@angular/router';
         ReactiveFormsModule,
         BrowserAnimationsModule,
         AppRoutingModule,
-        IonicModule.forRoot({}),
+        IonicModule.forRoot({
+            rippleEffect: false,
+            mode: 'md',
+        }),
         RouterModule.forRoot([]),
         CoreModule,
     ],

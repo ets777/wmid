@@ -1,6 +1,6 @@
 {
     "name": "wmid",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "WMID stands for What Must I Do",
     "author": "Dmitry ETS Klishev <Dmitry.Klishev@gmail.com>",
     "homepage": "https://etsbox.ru",
@@ -16,12 +16,11 @@
         "front-build-prod": "ng build --configuration production",
         "front-build-dev": "ng build --configuration development",
         "front-build-dev-watch": "ng build --watch --configuration development",
-        "back-start-dev": "cross-env NODE_ENV=dev nest start",
-        "back-start-dev-watch": "cross-env NODE_ENV=dev nest start --watch",
-        "back-test-dev": "cross-env NODE_ENV=dev jest",
-        "back-build-prod": "cross-env NODE_ENV=prod nest build",
+        "back-start-dev": "cross-env NODE_ENV=dev TZ=UTC nest start",
+        "back-start-dev-watch": "cross-env NODE_ENV=dev TZ=UTC nest start --watch",
+        "back-build-prod": "cross-env NODE_ENV=prod TZ=UTC nest build",
         "back-start-prod": "cross-env NODE_ENV=prod node dist/backend/main",
-        "back-test-prod": "cross-env NODE_ENV=prod jest"
+        "back-test": "jest"
     },
     "dependencies": {
         "@angular/animations": "^19.1.4",

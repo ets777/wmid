@@ -53,10 +53,10 @@ export class TaskService {
         );
     }
 
-    public postpone(task: ITask): Observable<number> {
+    public postpone(task: ITask, minutes: number): Observable<number> {
         return this.http.post<number>(
-            `${Config.getApiPath()}/tasks/postpone`,
-            task,
+            `${Config.getApiPath()}/tasks/postpone/${task.id}`,
+            { postponeTimeMinutes: minutes },
         );
     }
 
@@ -69,8 +69,8 @@ export class TaskService {
 
     public reject(task: ITask): Observable<number> {
         return this.http.post<number>(
-            `${Config.getApiPath()}/tasks/reject`,
-            task,
+            `${Config.getApiPath()}/tasks/reject/${task.id}`,
+            {},
         );
     }
 }

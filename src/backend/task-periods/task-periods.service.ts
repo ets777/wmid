@@ -8,6 +8,8 @@ import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-per
 import { Status } from '@backend/task-appointments/task-appointments.enum';
 import { IncludeService } from '@backend/services/include.service';
 import { UpdateTaskPeriodDto } from './dto/update-task-period.dto';
+import { DateTimeService } from '@backend/services/date-time.service';
+import { Time } from '@backend/classes/Time';
 
 @Injectable()
 export class TaskPeriodsService {
@@ -17,13 +19,29 @@ export class TaskPeriodsService {
         private readonly taskAppointmentsService: TaskAppointmentsService,
         private readonly periodsFilter: TaskPeriodsFilterService,
         private readonly includeService: IncludeService,
+        private readonly dateTimeService: DateTimeService,
     ) { }
+
+    private adjustTimeWithTimezoneOffset(dto: CreateTaskPeriodDto | UpdateTaskPeriodDto): void {
+        if (dto.startTime || dto.endTime) {
+            const offsetMinutes = this.dateTimeService.getUserTimezoneOffsetInMinutes();
+
+            if (dto.startTime) {
+                const time = new Time(dto.startTime);
+                dto.startTime = time.addMinutes(-offsetMinutes).toString();
+            }
+            if (dto.endTime) {
+                const time = new Time(dto.endTime);
+                dto.endTime = time.addMinutes(-offsetMinutes).toString();
+            }
+        }
+    }
 
     public async createTaskPeriod(
         dto: CreateTaskPeriodDto | UpdateTaskPeriodDto,
     ): Promise<TaskPeriod> {
+        this.adjustTimeWithTimezoneOffset(dto);
         const task = await this.taskPeriodRepository.create(dto);
-
         return task;
     }
 
@@ -36,6 +54,7 @@ export class TaskPeriodsService {
     }
 
     public async updateTaskPeriod(dto: UpdateTaskPeriodDto): Promise<number> {
+        this.adjustTimeWithTimezoneOffset(dto);
         const [affectedRows] = await this.taskPeriodRepository.update(
             dto,
             {
@@ -70,7 +89,7 @@ export class TaskPeriodsService {
     ): TaskPeriod[] {
         return periods.filter(
             (period) => filters.every(
-                filter => {
+                (filter) => {
                     if (Array.isArray(filter)) {
                         return filter.some(
                             (filter) => filter.call(this.periodsFilter, period),
@@ -114,13 +133,28 @@ export class TaskPeriodsService {
         return await this.getTaskPeriodById(periodId);
     }
 
-    public async setAppointmentCompleted(period: TaskPeriod): Promise<number> {
+    public async setAppointmentEndStatus(
+        period: TaskPeriod,
+        statusId: Status,
+    ): Promise<number> {
         const appointment = period.appointments.find(
             (appointment) => appointment.statusId == Status.APPOINTED,
         );
 
         return await this.taskAppointmentsService
-            .setAppointmentCompleted(appointment);
+            .setAppointmentEndStatus(appointment, statusId);
+    }
+
+    public async postponeAppointment(
+        period: TaskPeriod,
+        postponeTimeMinutes: number,
+    ): Promise<number> {
+        const appointment = period.appointments.find(
+            (appointment) => appointment.statusId == Status.APPOINTED,
+        );
+
+        return await this.taskAppointmentsService
+            .postponeAppointment(appointment, postponeTimeMinutes);
     }
 
     public getAppointedPeriod(periods: TaskPeriod[]): TaskPeriod {

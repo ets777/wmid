@@ -5,6 +5,7 @@ import {
     HasMany,
     Model,
     Table,
+    BelongsTo,
 } from 'sequelize-typescript';
 import { ApiProperty } from '@nestjs/swagger';
 import { Task } from '@backend/tasks/tasks.model';
@@ -29,6 +30,9 @@ export class TaskPeriod extends Model<TaskPeriod> {
     })
     @ForeignKey(() => Task)
     public declare taskId: number;
+
+    @BelongsTo(() => Task)
+    public declare task: Task;
 
     @ApiProperty({
         example: '07:58:00',
@@ -89,16 +93,6 @@ export class TaskPeriod extends Model<TaskPeriod> {
         allowNull: true,
     })
     public declare date: string;
-
-    @ApiProperty({
-        example: 10,
-        description: 'Cooldown from last appointment. Units depends on period type (hours for daily, days for weekly, monthly, yearly and once)',
-    })
-    @Column({
-        type: DataType.NUMBER,
-        allowNull: true,
-    })
-    public declare cooldown: number;
 
     @ApiProperty({
         example: 15,

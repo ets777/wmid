@@ -13,7 +13,9 @@ import { ITask } from '@backend/tasks/tasks.interface';
 export class TaskRandomComponent implements OnInit {
     protected appointedTask: ITask;
     protected loading = false;
-    protected isMenuOpen = false;
+    protected isCompleteMenuOpen = false;
+    protected isPostponeMenuOpen = false;
+    protected postponeMinutes = 30;
     protected taskAddPageComponent = TaskAddPageComponent;
 
     constructor(
@@ -46,13 +48,20 @@ export class TaskRandomComponent implements OnInit {
     }
 
     postpone(): void {
-        this.taskService.postpone(this.appointedTask).subscribe((result) => {
-            if (result) {
-                this.appoint();
-            } else {
-                this.presentToast('Ошибка при откладывании задания');
-            }
-        });
+        if (!this.postponeMinutes || this.postponeMinutes < 1) {
+            this.presentToast('Please enter valid number of minutes');
+            return;
+        }
+
+        this.taskService.postpone(this.appointedTask, this.postponeMinutes)
+            .subscribe((result) => {
+                if (result) {
+                    this.closePostponeMenu();
+                    this.appoint();
+                } else {
+                    this.presentToast('Error while postponing task');
+                }
+            });
     }
 
     appoint(): void {
@@ -72,19 +81,18 @@ export class TaskRandomComponent implements OnInit {
     }
 
     reject(): void {
-        this.taskService.reject(this.appointedTask).subscribe((a) => {
-            if (a > 0) {
-                this.appoint();
-            } else {
-                this.presentToast('Ошибка при отмене задания');
-            }
-        });
+        this.taskService.reject(this.appointedTask)
+            .subscribe((affectedRows) => {
+                if (affectedRows > 0) {
+                    this.appoint();
+                } else {
+                    this.presentToast('Error while rejecting');
+                }
+            });
     }
 
     getCurrent(): void {
         this.taskService.getCurrent().subscribe((task) => {
-            console.log(task);
-
             if (task) {
                 this.appointedTask = task;
             } else if (task !== null) {
@@ -110,13 +118,19 @@ export class TaskRandomComponent implements OnInit {
         await toast.present();
     }
 
-    openMenu(a): void {
-        this.isMenuOpen = true;
-        console.log('lalala');
+    openCompleteMenu(_event: MouseEvent): void {
+        this.isCompleteMenuOpen = true;
     }
 
-    closeMenu(): void {
-        this.isMenuOpen = false;
-        console.log('lalala');
+    closeCompleteMenu(): void {
+        this.isCompleteMenuOpen = false;
+    }
+
+    openPostponeMenu(_event: MouseEvent): void {
+        this.isPostponeMenuOpen = true;
+    }
+
+    closePostponeMenu(): void {
+        this.isPostponeMenuOpen = false;
     }
 }

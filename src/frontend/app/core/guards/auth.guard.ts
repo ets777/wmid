@@ -22,11 +22,15 @@ export class AuthGuard {
     private getCheckAuthObservable(): Observable<boolean> {
         return this.authService.checkAuth().pipe(
             catchError((err) => {
-                this.router.navigate(['/auth/sign-in']);
+                this.redirect();
                 return throwError(() => new Error(err));
             }),
             map((result: boolean) => {
-                return result === true;
+                if (result === true) {
+                    return result;
+                } else {
+                    return this.redirect();
+                };
             }),
         );
     }

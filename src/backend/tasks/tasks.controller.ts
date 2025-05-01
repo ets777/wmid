@@ -7,7 +7,6 @@ import {
     Post,
     UseGuards,
     Patch,
-    Req,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -18,6 +17,9 @@ import { Roles } from '@backend/auth/roles-auth.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Task } from './tasks.model';
 import { ITask } from './tasks.interface';
+import { DateTimeService } from '@backend/services/date-time.service';
+import { Time } from '@backend/classes/Time';
+import { PostponeTaskDto } from './dto/postpone-task.dto';
 
 @ApiTags('Tasks')
 @Controller('tasks')
@@ -26,6 +28,7 @@ import { ITask } from './tasks.interface';
 export class TasksController {
     constructor(
         private readonly tasksService: TasksService,
+        private readonly dateTimeService: DateTimeService,
     ) { }
 
     @ApiOperation({ summary: 'Create a task' })
@@ -33,13 +36,12 @@ export class TasksController {
     @ApiBody({ type: CreateTaskDto })
     @Post()
     public create(
-        @Body() dto: CreateTaskDto,
-        @Req() req: any,
+        @Body() createTaskDto: CreateTaskDto,
     ): Promise<ITask> {
-        return this.tasksService.createTask(dto, req.user);
+        return this.tasksService.createTask(createTaskDto);
     }
 
-    @ApiOperation({ summary: 'Удаление задания' })
+    @ApiOperation({ summary: 'Delete a task' })
     @ApiResponse({ status: 200, type: Number })
     @UseGuards(AuthorGuard)
     @Delete('/:id')
@@ -47,7 +49,7 @@ export class TasksController {
         return this.tasksService.deleteTask(id);
     }
 
-    @ApiOperation({ summary: 'Task update' })
+    @ApiOperation({ summary: 'Update a task' })
     @ApiResponse({ status: 200, type: Number })
     @UseGuards(AuthorGuard)
     @Patch('/:id')
@@ -58,14 +60,14 @@ export class TasksController {
         return this.tasksService.updateTask(id, taskDto);
     }
 
-    @ApiOperation({ summary: 'Назначение задания' })
+    @ApiOperation({ summary: 'Appoint a task' })
     @ApiResponse({ status: 200, type: Task })
     @Post('/appoint')
     public appoint(): Promise<Task | null> {
         return this.tasksService.appointTask();
     }
 
-    @ApiOperation({ summary: 'Завершение задания' })
+    @ApiOperation({ summary: 'Complete a task' })
     @ApiResponse({ status: 200, type: Number })
     @UseGuards(AuthorGuard)
     @Post('/complete/:id')
@@ -73,19 +75,19 @@ export class TasksController {
         return this.tasksService.completeTask(id);
     }
 
-    // @ApiOperation({ summary: 'Отмена задания' })
-    // @ApiResponse({ status: 200, type: Number })
-    // @Post('/reject')
-    // reject(@Body() appointedTaskDto: AppointedTaskDto): Promise<number> {
-    //     return this.tasksService.rejectTask(appointedTaskDto);
-    // }
+    @ApiOperation({ summary: 'Reject a task' })
+    @ApiResponse({ status: 200, type: Number })
+    @Post('/reject/:id')
+    reject(@Param('id') id: number): Promise<number> {
+        return this.tasksService.rejectTask(id);
+    }
 
-    // @ApiOperation({ summary: 'Перенос задания' })
-    // @ApiResponse({ status: 200, type: Number })
-    // @Post('/postpone')
-    // postpone(@Body() appointedTaskDto: AppointedTaskDto): Promise<number> {
-    //     return this.tasksService.postponeTask(appointedTaskDto);
-    // }
+    @ApiOperation({ summary: 'Postpone a task' })
+    @ApiResponse({ status: 200, type: Number })
+    @Post('/postpone/:id')
+    postpone(@Param('id') id: number, @Body() postponeTaskDto: PostponeTaskDto): Promise<number> {
+        return this.tasksService.postponeTask(id, postponeTaskDto);
+    }
 
     @ApiOperation({ summary: 'Получение всех заданий' })
     @ApiResponse({ status: 200, type: [Task] })
@@ -101,11 +103,26 @@ export class TasksController {
         return this.tasksService.getCurrentTask();
     }
 
-    @ApiOperation({ summary: 'Выбор задания по ID' })
+    @ApiOperation({ summary: 'Get task by ID' })
     @ApiResponse({ status: 200, type: Task })
     @UseGuards(AuthorGuard)
     @Get('/:id')
-    public getById(@Param('id') id: number): Promise<Task> {
-        return this.tasksService.getTaskById(id);
+    public async getById(@Param('id') id: number): Promise<Task> {
+        const task = await this.tasksService.getTaskById(id);
+        const offset = this.dateTimeService.getUserTimezoneOffsetInMinutes();
+        
+        // Adjust startTime and endTime for each period by the offset
+        task.periods.forEach((period) => {
+            if (period.startTime) {
+                const startTime = new Time(period.startTime);
+                period.startTime = startTime.addMinutes(offset).toString();
+            }
+            if (period.endTime) {
+                const endTime = new Time(period.endTime);
+                period.endTime = endTime.addMinutes(offset).toString();
+            }
+        });
+
+        return task;
     }
 }

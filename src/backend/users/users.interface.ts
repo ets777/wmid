@@ -9,4 +9,6 @@ export interface IUser {
     refreshToken?: string;
     roles?: IRole[];
     tasks?: Task[];
+    totalEarnedPoints?: number;
+    totalSpentPoints?: number;
 }

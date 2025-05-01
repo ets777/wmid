@@ -43,6 +43,44 @@
         </ion-input>
     </ion-item>
     <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="cooldown"
+            type="number"
+        >
+            <div slot="label">
+                Break until next appointment {{ getBreakTimeUnits() }}
+            </div>
+        </ion-input>
+    </ion-item>
+    <ion-item>
+        <ion-input
+            labelPlacement="floating"
+            formControlName="cost"
+            type="number"
+        >
+            <div slot="label">Cost (points)</div>
+        </ion-input>
+    </ion-item>
+    <ion-item>
+        <ion-checkbox
+            labelPlacement="end"
+            justify="start"
+            formControlName="isReward"
+        >
+            Is reward
+        </ion-checkbox>
+    </ion-item>
+    <ion-item>
+        <ion-checkbox
+            labelPlacement="end"
+            justify="start"
+            formControlName="willBeAppointedIfOverdue"
+        >
+            Will be appointed if overdue
+        </ion-checkbox>
+    </ion-item>
+    <ion-item>
         <ion-select
             labelPlacement="floating"
             formControlName="periodTypeId"
@@ -68,8 +106,7 @@
             labelPlacement="end"
             justify="start"
             formControlName="isPartOfChain"
-        >Make the task part of a
-            chain</ion-checkbox>
+        >Make the task part of a chain</ion-checkbox>
     </ion-item>
     <ng-container *ngIf="taskForm.value.isPartOfChain">
         <div
@@ -154,6 +191,44 @@
             </ion-input>
         </ion-item>
     </ng-container>
+    <ion-item *ngIf="taskForm.value.periodTypeId === TaskPeriodType.DAILY">
+        <ion-checkbox
+            labelPlacement="end"
+            justify="start"
+            formControlName="showWeekdays"
+            (ionChange)="toggleWeekdays($event)"
+        >Show weekdays</ion-checkbox>
+    </ion-item>
+    <div formGroupName="weekdays" class="weekdays-container" *ngIf="taskForm.value.periodTypeId === TaskPeriodType.DAILY && taskForm.value.showWeekdays">
+        <ion-item *ngFor="let weekday of weekdays">
+            <ion-checkbox
+                labelPlacement="end"
+                justify="start"
+                [formControlName]="weekday.id.toString()"
+            >{{ weekday.name }}</ion-checkbox>
+        </ion-item>
+    </div>
+    <ion-item>
+        <ion-select
+            labelPlacement="floating"
+            formControlName="additionalTaskIds"
+            interface="action-sheet"
+            multiple="true"
+        >
+            <ion-icon
+                *ngIf="taskForm.value.additionalTaskIds?.length"
+                slot="start"
+                src="/assets/svg/xmark.svg"
+                aria-hidden="true"
+                (click)="clearField(taskForm.get('additionalTaskIds'))"
+            ></ion-icon>
+            <div slot="label">Additional tasks</div>
+            <ion-select-option
+                *ngFor="let task of getAvailableAdditionalTasks()"
+                [value]="task.id"
+            > {{ task.text }} </ion-select-option>
+        </ion-select>
+    </ion-item>
     <div formArrayName="periods">
         <div
             *ngFor="let period of periodsForm.controls; let i = index"
@@ -174,25 +249,7 @@
                     (click)="removePeriod(period.get('uid').value)"
                 ></ion-icon>
             </div>
-            <div
-                *ngIf="validateSameTime(period)"
-                class="error"
-            >
-                All periods without date, month, day of month and day of week
-                must have the same start and end time.
-            </div>
             <ng-container *ngIf="!this.arePeriodsLinked || i === 0">
-                <ion-item *ngIf="periodsForm.controls[i + 1]">
-                    <ion-input
-                        labelPlacement="floating"
-                        formControlName="cooldown"
-                        (ionInput)="onPeriodValueChanged()"
-                    >
-                        <div slot="label">
-                            Break until next period {{ getBreakTimeUnits() }}
-                        </div>
-                    </ion-input>
-                </ion-item>
                 <ion-item *ngIf="getDateParamVisibility('startTime')">
                     <ion-input
                         labelPlacement="floating"

@@ -29,7 +29,13 @@ import { SessionModule } from '@backend/session/session.module';
     ],
     controllers: [TasksController],
     imports: [
-        SequelizeModule.forFeature([Role, User, UserRole, Task, TaskCategory]),
+        SequelizeModule.forFeature([
+            Role, 
+            User, 
+            UserRole, 
+            Task, 
+            TaskCategory,
+        ]),
         AuthModule,
         TaskPeriodsModule,
         TaskAppointmentModule,

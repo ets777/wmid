@@ -7,7 +7,7 @@ export class UserFromTokenDto {
         example: 'user',
         description: 'Имя пользователя',
     })
-    @IsString({ message: 'Значение должно быть строкой' })
+    @IsString({ message: 'Must be a string' })
     @Length(4, 16, { message: 'Значение должно быть длиной от 4 до 16 символов' })
     readonly username: string;
 

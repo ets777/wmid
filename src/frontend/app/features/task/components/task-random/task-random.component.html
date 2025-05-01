@@ -1,7 +1,7 @@
 <div *ngIf="!loading">
-  <p class="main-task">{{ appointedTask?.text }}</p>
+    <p class="main-task">{{ appointedTask?.text }}</p>
 
-  <!-- <div *ngIf="appointedTask?.additionalTasks?.length">
+    <!-- <div *ngIf="appointedTask?.additionalTasks?.length">
           <h5>Дополнительные задания:</h5>
           <ul>
               <li *ngFor="let additionalTask of appointedTask?.additionalTasks">
@@ -13,66 +13,89 @@
           </ul>
       </div> -->
 
-  <div
-      class="buttons"
-      *ngIf="appointedTask?.text"
-  >
-      <span class="split-button">
-          <ion-button
-              class="left"
-              (click)="completeAndAppoint()"
-          >
-              Выполнено
-          </ion-button>
-          <ion-button
-              class="right"
-              (click)="openMenu($event)"
-          >
-              <ion-icon
-                  slot="icon-only"
-                  name="expand"
-              ></ion-icon>
-          </ion-button>
-      </span>
+    <div
+        class="buttons"
+        *ngIf="appointedTask?.text"
+    >
+        <span class="split-button">
+            <ion-button
+                class="left"
+                (click)="completeAndAppoint()"
+            >
+                Complete
+            </ion-button>
+            <ion-button
+                class="right"
+                (click)="openCompleteMenu($event)"
+            >
+                <ion-icon
+                    slot="icon-only"
+                    name="expand"
+                ></ion-icon>
+            </ion-button>
+        </span>
 
-      <ion-popover
-          [isOpen]="isMenuOpen"
-          (ionPopoverDidDismiss)="closeMenu()"
-      >
-          <ng-template>
-              <ion-button (click)="complete()">
-                  Выполнить без назначения
-              </ion-button>
-          </ng-template>
-      </ion-popover>
+        <ion-popover
+            [isOpen]="isCompleteMenuOpen"
+            (ionPopoverDidDismiss)="closeCompleteMenu()"
+        >
+            <ng-template>
+                <ion-button (click)="complete()">
+                    Complete without appointment
+                </ion-button>
+            </ng-template>
+        </ion-popover>
 
-      <ion-button
-          color="warning"
-          (click)="postpone()"
-      >
-          Отложено
-      </ion-button>
-      <ion-button
-          color="danger"
-          (click)="reject()"
-      >
-          Отменено
-      </ion-button>
-  </div>
+        <ion-button
+            color="warning"
+            (click)="openPostponeMenu($event)"
+        >
+            Postpone
+        </ion-button>
 
-  <div
-      class="buttons"
-      *ngIf="!appointedTask?.text"
-  >
-      <ion-button
-          color="primary"
-          (click)="appoint()"
-      >
-          Назначить
-      </ion-button>
-  </div>
+        <ion-popover
+            [isOpen]="isPostponeMenuOpen"
+            (ionPopoverDidDismiss)="closePostponeMenu()"
+        >
+            <ng-template>
+                <ion-content class="ion-padding">
+                    <ion-item>
+                        <ion-label position="stacked">Minutes to postpone</ion-label>
+                        <ion-input
+                            type="number"
+                            [(ngModel)]="postponeMinutes"
+                            min="1"
+                            placeholder="Enter minutes">
+                        </ion-input>
+                    </ion-item>
+                    <ion-button expand="block" (click)="postpone()">
+                        Postpone task
+                    </ion-button>
+                </ion-content>
+            </ng-template>
+        </ion-popover>
+
+        <ion-button
+            color="danger"
+            (click)="reject()"
+        >
+            Reject
+        </ion-button>
+    </div>
+
+    <div
+        class="buttons"
+        *ngIf="!appointedTask?.text"
+    >
+        <ion-button
+            color="primary"
+            (click)="appoint()"
+        >
+            Appoint a task
+        </ion-button>
+    </div>
 </div>
 
 <div *ngIf="loading">
-  <ion-spinner></ion-spinner>
+    <ion-spinner></ion-spinner>
 </div>

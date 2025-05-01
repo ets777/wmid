@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.0
+
+- Postponing and canceling tasks added.
+
 ## v0.3.0
 
 - Registration form added.

@@ -2,9 +2,10 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateTaskRelationDto } from './dto/create-task-relation.dto';
 import { InjectModel } from '@nestjs/sequelize';
 import { TaskRelation } from './task-relations.model';
+import { TaskRelationType } from './task-relations.enum';
+import { DeleteTaskRelationDto } from './dto/delete-task-relation.dto';
 import { Task } from '@backend/tasks/tasks.model';
 import { Op } from 'sequelize';
-import { TaskRelationType } from './task-relations.enum';
 
 @Injectable()
 export class TaskRelationsService {
@@ -23,9 +24,24 @@ export class TaskRelationsService {
         return taskRelation;
     }
 
-    async deleteTaskRelation(id: number): Promise<number> {
+    async deleteTaskRelation(
+        deleteTaskRelationDto: DeleteTaskRelationDto,
+    ): Promise<number> {
         const affectedRows = await this.taskRelationRepository.destroy({
-            where: { id },
+            where: { 
+                ...deleteTaskRelationDto,
+            },
+        });
+
+        return affectedRows;
+    }
+
+    async deleteTaskRelations(mainTaskId: number, relationType: TaskRelationType): Promise<number> {
+        const affectedRows = await this.taskRelationRepository.destroy({
+            where: { 
+                mainTaskId,
+                relationType,
+            },
         });
 
         return affectedRows;
@@ -70,24 +86,31 @@ export class TaskRelationsService {
         return affectedRows;
     }
 
-    // async getAllAdditionalTasks(mainTask: Task): Promise<Task[]> {
-    //     const taskRelations = await this.taskRelationRepository.findAll({
-    //         where: {
-    //             [Op.and]: [
-    //                 {
-    //                     mainTaskId: mainTask.id,
-    //                 },
-    //                 {
-    //                     relationType: TaskRelationType.ADDITIONAL,
-    //                 }
-    //             ],
-    //         },
-    //     });
+    async getAllAdditionalTasks(mainTask: Task): Promise<TaskRelation[]> {
+        const taskRelations = await this.taskRelationRepository.findAll({
+            include: [
+                { all: true },
+            ],
+            where: {
+                [Op.and]: [
+                    {
+                        mainTaskId: mainTask.id,
+                    },
+                    {
+                        relationType: TaskRelationType.ADDITIONAL,
+                    },
+                ],
+            },
+        });
 
-    //     const additionalTasks = taskRelations.map(
-    //         (taskRelation) => taskRelation.relatedTaskId,
-    //     );
+        return taskRelations;
+    }
 
-    //     return additionalTasks;
-    // }
+    async getTaskRelationsByTaskId(taskId: number): Promise<TaskRelation[]> {
+        const task = await this.taskRelationRepository.findAll({
+            where: { mainTaskId: taskId },
+        });
+
+        return task;
+    }
 }

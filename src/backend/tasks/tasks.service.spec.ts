@@ -3,7 +3,6 @@ import { TasksService } from './tasks.service';
 import { Task } from './tasks.model';
 import { getModelToken } from '@nestjs/sequelize';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { UserFromTokenDto } from '@backend/users/dto/user-from-token.dto';
 import { TaskPeriodsService } from '@backend/task-periods/task-periods.service';
 import { TaskAppointmentsService } from '@backend/task-appointments/task-appointments.service';
 import { DateTimeService } from '@backend/services/date-time.service';
@@ -14,13 +13,15 @@ import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-per
 import { TaskAppointment } from '@backend/task-appointments/task-appointments.model';
 import { TasksFilterService } from '@backend/filters/tasks/task.filter';
 import { TaskLoggerService } from '@backend/services/task-logger.service';
+import { CurrentUserService } from '@backend/services/current-user.service';
+import { User } from '@backend/users/users.model';
 
 describe('TaskService', () => {
     let tasksService: TasksService;
     let dateTimeService: DateTimeService;
     let taskAppointmentsService: TaskAppointmentsService;
     let taskPeriodsService: TaskPeriodsService;
-    let taskRelationsService: TaskRelationsService;
+    let currentUserService: CurrentUserService;
     let tasksRepository: typeof Task;
 
     beforeEach(async () => {
@@ -63,12 +64,12 @@ describe('TaskService', () => {
                     provide: DateTimeService,
                     useValue: {
                         getCurrentTime: jest.fn(),
-                        getCurrentDate: jest.fn(),
+                        getUserCurrentDate: jest.fn(),
                         getCurrentDateTime: jest.fn(),
-                        getCurrentMonth: jest.fn(),
-                        getCurrentDay: jest.fn(),
-                        getCurrentWeekday: jest.fn(),
-                        checkTime: jest.fn(),
+                        getUserCurrentMonth: jest.fn(),
+                        getUserCurrentDay: jest.fn(),
+                        getUserCurrentWeekday: jest.fn(),
+                        checkTimeInterval: jest.fn(),
                     },
                 },
                 {
@@ -91,6 +92,7 @@ describe('TaskService', () => {
                     },
                 },
                 TaskLoggerService,
+                CurrentUserService,
             ],
         }).compile();
 
@@ -98,7 +100,7 @@ describe('TaskService', () => {
         tasksService = module.get<TasksService>(TasksService);
         taskPeriodsService = module.get<TaskPeriodsService>(TaskPeriodsService);
         taskAppointmentsService = module.get<TaskAppointmentsService>(TaskAppointmentsService);
-        taskRelationsService = module.get<TaskRelationsService>(TaskRelationsService);
+        currentUserService = module.get<CurrentUserService>(CurrentUserService);
         tasksRepository = module.get<typeof Task>(getModelToken(Task));
     });
 
@@ -108,9 +110,11 @@ describe('TaskService', () => {
 
             (tasksRepository.create as jest.Mock).mockResolvedValue(mockTask);
 
+            jest.spyOn(currentUserService, 'getCurrentUser')
+                .mockReturnValue({ id: 1 } as User);
+
             const task = await tasksService.createTask(
                 {} as CreateTaskDto,
-                {} as UserFromTokenDto
             );
 
             expect(task).toEqual(mockTask);
@@ -240,6 +244,9 @@ describe('TaskService', () => {
             jest.spyOn(tasksService, 'getTaskByAppointment')
                 .mockReturnValue(Promise.resolve(lastTask));
 
+            jest.spyOn(tasksService, 'appointAdditionalTasks')
+                .mockReturnValue(Promise.resolve([]));
+
             const appointedTask = await tasksService.appointNextTask();
 
             expect(appointedTask).toEqual(nextTask);
@@ -317,9 +324,9 @@ describe('TaskService', () => {
             const tasks = [
                 { id: 1, nextTaskId: 2 } as Task,
                 { id: 2, nextTaskId: 3, duration: 2 } as Task,
-                { 
-                    id: 3, 
-                    additionalTasks: [], 
+                {
+                    id: 3,
+                    additionalTasks: [],
                     periods: [{ startTime: '12:00:00', offset: 0 }],
                 } as Task,
             ];
@@ -340,8 +347,8 @@ describe('TaskService', () => {
             jest.spyOn(taskAppointmentsService, 'createTaskAppointment')
                 .mockReturnValue(Promise.resolve(null));
 
-            // jest.spyOn(taskRelationsService, 'getAllAdditionalTasks')
-            //     .mockReturnValue(Promise.resolve([]));
+            // jest.spyOn(currentUserService, 'getCurrentUser')
+            //     .mockReturnValue({} as User);
 
             jest.spyOn(taskAppointmentsService, 'getLastTaskAppointment')
                 .mockReturnValue(Promise.resolve({} as TaskAppointment));
@@ -361,8 +368,8 @@ describe('TaskService', () => {
                 { id: 1, duration: 1 } as Task,
                 {
                     id: 2,
-                    periods: [{ 
-                        startTime: '12:00:00', 
+                    periods: [{
+                        startTime: '12:00:00',
                         offset: 0,
                         isImportant: false,
                     }],
@@ -375,7 +382,11 @@ describe('TaskService', () => {
                 .mockReturnValue('11:59');
 
             jest.spyOn(taskPeriodsService, 'processTaskPeriods')
-                .mockReturnValue([{ startTime: '12:00:00' } as TaskPeriod]);
+                .mockReturnValue([{
+                    startTime: '12:00:00',
+                    offset: 0,
+                    isImportant: false,
+                } as TaskPeriod]);
 
             const appointedTask = tasksService.hasTimeBeforeTimeTask(
                 task,
@@ -390,8 +401,8 @@ describe('TaskService', () => {
                 { id: 1, duration: 1 } as Task,
                 {
                     id: 2,
-                    periods: [{ 
-                        startTime: '12:00:00', 
+                    periods: [{
+                        startTime: '12:00:00',
                         offset: 1,
                         isImportant: false,
                     }],
@@ -404,7 +415,11 @@ describe('TaskService', () => {
                 .mockReturnValue('12:00:00');
 
             jest.spyOn(taskPeriodsService, 'processTaskPeriods')
-                .mockReturnValue([{ startTime: '12:00:00' } as TaskPeriod]);
+                .mockReturnValue([{
+                    startTime: '12:00:00',
+                    offset: 1,
+                    isImportant: false,
+                } as TaskPeriod]);
 
             const appointedTask = tasksService.hasTimeBeforeTimeTask(
                 task,
@@ -419,8 +434,8 @@ describe('TaskService', () => {
                 { id: 1, duration: 1 } as Task,
                 {
                     id: 2,
-                    periods: [{ 
-                        startTime: '12:00:00', 
+                    periods: [{
+                        startTime: '12:00:00',
                         offset: 0,
                         isImportant: false,
                     }],
@@ -448,8 +463,8 @@ describe('TaskService', () => {
                 { id: 1, duration: 1 } as Task,
                 {
                     id: 2,
-                    periods: [{ 
-                        startTime: '12:00:00', 
+                    periods: [{
+                        startTime: '12:00:00',
                         offset: 1,
                         isImportant: true,
                     }],

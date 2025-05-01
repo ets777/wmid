@@ -20,4 +20,16 @@ export class ProfileComponent implements OnInit {
     protected signOut(): void {
         this.authService.signOut().subscribe();
     }
+
+    protected getCurrentPoints(): number {
+        if (!this.user) {
+            return 0;
+        }
+        
+        const earned = this.user.totalEarnedPoints || 0;
+        const spent = this.user.totalSpentPoints || 0;
+        const current = earned - spent;
+        
+        return current > 0 ? current : 0;
+    }
 }
