@@ -37,3 +37,21 @@
         color: var(--ion-color-dark);
     }
 }
+
+.points-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+    gap: 8px;
+    
+    ion-icon {
+        color: var(--ion-color-warning);
+        font-size: 20px;
+    }
+    
+    span {
+        font-size: 16px;
+        color: var(--ion-color-medium);
+    }
+}

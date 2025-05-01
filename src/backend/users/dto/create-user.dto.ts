@@ -10,4 +10,11 @@ export class CreateUserDto extends UserCredentialsDto {
     @IsString({ message: 'Must be a string' })
     @IsEmail({}, { message: 'Incorrect email' })
     public readonly email: string;
+
+    @ApiProperty({
+        example: '+07:00',
+        description: 'User\'s timezone',
+    })
+    @IsString({ message: 'Must be a string' })
+    public readonly timezone: string;
 }

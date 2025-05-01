@@ -29,11 +29,6 @@ export function sameTimeValidator(): ValidatorFn {
             .some((control: FormGroup) => control.get('startTime')?.value !== firstTime
                 || control.get('endTime')?.value !== endTime,
             );
-            // .some((control: FormGroup) => control.get('startTime')?.value
-            //     && control.get('startTime')?.value !== firstTime
-            //     || control.get('endTime')?.value
-            //     && control.get('endTime')?.value !== endTime,
-            // );
 
         return hasDifferentTime ? { timesNotMatching: true } : null;
     };

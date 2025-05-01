@@ -6,7 +6,6 @@ import {
     HasMany,
     HasOne,
     Model,
-    Scopes,
     Table,
 } from 'sequelize-typescript';
 import { ApiProperty } from '@nestjs/swagger';
@@ -17,14 +16,6 @@ import { TaskPeriod } from '@backend/task-periods/task-periods.model';
 import { TaskRelation } from '@backend/task-relations/task-relations.model';
 import { ITask } from './tasks.interface';
 
-@Scopes(() => ({
-    additionalTasks: {
-        include: [{
-            model: TaskRelation,
-            where: { relationType: 'additional' },
-        }],
-    },
-}))
 @Table({ tableName: 'tasks' })
 export class Task extends Model<Task, CreateTaskDto> implements ITask {
     @ApiProperty({
@@ -111,6 +102,27 @@ export class Task extends Model<Task, CreateTaskDto> implements ITask {
     public declare willBeAppointedIfOverdue: boolean;
 
     @ApiProperty({
+        example: 100,
+        description: 'Task cost in points',
+    })
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: true,
+    })
+    public declare cost: number;
+
+    @ApiProperty({
+        example: true,
+        description: 'Is task a reward',
+    })
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    })
+    public declare isReward: boolean;
+
+    @ApiProperty({
         example: 1,
         description: 'ID следующего задания',
     })
@@ -123,6 +135,16 @@ export class Task extends Model<Task, CreateTaskDto> implements ITask {
     })
     @ForeignKey(() => TaskCategory)
     public declare categoryId: number;
+
+    @ApiProperty({
+        example: 10,
+        description: 'Cooldown from last appointment. Units depends on period type (minutes for daily, days for weekly, monthly, yearly and once)',
+    })
+    @Column({
+        type: DataType.NUMBER,
+        allowNull: true,
+    })
+    public declare cooldown: number;
 
     @ApiProperty({
         example: 1,
@@ -140,15 +162,10 @@ export class Task extends Model<Task, CreateTaskDto> implements ITask {
     @HasMany(() => TaskRelation, 'mainTaskId')
     public declare relatedTasks: TaskRelation[];
 
-    @BelongsToMany(() => Task, {
-        through: {
-            model: () => TaskRelation,
-            unique: false,
-            scope: { relationType: 'additional' },
-        },
-        foreignKey: 'mainTaskId',
-        otherKey: 'relatedTaskId',
-        as: 'additionalTasks',
-    })
+
+    @BelongsToMany(() => Task, () => TaskRelation, 'mainTaskId', 'relatedTaskId')
     public declare additionalTasks: Task[];
+
+    @BelongsToMany(() => Task, () => TaskRelation, 'relatedTaskId', 'mainTaskId')
+    public declare mainTasks: Task[];
 }

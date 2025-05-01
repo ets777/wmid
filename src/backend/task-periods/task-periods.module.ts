@@ -11,6 +11,7 @@ import { DateTimeService } from '@backend/services/date-time.service';
 import { TaskAppointmentModule } from '@backend/task-appointments/task-appointments.module';
 import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-periods.filter';
 import { IncludeService } from '@backend/services/include.service';
+import { TaskLoggerService } from '@backend/services/task-logger.service';
 
 @Module({
     providers: [
@@ -18,6 +19,7 @@ import { IncludeService } from '@backend/services/include.service';
         DateTimeService, 
         TaskPeriodsFilterService,
         IncludeService,
+        TaskLoggerService,
     ],
     controllers: [],
     imports: [

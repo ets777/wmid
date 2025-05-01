@@ -28,11 +28,13 @@ export class SignInComponent {
     }
 
     protected onSubmit(): void {
-        const username = this.signInForm.value.username;
-        const password = this.signInForm.value.password;
+        const credentials = {
+            username: this.signInForm.value.username,
+            password: this.signInForm.value.password,
+        };
 
         this.authService
-            .signIn(username, password)
+            .signIn(credentials)
             .pipe(catchError(this.handleError))
             .subscribe({
                 next: (user: IUser) => {

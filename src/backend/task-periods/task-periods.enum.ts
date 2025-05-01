@@ -31,35 +31,35 @@ export enum TaskPeriodType {
     ONCE,
 }
 
-export const taskPeriodTypes = [
+export interface IItem {
+    id: number,
+    name: string,
+}
+
+export const taskPeriodTypes: IItem[] = [
     {
-        code: 'DAILY',
         name: 'Daily',
         id: TaskPeriodType.DAILY,
     },
     {
-        code: 'WEEKLY',
         name: 'Weekly',
         id: TaskPeriodType.WEEKLY,
     },
     {
-        code: 'MONTHLY',
         name: 'Monthly',
         id: TaskPeriodType.MONTHLY,
     },
     {
-        code: 'YEARLY',
         name: 'Yearly',
         id: TaskPeriodType.YEARLY,
     },
     {
-        code: 'ONCE',
         name: 'Once',
         id: TaskPeriodType.ONCE,
     },
 ];
 
-export const weekdays = [
+export const weekdays: IItem[] = [
     {
         name: 'Monday',
         id: Weekday.MONDAY,
@@ -90,7 +90,7 @@ export const weekdays = [
     },
 ];
 
-export const months = [
+export const months: IItem[] = [
     {
         name: 'January',
         id: Month.JANUARY,

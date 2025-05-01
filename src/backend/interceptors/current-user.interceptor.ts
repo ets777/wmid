@@ -14,10 +14,9 @@ export class CurrentUserInterceptor implements NestInterceptor {
         const request = context.switchToHttp().getRequest();
         const sessionId = request.headers['x-session-id'];
 
-        console.log(sessionId);
         if (sessionId) {
             const authResponse = await this.authService.checkAuth(sessionId);
-            console.log(authResponse);
+
             if (authResponse?.user) {
                 this.currentUserService.setCurrentUser(authResponse.user);
             } else {

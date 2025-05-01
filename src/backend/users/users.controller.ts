@@ -13,7 +13,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
 import { Roles } from '@backend/auth/roles-auth.decorator';
 import { RolesGuard } from '@backend/roles/guards/roles.guard';
-import { AddRoleDto } from './dto/add-role.dto';
+import { AddRoleDto } from '@backend/roles/dto/add-role.dto';
 import { ValidationPipe } from '@backend/pipes/validation.pipe';
 import { SessionGuard } from '@backend/session/guards/session.guard';
 import { User } from './users.model';

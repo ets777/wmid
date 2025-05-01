@@ -3,7 +3,6 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskPeriodsService } from '@backend/task-periods/task-periods.service';
 import { CreateTaskPeriodDto } from '@backend/task-periods/dto/create-task-period.dto';
-import { UserFromTokenDto } from 'users/dto/user-from-token.dto';
 import { Status } from '@backend/task-appointments/task-appointments.enum';
 import { InjectModel } from '@nestjs/sequelize';
 import { Task } from './tasks.model';
@@ -14,12 +13,15 @@ import { DateTimeService } from '@backend/services/date-time.service';
 import { Time } from '@backend/classes/Time';
 import { IncludeService } from '@backend/services/include.service';
 import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-periods.filter';
-import { IProcessOptions, PeriodFilter } from '@backend/filters/process-options.interface';
+import { IProcessOptions } from '@backend/filters/process-options.interface';
 import { TasksFilterService } from '@backend/filters/tasks/task.filter';
 import { TaskLoggerService } from '@backend/services/task-logger.service';
 import { UpdateTaskPeriodDto } from '@backend/task-periods/dto/update-task-period.dto';
 import { ITask } from './tasks.interface';
 import { CurrentUserService } from '@backend/services/current-user.service';
+import { PostponeTaskDto } from './dto/postpone-task.dto';
+import { TaskRelationsService } from '@backend/task-relations/task-relations.service';
+import { TaskRelationType } from './tasks.enum';
 
 @Injectable()
 export class TasksService {
@@ -33,15 +35,17 @@ export class TasksService {
         private readonly tasksFilter: TasksFilterService,
         private readonly taskLoggerService: TaskLoggerService,
         private readonly currentUserService: CurrentUserService,
+        private readonly taskRelationsService: TaskRelationsService,
     ) { }
 
     public async createTask(
         createTaskDto: CreateTaskDto,
-        userFromTokenDto: UserFromTokenDto,
     ): Promise<ITask> {
+        const currentUser = this.currentUserService.getCurrentUser();
+
         createTaskDto = {
             ...createTaskDto,
-            userId: userFromTokenDto.id,
+            userId: currentUser.id,
         };
 
         const task = await this.taskRepository.create(createTaskDto);
@@ -94,6 +98,22 @@ export class TasksService {
             ],
             where: { 
                 id,
+                isDeleted: false,
+                userId: this.currentUserService.getCurrentUser()?.id,
+            },
+        });
+
+        return task;
+    }
+
+    public async getTaskByIds(ids: number[]): Promise<Task[]> {
+        const task = await this.taskRepository.findAll({
+            include: [
+                { all: true },
+                this.includeService.getPeriodsWithAppointments(),
+            ],
+            where: { 
+                id: ids,
                 isDeleted: false,
                 userId: this.currentUserService.getCurrentUser()?.id,
             },
@@ -155,6 +175,18 @@ export class TasksService {
         return tasks;
     }
 
+    async getAllAdditionalTasks(mainTask: Task): Promise<Task[]> {
+        const taskRelations = await this.taskRelationsService.getAllAdditionalTasks(mainTask);
+
+        const additionalTaskIds = taskRelations.map(
+            (taskRelation) => taskRelation.relatedTaskId,
+        );
+
+        const additionalTasks = this.getTaskByIds(additionalTaskIds);
+
+        return additionalTasks;
+    }
+
     public async getCurrentTask(): Promise<Task> {
         const currentPeriod = await this.taskPeriodsService.getCurrentPeriod();
 
@@ -162,7 +194,7 @@ export class TasksService {
     }
 
     public async updateTask(id: number, updateTaskDto: UpdateTaskDto): Promise<number> {
-        const task = await this.taskRepository.findOne({ where: { id } });
+        const task = await this.getTaskById(id);
         const previousTask = await this.taskRepository.findOne({ where: { nextTaskId: id } });
 
         if (!task) {
@@ -184,7 +216,7 @@ export class TasksService {
             );
         }
 
-        if (isPreviousTaskRemoved || isPreviousTaskChanged) {
+        if (isPreviousTaskRemoved || previousTask?.id && isPreviousTaskChanged) {
             this.taskRepository.update(
                 {
                     nextTaskId: null,
@@ -198,12 +230,15 @@ export class TasksService {
 
         const [affectedRows] = await this.taskRepository.update(
             {
-                text: updateTaskDto.text,
-                duration: updateTaskDto.duration,
+                willBeAppointedIfOverdue: updateTaskDto.willBeAppointedIfOverdue,
+                nextTaskBreak: updateTaskDto.nextTaskBreak,
                 categoryId: updateTaskDto.categoryId,
                 nextTaskId: updateTaskDto.nextTaskId,
-                nextTaskBreak: updateTaskDto.nextTaskBreak,
                 isDeleted: updateTaskDto.isDeleted,
+                duration: updateTaskDto.duration,
+                cooldown: updateTaskDto.cooldown,
+                text: updateTaskDto.text,
+                cost: updateTaskDto.cost,
             },
             {
                 where: { id },
@@ -261,6 +296,36 @@ export class TasksService {
             }
         }
 
+        if (updateTaskDto.additionalTaskIds) {
+            const currentAdditionalTaskIds = (await this.taskRelationsService
+                .getTaskRelationsByTaskId(task.id))
+                .map((relation) => relation.relatedTaskId);
+
+            const additionalTaskIdsToAdd = updateTaskDto.additionalTaskIds.filter(
+                (additionalTaskId) => !currentAdditionalTaskIds.includes(additionalTaskId),
+            );
+            
+            additionalTaskIdsToAdd.forEach((additionalTaskId) => {
+                this.taskRelationsService.createTaskRelation({
+                    mainTaskId: task.id,
+                    relatedTaskId: additionalTaskId,
+                    relationType: TaskRelationType.ADDITIONAL,
+                });
+            });
+
+            const additionalTaskIdsToDelete = currentAdditionalTaskIds.filter(
+                (additionalTaskId) => !updateTaskDto.additionalTaskIds.includes(additionalTaskId),
+            );
+
+            additionalTaskIdsToDelete.forEach((additionalTaskId) => {
+                this.taskRelationsService.deleteTaskRelation({
+                    mainTaskId: task.id,
+                    relatedTaskId: additionalTaskId,
+                    relationType: TaskRelationType.ADDITIONAL,
+                });
+            });
+        }
+
         return affectedRows;
     }
 
@@ -270,7 +335,7 @@ export class TasksService {
             task.periods,
         );
         const affectedRows = await this.taskPeriodsService
-            .setAppointmentCompleted(appointedPeriod);
+            .setAppointmentEndStatus(appointedPeriod, Status.COMPLETED);
 
         if (task.additionalTasks.length > 0) {
             // TODO: implement completion for additional tasks
@@ -279,66 +344,46 @@ export class TasksService {
         return affectedRows;
     }
 
-    // async rejectTask(appointedTaskDto: AppointedTaskDto): Promise<number> {
-    //     const updateAppointmentQuery = `
-    //         update ${DatabaseTable.TSK_APPOINTMENTS} 
-    //         set statusId = ${Status.REJECTED}, endDate = now()
-    //         where id = ${appointedTaskDto.appointmentId}
-    //     `;
+    async rejectTask(taskId: number): Promise<number> {
+        const task = await this.getTaskById(taskId);
+        const appointedPeriod = this.taskPeriodsService.getAppointedPeriod(
+            task.periods,
+        );
+        const affectedRows = await this.taskPeriodsService
+            .setAppointmentEndStatus(appointedPeriod, Status.REJECTED);
 
-    //     const [updateResult] = await this.mysqlConnection.query(
-    //         updateAppointmentQuery,
-    //     );
+        // if (!CommonHelper.isEmptyArray(appointedTaskDto.additionalTasks)) {
+        //     const rejectedAdditional = appointedTaskDto.additionalTasks.map(
+        //         (task) => task.appointmentId,
+        //     );
 
-    //     if (!CommonHelper.isEmptyArray(appointedTaskDto.additionalTasks)) {
-    //         const rejectedAdditional = appointedTaskDto.additionalTasks.map(
-    //             (task) => task.appointmentId,
-    //         );
+        //     const updateRejectedAdditionalAppointmentsQuery = `
+        //         update ${DatabaseTable.TSK_APPOINTMENTS} 
+        //         set statusId = ${Status.REJECTED}, endDate = now()
+        //         where id in (${rejectedAdditional.join(',')})
+        //     `;
 
-    //         const updateRejectedAdditionalAppointmentsQuery = `
-    //             update ${DatabaseTable.TSK_APPOINTMENTS} 
-    //             set statusId = ${Status.REJECTED}, endDate = now()
-    //             where id in (${rejectedAdditional.join(',')})
-    //         `;
+        //     await this.mysqlConnection.query(
+        //         updateRejectedAdditionalAppointmentsQuery,
+        //     );
+        // }
 
-    //         await this.mysqlConnection.query(
-    //             updateRejectedAdditionalAppointmentsQuery,
-    //         );
-    //     }
+        return affectedRows;
+    }
 
-    //     return updateResult.affectedRows;
-    // }
+    async postponeTask(taskId: number, postponeTaskDto: PostponeTaskDto): Promise<number> {
+        const task = await this.getTaskById(taskId);
+        const appointedPeriod = this.taskPeriodsService.getAppointedPeriod(
+            task.periods,
+        );
+        const affectedRows = await this.taskPeriodsService
+            .postponeAppointment(
+                appointedPeriod, 
+                postponeTaskDto.postponeTimeMinutes,
+            );
 
-    // async postponeTask(appointedTaskDto: AppointedTaskDto): Promise<number> {
-    //     const updateAppointmentQuery = `
-    //         update ${DatabaseTable.TSK_APPOINTMENTS} 
-    //         set statusId = ${Status.POSTPONED}, startDate = DATE(startDate) + INTERVAL 1 DAY
-    //         where id = ${appointedTaskDto.appointmentId}
-    //     `;
-
-    //     const [updateResult] = await this.mysqlConnection.query(
-    //         updateAppointmentQuery,
-    //     );
-
-    //     console.log(CommonHelper.isEmptyArray(appointedTaskDto.additionalTasks));
-    //     if (!CommonHelper.isEmptyArray(appointedTaskDto.additionalTasks)) {
-    //         const rejectedAdditional = appointedTaskDto.additionalTasks.map(
-    //             (task) => task.appointmentId,
-    //         );
-
-    //         const updateRejectedAdditionalAppointmentsQuery = `
-    //             update ${DatabaseTable.TSK_APPOINTMENTS} 
-    //             set statusId = ${Status.REJECTED}, endDate = now()
-    //             where id in (${rejectedAdditional.join(',')})
-    //         `;
-
-    //         await this.mysqlConnection.query(
-    //             updateRejectedAdditionalAppointmentsQuery,
-    //         );
-    //     }
-
-    //     return updateResult.affectedRows;
-    // }
+        return affectedRows;
+    }
 
     public async appointTask(): Promise<Task | null> {
         this.taskLoggerService.init();
@@ -429,6 +474,11 @@ export class TasksService {
         this.taskLoggerService.collect('Getting task by last appointment...');
 
         const lastTask = await this.getTaskByAppointment(lastAppointment);
+
+        if (!lastTask) {
+            this.taskLoggerService.collect('Last task not found.');
+            return null;
+        }
 
         this.taskLoggerService.collect(`Last task "${lastTask.text}" (ID: ${lastTask.id}) found.`);
         this.taskLoggerService.collect('Getting next task for last task...');
@@ -585,8 +635,30 @@ export class TasksService {
      * Retrieves the task that has the earliest associated period based on start 
      * time or underfined if there's no such task.
      */
-    public async getNearestTimeTask(): Promise<Task | null> {
+    public async getNearestTimeTask(
+        additionalPeriodFilter?: (period: TaskPeriod) => boolean,
+    ): Promise<Task | null> {
         const tasks = await this.getAllTasks();
+
+        const options = {
+            periodFilters: [
+                this.periodsFilter.inFuture,
+                this.periodsFilter.startTime,
+                this.periodsFilter.available,
+                this.periodsFilter.free,
+            ],
+            taskFilters: [
+                this.tasksFilter.nonDeleted,
+                this.tasksFilter.cooldown,
+                this.tasksFilter.actual,
+                this.tasksFilter.active,
+            ],
+            sort: true,
+        };
+
+        if (additionalPeriodFilter) {
+            options.periodFilters.push(additionalPeriodFilter);
+        }
 
         /**
          * TODO: Consider the case where the nearest time-bound task starts just
@@ -594,21 +666,7 @@ export class TasksService {
          * it may be filtered out unintentionally. If there are no time-bound 
          * tasks for today, make sure to check the next day as well.
          */
-        const timeTasks = this.processTasks(tasks, {
-            periodFilters: [
-                this.periodsFilter.available,
-                this.periodsFilter.timeInterval,
-                this.periodsFilter.startTime,
-                this.periodsFilter.cooldown,
-                this.periodsFilter.free,
-            ],
-            taskFilters: [
-                this.tasksFilter.actual,
-                this.tasksFilter.nonDeleted,
-                this.tasksFilter.active,
-            ],
-            sort: true,
-        });
+        const timeTasks = this.processTasks(tasks, options);
         const [nearestTimeTask] = timeTasks;
 
         return nearestTimeTask ?? null;
@@ -619,11 +677,16 @@ export class TasksService {
      * time.
      */
     private async getFirstTaskFromTimedChain(): Promise<Task | null> {
-        const timeTask = await this.getNearestTimeTask();
+        const timeTask = await this.getNearestTimeTask(
+            this.periodsFilter.timeInterval,
+        );
 
         if (!timeTask) {
             return null;
         }
+
+        this.taskLoggerService.collect(`Nearest time task is ${timeTask.text} (ID: ${timeTask.id}) at ${timeTask.periods[0].startTime}`);
+        // this.taskLoggerService.collect(`Current time: `);
 
         const chain = await this.getFilteredTaskChain(
             timeTask,
@@ -640,6 +703,8 @@ export class TasksService {
         );
 
         const [firstAvailableChainTask] = chain;
+
+        this.taskLoggerService.collect('It is a part of a chain');
 
         /**
          * Inheritance of properties of the time task to the first task from
@@ -678,6 +743,16 @@ export class TasksService {
      */
     private filterTasks(tasks: Task[], options: IProcessOptions): Task[] {
         return tasks
+            .filter((task) => options.taskFilters.every(
+                (filter) => {
+                    if (Array.isArray(filter)) {
+                        return filter.some(
+                            (filter) => filter.call(this.tasksFilter, task),
+                        );
+                    }
+                    return filter.call(this.tasksFilter, task);
+                },
+            ))
             .map((task) => this.filterPeriods(task, options))
             .filter((task) => task.periods.length);
     }
@@ -725,6 +800,7 @@ export class TasksService {
         additionalTasks.forEach(async (additionalTask) => {
             await this.taskAppointmentsService.createTaskAppointment(
                 additionalTask,
+                { isAdditional: true },
             );
         });
 
@@ -757,6 +833,7 @@ export class TasksService {
 
     private async appointDatedTask(): Promise<Task> {
         const tasks = await this.getAllTasks();
+        const nearestTimeTask = await this.getNearestTimeTask();
 
         /**
          * TODO: check time until nearest time task. Make it with new type of
@@ -765,15 +842,16 @@ export class TasksService {
          */
         const [datedTask] = this.filterTasks(tasks, {
             periodFilters: [
-                this.periodsFilter.available,
                 this.periodsFilter.noStartTime,
-                this.periodsFilter.cooldown,
-                this.periodsFilter.free,
+                this.periodsFilter.available,
                 this.periodsFilter.dated,
+                this.periodsFilter.free,
             ],
             taskFilters: [
-                this.tasksFilter.actual,
+                this.tasksFilter.enoughTime(nearestTimeTask),
                 this.tasksFilter.nonDeleted,
+                this.tasksFilter.cooldown,
+                this.tasksFilter.actual,
                 this.tasksFilter.active,
             ],
             sort: false,
@@ -802,14 +880,15 @@ export class TasksService {
          */
         const [overdueTask] = this.filterTasks(tasks, {
             periodFilters: [
-                this.periodsFilter.cooldown,
-                this.periodsFilter.free,
-                this.periodsFilter.dated,
                 this.periodsFilter.overdue,
+                this.periodsFilter.dated,
+                this.periodsFilter.free,
             ],
             taskFilters: [
-                this.tasksFilter.actual,
                 this.tasksFilter.nonDeleted,
+                this.tasksFilter.cooldown,
+                this.tasksFilter.overdue,
+                this.tasksFilter.actual,
                 this.tasksFilter.active,
             ],
             sort: false,
@@ -839,13 +918,13 @@ export class TasksService {
         const [postponedTask] = this.filterTasks(tasks, {
             periodFilters: [
                 this.periodsFilter.available,
-                this.periodsFilter.cooldown,
-                this.periodsFilter.free,
                 this.periodsFilter.postponed,
+                this.periodsFilter.free,
             ],
             taskFilters: [
-                this.tasksFilter.actual,
                 this.tasksFilter.nonDeleted,
+                this.tasksFilter.cooldown,
+                this.tasksFilter.actual,
                 this.tasksFilter.active,
             ],
             sort: false,
@@ -874,14 +953,15 @@ export class TasksService {
          */
         const randomTasks = this.filterTasks(tasks, {
             periodFilters: [
-                this.periodsFilter.available,
-                this.periodsFilter.cooldown,
-                this.periodsFilter.free,
                 this.periodsFilter.noStartTime,
+                this.periodsFilter.available,
+                this.periodsFilter.free,
             ],
             taskFilters: [
-                this.tasksFilter.actual,
+                this.tasksFilter.noPreviousTask(tasks),
                 this.tasksFilter.nonDeleted,
+                this.tasksFilter.cooldown,
+                this.tasksFilter.actual,
                 this.tasksFilter.active,
             ],
             sort: false,
@@ -970,8 +1050,6 @@ export class TasksService {
         const chain: Task[] = [];
         let currentTask = task;
 
-        console.log(`current task id is ${currentTask?.id}`)
-
         while (currentTask.nextTaskId) {
             currentTask = await Task.findOne({
                 include: [
@@ -1020,38 +1098,45 @@ export class TasksService {
     }
 
     private async getRegularAdditionalTasks(task: Task): Promise<Task[]> {
-        return this.getAdditionalTasks(task, this.periodsFilter.cooldown);
+        return this.getAdditionalTasks(task, {
+            taskFilters: [this.tasksFilter.cooldown],
+        });
     }
 
     private async getPostponedAdditionalTasks(task: Task): Promise<Task[]> {
-        return this.getAdditionalTasks(task, this.periodsFilter.postponed);
+        return this.getAdditionalTasks(task, {
+            periodFilters: [this.periodsFilter.postponed],
+        });
     }
 
     private async getAdditionalTasks(
         task: Task,
-        additionalFilter: PeriodFilter,
+        additionalFilter: IProcessOptions,
     ): Promise<Task[]> {
-        // const additionalTasks = await this.taskRelationsService
-        //     .getAllAdditionalTasks(task);
+        const additionalTasks = await this.getAllAdditionalTasks(task);
 
-        console.log(task);
+        // const additionalTasks = task.additionalTasks;
 
-        const additionalTasks = task.additionalTasks;
-
-        const processedAdditionalTasks = this.processTasks(additionalTasks, {
+        const filterOptions = {
             periodFilters: [
                 this.periodsFilter.available,
                 this.periodsFilter.free,
                 this.periodsFilter.noStartTime,
-                additionalFilter,
+                ...(additionalFilter.periodFilters ?? []),
             ],
             taskFilters: [
                 this.tasksFilter.actual,
                 this.tasksFilter.nonDeleted,
                 this.tasksFilter.active,
+                ...(additionalFilter.taskFilters ?? []),
             ],
             sort: false,
-        });
+        };
+
+        const processedAdditionalTasks = this.processTasks(
+            additionalTasks,
+            filterOptions,
+        );
 
         return processedAdditionalTasks;
     }

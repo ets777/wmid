@@ -6,8 +6,9 @@ import { Status } from './task-appointments.enum';
 import { Op } from 'sequelize';
 import { Task } from '@backend/tasks/tasks.model';
 import { TaskPeriod } from '@backend/task-periods/task-periods.model';
-import { addHours, format } from 'date-fns';
+import { addHours, format, addMinutes } from 'date-fns';
 import { DateTimeService } from '@backend/services/date-time.service';
+import { CurrentUserService } from '@backend/services/current-user.service';
 
 @Injectable()
 export class TaskAppointmentsService {
@@ -15,6 +16,7 @@ export class TaskAppointmentsService {
         @InjectModel(TaskAppointment)
         private taskAppointmentRepository: typeof TaskAppointment,
         private readonly dateTimeService: DateTimeService,
+        private readonly currentUserService: CurrentUserService,
     ) { }
 
     async deleteTaskAppointment(id: number): Promise<number> {
@@ -86,9 +88,8 @@ export class TaskAppointmentsService {
         task: Task,
         options?: { timeBreak?: number, isAdditional?: boolean, statusId?: Status },
     ): Promise<TaskAppointment> {
-        const nowUTC = new Date();
-        const startDate = addHours(nowUTC, options?.timeBreak ?? 0);
-        const formattedStartDate = format(startDate, 'yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');
+        const startDate = addHours(new Date(), options?.timeBreak ?? 0);
+        const formattedStartDate = format(startDate, 'yyyy-MM-dd HH:mm:ss');
         const [period] = task.periods;
         const statusId = options?.statusId ?? Status.APPOINTED;
         const isAdditional = options?.isAdditional ?? false;
@@ -109,17 +110,53 @@ export class TaskAppointmentsService {
 
     async getCurrentAppointmentPeriodId(): Promise<number> {
         const [taskAppointment] = await this.taskAppointmentRepository.findAll({
-            where: { statusId: Status.APPOINTED },
+            include: {
+                model: TaskPeriod,
+                required: true,
+                include: [{
+                    model: Task,
+                    required: true,
+                    where: {
+                        userId: this.currentUserService.getCurrentUser().id,
+                    },
+                }],
+            },
+            where: { 
+                statusId: Status.APPOINTED,
+            },
         });
 
         return taskAppointment?.taskPeriodId ?? null;
     }
 
-    async setAppointmentCompleted(appointment: TaskAppointment): Promise<number> {
+    async setAppointmentEndStatus(
+        appointment: TaskAppointment,
+        statusId: Status,
+    ): Promise<number> {
         const [affectedRows] = await this.taskAppointmentRepository.update(
-            { 
-                statusId: Status.COMPLETED,
+            {
+                statusId,
                 endDate: this.dateTimeService.getCurrentDateTime(),
+            },
+            { where: { id: appointment.id } },
+        );
+
+        return affectedRows;
+    }
+
+    async postponeAppointment(
+        appointment: TaskAppointment,
+        postponeTimeMinutes: number,
+    ): Promise<number> {
+        const startDate = addMinutes(
+            this.dateTimeService.getCurrentDateTime(),
+            postponeTimeMinutes,
+        );
+        const formattedStartDate = format(startDate, 'yyyy-MM-dd HH:mm:ss');
+        const [affectedRows] = await this.taskAppointmentRepository.update(
+            {
+                statusId: Status.POSTPONED,
+                startDate: formattedStartDate,
             },
             { where: { id: appointment.id } },
         );

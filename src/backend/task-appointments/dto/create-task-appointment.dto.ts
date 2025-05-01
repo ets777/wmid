@@ -3,8 +3,8 @@ import { CommonTaskAppointmentDto } from './common-task-appointment.dto';
 
 export class CreateTaskAppointmentDto extends CommonTaskAppointmentDto {
     @IsNumber(null, { message: 'Must be a number' })
-    taskPeriodId: number;
+    public taskPeriodId: number;
 
-    @IsBoolean({ message: 'Должно быть булевым значением' })
-    isAdditional?: boolean;
+    @IsBoolean({ message: 'Must be boolean' })
+    public isAdditional?: boolean;
 }

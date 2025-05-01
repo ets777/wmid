@@ -9,12 +9,25 @@ import { Task } from '@backend/tasks/tasks.model';
 import { TaskPeriod } from '@backend/task-periods/task-periods.model';
 import { TaskAppointment } from './task-appointments.model';
 import { DateTimeService } from '@backend/services/date-time.service';
+import { TaskLoggerService } from '@backend/services/task-logger.service';
 
 @Module({
-    providers: [TaskAppointmentsService, DateTimeService],
+    providers: [
+        TaskAppointmentsService, 
+        DateTimeService, 
+        TaskLoggerService, 
+    ],
     controllers: [],
     imports: [
-        SequelizeModule.forFeature([Role, User, UserRole, Task, TaskPeriod, TaskAppointment, TaskPeriod]),
+        SequelizeModule.forFeature([
+            Role, 
+            User, 
+            UserRole, 
+            Task, 
+            TaskPeriod, 
+            TaskAppointment, 
+            TaskPeriod,
+        ]),
         AuthModule,
     ],
     exports: [TaskAppointmentsService],

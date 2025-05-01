@@ -6,7 +6,7 @@ import { TaskListComponent } from './components/task-list/task-list.component';
 import { TaskFormComponent } from './components/task-form/task-form.component';
 import { TaskRoutingModule } from './task-routing.module';
 import { IonicModule } from '@ionic/angular';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LayoutsModule } from 'app/layouts/layouts.module';
 import { SharedModule } from 'app/shared/shared.module';
 import { MaskitoDirective } from '@maskito/angular';
@@ -28,6 +28,7 @@ import { TaskCopyPageComponent } from './pages/task-copy-page/task-copy-page.com
         CommonModule,
         TaskRoutingModule,
         IonicModule,
+        FormsModule,
         ReactiveFormsModule,
         LayoutsModule,
         SharedModule,

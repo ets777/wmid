@@ -1,9 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DateTimeService } from '@backend/services/date-time.service';
-import { TaskPeriod } from '../../task-periods/task-periods.model';
-import { TaskPeriodType } from '../../task-periods/task-periods.enum';
+import { TaskPeriod } from '@backend/task-periods/task-periods.model';
 import { TaskAppointment } from '@backend/task-appointments/task-appointments.model';
-import { addHours } from 'date-fns';
 import { Status } from '@backend/task-appointments/task-appointments.enum';
 import { TaskPeriodsFilterService } from './task-periods.filter';
 
@@ -18,12 +16,12 @@ describe('TaskPeriodsFilterService', () => {
                 {
                     provide: DateTimeService,
                     useValue: {
-                        getCurrentDate: jest.fn(),
-                        getCurrentMonth: jest.fn(),
-                        getCurrentDay: jest.fn(),
-                        getCurrentWeekday: jest.fn(),
+                        getUserCurrentDate: jest.fn(),
+                        getUserCurrentMonth: jest.fn(),
+                        getUserCurrentDay: jest.fn(),
+                        getUserCurrentWeekday: jest.fn(),
                         getCurrentDateTime: jest.fn(),
-                        checkTime: jest.fn(),
+                        checkTimeInterval: jest.fn(),
                         getTimeFunctionDuePeriodType: jest.fn(),
                     },
                 },
@@ -38,7 +36,7 @@ describe('TaskPeriodsFilterService', () => {
         it('should return true, because the period is available for current date', async () => {
             const period = { date: '2024-10-31' } as TaskPeriod;
 
-            jest.spyOn(dateTimeService, 'getCurrentDate')
+            jest.spyOn(dateTimeService, 'getUserCurrentDate')
                 .mockReturnValue('2024-10-31');
 
             const result = taskPeriodsFilterService.available(period);
@@ -49,7 +47,7 @@ describe('TaskPeriodsFilterService', () => {
         it('should return false, because the period is not available for current date', async () => {
             const period = { date: '2024-10-30' } as TaskPeriod;
 
-            jest.spyOn(dateTimeService, 'getCurrentDate')
+            jest.spyOn(dateTimeService, 'getUserCurrentDate')
                 .mockReturnValue('2024-10-31');
 
             const result = taskPeriodsFilterService.available(period);
@@ -60,10 +58,10 @@ describe('TaskPeriodsFilterService', () => {
         it('should return true, because the period is available for current month and day', async () => {
             const period = { month: 10, day: 30 } as TaskPeriod;
 
-            jest.spyOn(dateTimeService, 'getCurrentMonth')
+            jest.spyOn(dateTimeService, 'getUserCurrentMonth')
                 .mockReturnValue(10);
 
-            jest.spyOn(dateTimeService, 'getCurrentDay')
+            jest.spyOn(dateTimeService, 'getUserCurrentDay')
                 .mockReturnValue(30);
 
             const result = taskPeriodsFilterService.available(period);
@@ -74,10 +72,10 @@ describe('TaskPeriodsFilterService', () => {
         it('should return false, because the period is not available for current month and day', async () => {
             const period = { month: 10, day: 30 } as TaskPeriod;
 
-            jest.spyOn(dateTimeService, 'getCurrentMonth')
+            jest.spyOn(dateTimeService, 'getUserCurrentMonth')
                 .mockReturnValue(10);
 
-            jest.spyOn(dateTimeService, 'getCurrentDay')
+            jest.spyOn(dateTimeService, 'getUserCurrentDay')
                 .mockReturnValue(31);
 
             const result = taskPeriodsFilterService
@@ -89,10 +87,10 @@ describe('TaskPeriodsFilterService', () => {
         it('should return true, because the period is available for current weekday', async () => {
             const period = { weekday: 3 } as TaskPeriod;
 
-            jest.spyOn(dateTimeService, 'getCurrentWeekday')
+            jest.spyOn(dateTimeService, 'getUserCurrentWeekday')
                 .mockReturnValue(3);
 
-            jest.spyOn(dateTimeService, 'checkTime')
+            jest.spyOn(dateTimeService, 'checkTimeInterval')
                 .mockReturnValue(true);
 
             const result = taskPeriodsFilterService
@@ -104,10 +102,10 @@ describe('TaskPeriodsFilterService', () => {
         it('should return false, because the period is not available for current weekday', async () => {
             const period = { weekday: 3 } as TaskPeriod;
 
-            jest.spyOn(dateTimeService, 'getCurrentWeekday')
+            jest.spyOn(dateTimeService, 'getUserCurrentWeekday')
                 .mockReturnValue(4);
 
-            jest.spyOn(dateTimeService, 'checkTime')
+            jest.spyOn(dateTimeService, 'checkTimeInterval')
                 .mockReturnValue(true);
 
             const result = taskPeriodsFilterService
@@ -119,59 +117,13 @@ describe('TaskPeriodsFilterService', () => {
         it('should return true, because all properties are undefined', async () => {
             const period = {} as TaskPeriod;
 
-            jest.spyOn(dateTimeService, 'checkTime')
+            jest.spyOn(dateTimeService, 'checkTimeInterval')
                 .mockReturnValue(true);
 
             const result = taskPeriodsFilterService
                 .available(period);
 
             expect(result).toEqual(true);
-        });
-    });
-
-    describe('cooldown', () => {
-        it('should return true, because cooldown was passed', async () => {
-            const period = {
-                typeId: TaskPeriodType.DAILY,
-                cooldown: 2,
-                appointments: [
-                    { startDate: '2024-11-01 15:00:00' } as TaskAppointment,
-                    { startDate: '2024-10-31 17:00:00' } as TaskAppointment,
-                    { startDate: '2024-10-31 15:00:00' } as TaskAppointment,
-                ],
-            } as TaskPeriod;
-
-            jest.spyOn(dateTimeService, 'getCurrentDateTime')
-                .mockReturnValue('2024-11-01 17:00:00');
-
-            jest.spyOn(dateTimeService, 'getTimeFunctionDuePeriodType')
-                .mockReturnValue(addHours);
-
-            const result = taskPeriodsFilterService.cooldown(period);
-
-            expect(result).toEqual(true);
-        });
-
-        it('should return false, because cooldown wasn\'t passed', async () => {
-            const period = {
-                typeId: TaskPeriodType.DAILY,
-                cooldown: 2,
-                appointments: [
-                    { startDate: '2024-11-01 15:00:00' } as TaskAppointment,
-                    { startDate: '2024-10-31 17:00:00' } as TaskAppointment,
-                    { startDate: '2024-10-31 15:00:00' } as TaskAppointment,
-                ],
-            } as TaskPeriod;
-
-            jest.spyOn(dateTimeService, 'getCurrentDateTime')
-                .mockReturnValue('2024-11-01 16:59:59');
-
-            jest.spyOn(dateTimeService, 'getTimeFunctionDuePeriodType')
-                .mockReturnValue(addHours);
-
-            const result = taskPeriodsFilterService.cooldown(period);
-
-            expect(result).toEqual(false);
         });
     });
 

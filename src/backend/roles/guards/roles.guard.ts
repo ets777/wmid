@@ -39,15 +39,13 @@ export class RolesGuard implements CanActivate {
 
             const session = await this.sessionService.getSession(sessionId);
 
-            console.log(session);
-
             return session.user.roles.some((role: Role) =>
                 requiredRoles
                     .map((role) => role.toUpperCase())
                     .includes(role.code.toUpperCase()),
             );
         } catch {
-            throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+            throw new HttpException('Available only for certain roles', HttpStatus.FORBIDDEN);
         }
     }
 }

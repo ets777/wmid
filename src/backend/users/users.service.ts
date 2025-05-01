@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { RolesService } from '@backend/roles/roles.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { AddRoleDto } from './dto/add-role.dto';
+import { AddRoleDto } from '@backend/roles/dto/add-role.dto';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from './users.model';
 import { Role } from '@backend/roles/roles.model';
@@ -71,7 +71,7 @@ export class UsersService {
     }
 
     public async addRole(dto: AddRoleDto): Promise<AddRoleDto> {
-        const user = await this.getUserByName(dto.username);
+        const user = await this.getUserById(dto.userId);
         const role = await this.roleService.getRoleByCode(dto.code);
         if (role && user) {
             await user.$add('role', role.id);

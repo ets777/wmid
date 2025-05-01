@@ -1,46 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { SequelizeModule } from '@nestjs/sequelize';
-import { User } from './users.model';
-import { ConfigModule } from '@nestjs/config';
 import { UsersController } from './users.controller';
-import { UserRole } from '@backend/roles/user-roles.model';
-import { Role } from '@backend/roles/roles.model';
 import { RolesService } from '@backend/roles/roles.service';
 
 describe('UsersController', () => {
     let controller: UsersController;
-    let module: TestingModule;
     const testUsername = 'userTest';
 
-    beforeAll(async () => {
-        module = await Test.createTestingModule({
-            imports: [
-                ConfigModule.forRoot({
-                    envFilePath: `.${process.env.NODE_ENV}.env`,
-                }),
-                SequelizeModule.forRoot({
-                    dialect: 'mysql',
-                    host: process.env.DB_HOST,
-                    port: Number(process.env.DB_PORT),
-                    username: process.env.DB_USER,
-                    password: process.env.DB_PASSWORD,
-                    database: process.env.DB_NAME_TEST,
-                    models: [Role, User, UserRole],
-                    autoLoadModels: true,
-                    logging: false,
-                }),
-                SequelizeModule.forFeature([Role, User, UserRole]),
-            ],
+    beforeEach(async () => {
+        const module = await Test.createTestingModule({
             providers: [UsersService, RolesService],
             controllers: [UsersController],
         }).compile();
 
         controller = module.get<UsersController>(UsersController);
-    });
-
-    afterAll(async () => {
-        module.close();
     });
 
     describe('create', () => {
@@ -49,6 +22,7 @@ describe('UsersController', () => {
                 username: testUsername,
                 email: `${testUsername}@example.com`,
                 password: 'Password999!',
+                timezone: '+00:00',
             };
             const result = await controller.create(dto);
             expect(result.id).toBeGreaterThan(0);
@@ -66,7 +40,7 @@ describe('UsersController', () => {
     describe('addRole', () => {
         it(`should add role to user ${testUsername}`, async () => {
             const dto = {
-                username: testUsername,
+                userId: 1,
                 code: 'admin',
             };
 

@@ -55,6 +55,7 @@ import { CurrentUserInterceptor } from './interceptors/current-user.interceptor'
                 UserRole,
             ],
             autoLoadModels: true,
+            logging: false,
         }),
         UsersModule,
         RolesModule,
