@@ -4,8 +4,8 @@ import { Task } from '@backend/tasks/tasks.model';
 import { CreateTaskDto } from '@backend/tasks/dto/create-task.dto';
 import { UpdateTaskDto } from '@backend/tasks/dto/update-task.dto';
 import { TaskCategory } from '@backend/task-categories/task-categories.model';
-import { TaskService } from 'app/features/task/services/task.service';
-import { TaskCategoryService } from 'app/features/task/services/task-category.service';
+import { TaskService } from 'app/features/task/api-services/task-api.service';
+import { TaskCategoryService } from 'app/features/task/api-services/task-category-api.service';
 import { TaskPeriodType, taskPeriodTypes, weekdays, months, Weekday, IItem } from '@backend/task-periods/task-periods.enum';
 import { ModalController } from '@ionic/angular';
 import { ConfirmModalComponent } from 'app/shared/modals/confirm-modal/confirm-modal.component';
@@ -67,7 +67,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
 
     constructor(
         private formBuilder: FormBuilder,
-            private readonly taskCategoryService: TaskCategoryService,
+        private readonly taskCategoryService: TaskCategoryService,
         private readonly taskService: TaskService,
         private modalController: ModalController,
         private router: Router,
@@ -644,6 +644,6 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     }
 
     protected getAvailableAdditionalTasks(): ITask[] {
-        return this.tasks.filter((task) => task.id !== this.task.id);
+        return this.tasks.filter((task) => task.id !== this.task?.id);
     }
 }

@@ -20,8 +20,12 @@ export class TasksFilterService {
             && (!task.endDate || currentDate <= task.endDate);
     }
 
-    nonDeleted(task: Task): boolean {
+    isNotDeleted(task: Task): boolean {
         return !task.isDeleted;
+    }
+
+    isNotReward(task: Task): boolean {
+        return !task.isReward;
     }
 
     active(task: Task): boolean {
@@ -44,7 +48,7 @@ export class TasksFilterService {
 
         // Get all appointments across all periods
         const allAppointments = task.periods.flatMap((period) => period.appointments || []);
-        
+
         if (!allAppointments.length) {
             return true;
         }
@@ -60,7 +64,7 @@ export class TasksFilterService {
 
         // Use the period that corresponds to the latest appointment
         const period = task.periods.find((period) => period.id === latestAppointment.taskPeriodId);
-        
+
         // Skip cooldown check for one-time tasks
         if (period.typeId === TaskPeriodType.ONCE) {
             return true;
@@ -83,6 +87,14 @@ export class TasksFilterService {
         return (task: Task) => !tasks.some((t) => t.nextTaskId === task.id);
     }
 
+    noTimeTaskInChain(tasks: Task[]): (task: Task) => boolean {
+        return ((task: Task) => {
+            const chain = this.getTaskChain(task, tasks);
+
+            return !chain.some((t) => t.periods.some((p) => p.startTime));
+        });
+    }
+
     /**
      * TODO: use offset and isImportant flag to decide if it's enough time
      */
@@ -95,5 +107,16 @@ export class TasksFilterService {
                 ? new Time(nearestTime) > new Time(currentTime).addMinutes(task.duration) 
                 : true
         );
+    }
+
+    private getTaskChain(task: Task, tasks: Task[]): Task[] {
+        const chain = [task];
+        const nextTask = tasks.find((t) => t.id === task.nextTaskId);
+
+        if (nextTask) {
+            chain.push(...this.getTaskChain(nextTask, tasks));
+        }
+
+        return chain;
     }
 }

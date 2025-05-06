@@ -15,6 +15,7 @@ import { TasksFilterService } from '@backend/filters/tasks/task.filter';
 import { TaskLoggerService } from '@backend/services/task-logger.service';
 import { CurrentUserService } from '@backend/services/current-user.service';
 import { User } from '@backend/users/users.model';
+import { UsersService } from '@backend/users/users.service';
 
 describe('TaskService', () => {
     let tasksService: TasksService;
@@ -22,6 +23,7 @@ describe('TaskService', () => {
     let taskAppointmentsService: TaskAppointmentsService;
     let taskPeriodsService: TaskPeriodsService;
     let currentUserService: CurrentUserService;
+    let taskRelationsService: TaskRelationsService;
     let tasksRepository: typeof Task;
 
     beforeEach(async () => {
@@ -31,12 +33,13 @@ describe('TaskService', () => {
                 {
                     provide: TaskRelationsService,
                     useValue: {
-                        //getAllAdditionalTasks: jest.fn(),
+                        getAllAdditionalTasks: jest.fn(),
                     },
                 },
                 {
                     provide: IncludeService,
                     useValue: {
+                        getPeriodsWithAppointments: jest.fn(),
                     },
                 },
                 {
@@ -44,6 +47,7 @@ describe('TaskService', () => {
                     useValue: {
                         create: jest.fn(),
                         findOne: jest.fn(),
+                        findAll: jest.fn(),
                         update: jest.fn(),
                     },
                 },
@@ -87,8 +91,13 @@ describe('TaskService', () => {
                     provide: TasksFilterService,
                     useValue: {
                         actual: jest.fn(),
-                        nonDeleted: jest.fn(),
+                        isNotDeleted: jest.fn(),
                         active: jest.fn(),
+                    },
+                },
+                {
+                    provide: UsersService,
+                    useValue: {
                     },
                 },
                 TaskLoggerService,
@@ -101,6 +110,7 @@ describe('TaskService', () => {
         taskPeriodsService = module.get<TaskPeriodsService>(TaskPeriodsService);
         taskAppointmentsService = module.get<TaskAppointmentsService>(TaskAppointmentsService);
         currentUserService = module.get<CurrentUserService>(CurrentUserService);
+        taskRelationsService = module.get<TaskRelationsService>(TaskRelationsService);
         tasksRepository = module.get<typeof Task>(getModelToken(Task));
     });
 
@@ -344,6 +354,9 @@ describe('TaskService', () => {
             jest.spyOn(tasksService, 'checkChainBelonging')
                 .mockReturnValue(Promise.resolve(true));
 
+            jest.spyOn(tasksService, 'appointAdditionalTasks')
+                .mockReturnValue(Promise.resolve([]));
+
             jest.spyOn(taskAppointmentsService, 'createTaskAppointment')
                 .mockReturnValue(Promise.resolve(null));
 
@@ -355,6 +368,9 @@ describe('TaskService', () => {
 
             jest.spyOn(tasksService, 'getTaskByAppointment')
                 .mockReturnValue(Promise.resolve(lastTask));
+
+            jest.spyOn(taskRelationsService, 'getAllAdditionalTasks')
+                .mockReturnValue(Promise.resolve([]));
 
             const appointedTask = await tasksService.appointNextTask();
 

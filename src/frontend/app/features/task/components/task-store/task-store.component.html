@@ -1,0 +1,5 @@
+<p *ngFor="let task of tasks">
+    {{ task.text }} - {{ task.cost }} points (<a
+        (click)="buy(task)"
+    >buy</a>)
+</p>

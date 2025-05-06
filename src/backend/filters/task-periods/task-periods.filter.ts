@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { TaskPeriod } from '@backend/task-periods/task-periods.model';
 import { format } from 'date-fns';
 import { Status } from '@backend/task-appointments/task-appointments.enum';
+import { Time } from '@backend/classes/Time';
 
 @Injectable()
 export class TaskPeriodsFilterService {
@@ -21,6 +22,10 @@ export class TaskPeriodsFilterService {
         return Boolean(period.date || period.month || period.day || period.weekday);
     }
 
+    notDated(period: TaskPeriod): boolean {
+        return !period.date && !period.month && !period.day && !period.weekday;
+    }
+
     free(period: TaskPeriod): boolean {
         /**
          * Each period can have only one appointment during its time interval 
@@ -31,12 +36,13 @@ export class TaskPeriodsFilterService {
     }
 
     /**
-     * TODO: take isImportant and offset into consideration while checking 
-     * the time
+     * TODO: take isImportant into consideration while checking the time
      */
     public timeInterval(period: TaskPeriod): boolean {
+        const offset = period.offset ?? 0;
+        const startTime = new Time(period.startTime).addMinutes(-offset).toString();
         const result = this.dateTimeService.checkTimeInterval(
-            period.startTime,
+            startTime,
             period.endTime,
         );
 
@@ -60,6 +66,10 @@ export class TaskPeriodsFilterService {
         return Boolean(period.startTime);
     }
 
+    isImportant(period: TaskPeriod): boolean {
+        return period.isImportant;
+    }
+
     noStartTime(period: TaskPeriod): boolean {
         return !period.startTime;
     }
@@ -68,7 +78,7 @@ export class TaskPeriodsFilterService {
         return period.appointments
             .some(
                 (appointment) => appointment.statusId == Status.POSTPONED
-                    && appointment.startDate <= this.dateTimeService.getCurrentDateTime(),
+                    && format(appointment.startDate, 'yyyy-MM-dd HH:mm:ss') <= this.dateTimeService.getCurrentDateTime(),
             );
     }
 

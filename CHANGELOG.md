@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.0
+
+- Reward store added.
+
 ## v0.4.0
 
 - Postponing and canceling tasks added.

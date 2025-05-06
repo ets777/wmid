@@ -60,6 +60,13 @@ export class TaskService {
         );
     }
 
+    public buy(task: ITask): Observable<number> {
+        return this.http.post<number>(
+            `${Config.getApiPath()}/tasks/buy/${task.id}`,
+            {},
+        );
+    }
+
     public appoint(): Observable<ITask> {
         return this.http.post<ITask>(
             `${Config.getApiPath()}/tasks/appoint`,

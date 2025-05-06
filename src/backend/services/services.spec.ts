@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DateTimeService } from '@backend/services/date-time.service';
+import { CurrentUserService } from './current-user.service';
 
 describe('DateTimeService', () => {
     let dateTimeService: DateTimeService;
@@ -8,6 +9,7 @@ describe('DateTimeService', () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 DateTimeService,
+                CurrentUserService,
             ],
         }).compile();
 

@@ -118,6 +118,7 @@ export class AuthService {
                 code: role.code,
                 name: role.name,
             })) || [],
+            totalEarnedPoints: authResponse.user.totalEarnedPoints,
         };
     }
 
