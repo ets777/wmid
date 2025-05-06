@@ -20,8 +20,12 @@ export class TasksFilterService {
             && (!task.endDate || currentDate <= task.endDate);
     }
 
-    nonDeleted(task: Task): boolean {
+    isNotDeleted(task: Task): boolean {
         return !task.isDeleted;
+    }
+
+    isNotReward(task: Task): boolean {
+        return !task.isReward;
     }
 
     active(task: Task): boolean {

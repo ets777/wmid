@@ -60,6 +60,10 @@ export class TaskPeriodsFilterService {
         return Boolean(period.startTime);
     }
 
+    isImportant(period: TaskPeriod): boolean {
+        return period.isImportant;
+    }
+
     noStartTime(period: TaskPeriod): boolean {
         return !period.startTime;
     }

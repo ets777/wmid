@@ -644,6 +644,6 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     }
 
     protected getAvailableAdditionalTasks(): ITask[] {
-        return this.tasks.filter((task) => task.id !== this.task.id);
+        return this.tasks.filter((task) => task.id !== this.task?.id);
     }
 }

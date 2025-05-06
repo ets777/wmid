@@ -7,6 +7,7 @@ import { User } from './users.model';
 import { Role } from '@backend/roles/roles.model';
 import { Op } from 'sequelize';
 import * as bcrypt from 'bcryptjs';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -63,7 +64,7 @@ export class UsersService {
 
     public async getUserByNameOrEmail(username: string, email: string): Promise<User> {
         const user = await this.userRepository.findOne({
-            where: [{ [Op.or]: [{ username }, { email }]}],
+            where: [{ [Op.or]: [{ username }, { email }] }],
             include: { all: true },
         });
 
@@ -92,44 +93,27 @@ export class UsersService {
         return affectedRows;
     }
 
-    public async updateRefreshToken(
-        username: string,
-        refreshToken: string,
-    ): Promise<number> {
+    public async updateUser(id: number, updateUserDto: UpdateUserDto): Promise<number> {
         const user = await this.userRepository.findOne({
-            where: { username },
-        });
-        if (!user) {
-            throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
-        }
-        const updatedData = {
-            ...user,
-            refreshToken,
-        };
-        const updatedUser = await this.userRepository.update(updatedData, {
-            where: { username },
-        });
-        const [affectedRows] = updatedUser;
-        return affectedRows;
-    }
-
-    public async updateUser(username: string, data: CreateUserDto): Promise<number> {
-        const user = await this.userRepository.findOne({
-            where: { username },
+            where: { id },
         });
 
         if (!user) {
-            throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
+            throw new HttpException('User is not found', HttpStatus.NOT_FOUND);
         }
 
-        const updatedData = {
-            ...user,
-            ...data,
-        };
-
-        const updatedUser = await this.userRepository.update(updatedData, {
-            where: { username },
-        });
+        const updatedUser = await this.userRepository.update(
+            {
+                username: updateUserDto.username,
+                password: updateUserDto.password,
+                email: updateUserDto.email,
+                timezone: updateUserDto.timezone,
+                totalEarnedPoints: user.totalEarnedPoints + updateUserDto.earnedPoints,
+            },
+            {
+                where: { id },
+            },
+        );
 
         const [affectedRows] = updatedUser;
 

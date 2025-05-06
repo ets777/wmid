@@ -81,11 +81,11 @@ export class UsersController {
     @ApiResponse({ status: 200, type: Number })
     @Roles('admin')
     @UseGuards(SessionGuard, RolesGuard)
-    @Patch('/:username')
+    @Patch('/:id')
     public update(
-        @Param('username') username: string,
+        @Param('id') id: number,
         @Body() userDto: CreateUserDto,
     ): Promise<number> {
-        return this.userService.updateUser(username, userDto);
+        return this.userService.updateUser(id, userDto);
     }
 }

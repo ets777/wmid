@@ -22,6 +22,7 @@ import { CurrentUserService } from '@backend/services/current-user.service';
 import { PostponeTaskDto } from './dto/postpone-task.dto';
 import { TaskRelationsService } from '@backend/task-relations/task-relations.service';
 import { TaskRelationType } from './tasks.enum';
+import { UsersService } from '@backend/users/users.service';
 
 @Injectable()
 export class TasksService {
@@ -36,6 +37,7 @@ export class TasksService {
         private readonly taskLoggerService: TaskLoggerService,
         private readonly currentUserService: CurrentUserService,
         private readonly taskRelationsService: TaskRelationsService,
+        private readonly usersService: UsersService,
     ) { }
 
     public async createTask(
@@ -337,6 +339,11 @@ export class TasksService {
         const affectedRows = await this.taskPeriodsService
             .setAppointmentEndStatus(appointedPeriod, Status.COMPLETED);
 
+        this.usersService.updateUser(
+            this.currentUserService.getCurrentUser().id,
+            { earnedPoints: task.cost },
+        );
+
         if (task.additionalTasks.length > 0) {
             // TODO: implement completion for additional tasks
         }
@@ -513,7 +520,9 @@ export class TasksService {
         this.taskLoggerService.collect(`Next task "${nextTask.text}" (ID: ${nextTask.id}) found.`);
         this.taskLoggerService.collect('Looking for nearest time task...');
 
-        const nearestTimeTask = await this.getNearestTimeTask();
+        const nearestTimeTask = await this.getNearestTimeTask(
+            this.periodsFilter.isImportant,
+        );
 
         if (nearestTimeTask) {
             this.taskLoggerService.collect(`Nearest time task "${nearestTimeTask.text}" (ID: ${nearestTimeTask.id}) found.`);
@@ -597,7 +606,7 @@ export class TasksService {
                 ],
                 taskFilters: [
                     this.tasksFilter.actual,
-                    this.tasksFilter.nonDeleted,
+                    this.tasksFilter.isNotDeleted,
                     this.tasksFilter.active,
                 ],
                 sort: true,
@@ -642,13 +651,14 @@ export class TasksService {
 
         const options = {
             periodFilters: [
-                this.periodsFilter.inFuture,
                 this.periodsFilter.startTime,
                 this.periodsFilter.available,
+                this.periodsFilter.inFuture,
                 this.periodsFilter.free,
             ],
             taskFilters: [
-                this.tasksFilter.nonDeleted,
+                this.tasksFilter.isNotDeleted,
+                this.tasksFilter.isNotReward,
                 this.tasksFilter.cooldown,
                 this.tasksFilter.actual,
                 this.tasksFilter.active,
@@ -849,7 +859,8 @@ export class TasksService {
             ],
             taskFilters: [
                 this.tasksFilter.enoughTime(nearestTimeTask),
-                this.tasksFilter.nonDeleted,
+                this.tasksFilter.isNotDeleted,
+                this.tasksFilter.isNotReward,
                 this.tasksFilter.cooldown,
                 this.tasksFilter.actual,
                 this.tasksFilter.active,
@@ -885,7 +896,8 @@ export class TasksService {
                 this.periodsFilter.free,
             ],
             taskFilters: [
-                this.tasksFilter.nonDeleted,
+                this.tasksFilter.isNotDeleted,
+                this.tasksFilter.isNotReward,
                 this.tasksFilter.cooldown,
                 this.tasksFilter.overdue,
                 this.tasksFilter.actual,
@@ -922,7 +934,7 @@ export class TasksService {
                 this.periodsFilter.free,
             ],
             taskFilters: [
-                this.tasksFilter.nonDeleted,
+                this.tasksFilter.isNotDeleted,
                 this.tasksFilter.cooldown,
                 this.tasksFilter.actual,
                 this.tasksFilter.active,
@@ -959,7 +971,8 @@ export class TasksService {
             ],
             taskFilters: [
                 this.tasksFilter.noPreviousTask(tasks),
-                this.tasksFilter.nonDeleted,
+                this.tasksFilter.isNotDeleted,
+                this.tasksFilter.isNotReward,
                 this.tasksFilter.cooldown,
                 this.tasksFilter.actual,
                 this.tasksFilter.active,
@@ -1011,8 +1024,9 @@ export class TasksService {
                 this.periodsFilter.free,
             ],
             taskFilters: [
+                this.tasksFilter.isNotDeleted,
+                this.tasksFilter.isNotReward,
                 this.tasksFilter.actual,
-                this.tasksFilter.nonDeleted,
                 this.tasksFilter.active,
             ],
             sort: false,
@@ -1115,18 +1129,17 @@ export class TasksService {
     ): Promise<Task[]> {
         const additionalTasks = await this.getAllAdditionalTasks(task);
 
-        // const additionalTasks = task.additionalTasks;
-
         const filterOptions = {
             periodFilters: [
+                this.periodsFilter.noStartTime,
                 this.periodsFilter.available,
                 this.periodsFilter.free,
-                this.periodsFilter.noStartTime,
                 ...(additionalFilter.periodFilters ?? []),
             ],
             taskFilters: [
+                this.tasksFilter.isNotDeleted,
+                this.tasksFilter.isNotReward,
                 this.tasksFilter.actual,
-                this.tasksFilter.nonDeleted,
                 this.tasksFilter.active,
                 ...(additionalFilter.taskFilters ?? []),
             ],

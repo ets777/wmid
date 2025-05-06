@@ -13,6 +13,8 @@ import { MaskitoDirective } from '@maskito/angular';
 import { TaskListPageComponent } from './pages/task-list-page/task-list-page.component';
 import { TaskRandomComponent } from './components/task-random/task-random.component';
 import { TaskCopyPageComponent } from './pages/task-copy-page/task-copy-page.component';
+import { TaskStorePageComponent } from './pages/task-store-page/task-store-page.component';
+import { TaskStoreComponent } from './components/task-store/task-store.component';
 
 @NgModule({
     declarations: [
@@ -20,9 +22,11 @@ import { TaskCopyPageComponent } from './pages/task-copy-page/task-copy-page.com
         TaskEditPageComponent,
         TaskCopyPageComponent,
         TaskListPageComponent,
+        TaskStorePageComponent,
         TaskListComponent,
         TaskFormComponent,
         TaskRandomComponent,
+        TaskStoreComponent,
     ],
     imports: [
         CommonModule,

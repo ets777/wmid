@@ -87,7 +87,7 @@ describe('TaskService', () => {
                     provide: TasksFilterService,
                     useValue: {
                         actual: jest.fn(),
-                        nonDeleted: jest.fn(),
+                        isNotDeleted: jest.fn(),
                         active: jest.fn(),
                     },
                 },

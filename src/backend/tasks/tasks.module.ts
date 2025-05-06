@@ -17,6 +17,7 @@ import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-per
 import { TasksFilterService } from '@backend/filters/tasks/task.filter';
 import { TaskLoggerService } from '@backend/services/task-logger.service';
 import { SessionModule } from '@backend/session/session.module';
+import { UsersModule } from '@backend/users/users.module';
 
 @Module({
     providers: [
@@ -41,6 +42,7 @@ import { SessionModule } from '@backend/session/session.module';
         TaskAppointmentModule,
         TaskRelationsModule,
         SessionModule,
+        UsersModule,
     ],
     exports: [],
 })

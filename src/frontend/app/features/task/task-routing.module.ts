@@ -5,6 +5,7 @@ import { AuthGuard } from 'app/core/guards/auth.guard';
 import { TaskListPageComponent } from './pages/task-list-page/task-list-page.component';
 import { TaskEditPageComponent } from './pages/task-edit-page/task-edit-page.component';
 import { TaskCopyPageComponent } from './pages/task-copy-page/task-copy-page.component';
+import { TaskStorePageComponent } from './pages/task-store-page/task-store-page.component';
 
 const routes: Routes = [
     {
@@ -25,6 +26,11 @@ const routes: Routes = [
     {
         path: 'list',
         component: TaskListPageComponent,
+        canActivate: [AuthGuard],
+    },
+    {
+        path: 'store',
+        component: TaskStorePageComponent,
         canActivate: [AuthGuard],
     },
 ];
