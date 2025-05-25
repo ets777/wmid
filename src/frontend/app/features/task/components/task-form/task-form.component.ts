@@ -67,7 +67,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
 
     constructor(
         private formBuilder: FormBuilder,
-            private readonly taskCategoryService: TaskCategoryService,
+        private readonly taskCategoryService: TaskCategoryService,
         private readonly taskService: TaskService,
         private modalController: ModalController,
         private router: Router,

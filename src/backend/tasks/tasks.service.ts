@@ -98,7 +98,7 @@ export class TasksService {
                 { all: true },
                 this.includeService.getPeriodsWithAppointments(),
             ],
-            where: { 
+            where: {
                 id,
                 isDeleted: false,
                 userId: this.currentUserService.getCurrentUser()?.id,
@@ -114,7 +114,7 @@ export class TasksService {
                 { all: true },
                 this.includeService.getPeriodsWithAppointments(),
             ],
-            where: { 
+            where: {
                 id: ids,
                 isDeleted: false,
                 userId: this.currentUserService.getCurrentUser()?.id,
@@ -306,7 +306,7 @@ export class TasksService {
             const additionalTaskIdsToAdd = updateTaskDto.additionalTaskIds.filter(
                 (additionalTaskId) => !currentAdditionalTaskIds.includes(additionalTaskId),
             );
-            
+
             additionalTaskIdsToAdd.forEach((additionalTaskId) => {
                 this.taskRelationsService.createTaskRelation({
                     mainTaskId: task.id,
@@ -339,10 +339,12 @@ export class TasksService {
         const affectedRows = await this.taskPeriodsService
             .setAppointmentEndStatus(appointedPeriod, Status.COMPLETED);
 
-        this.usersService.updateUser(
-            this.currentUserService.getCurrentUser().id,
-            { earnedPoints: task.cost },
-        );
+        if (!task.isReward) {
+            this.usersService.updateUser(
+                this.currentUserService.getCurrentUser().id,
+                { earnedPoints: task.cost },
+            );
+        }
 
         if (task.additionalTasks.length > 0) {
             // TODO: implement completion for additional tasks
@@ -385,11 +387,32 @@ export class TasksService {
         );
         const affectedRows = await this.taskPeriodsService
             .postponeAppointment(
-                appointedPeriod, 
+                appointedPeriod,
                 postponeTaskDto.postponeTimeMinutes,
             );
 
         return affectedRows;
+    }
+
+    async buyTask(taskId: number): Promise<number> {
+        const task = await this.getTaskById(taskId);
+        const user = this.currentUserService.getCurrentUser();
+
+        if (user.totalEarnedPoints < task.cost) {
+            throw new Error('User doesn\'t have enough point');
+        }
+
+        this.usersService.updateUser(
+            user.id,
+            { earnedPoints: -task.cost },
+        );
+
+        const appointment = await this.taskAppointmentsService.createTaskAppointment(
+            task,
+            { statusId: Status.POSTPONED },
+        );
+
+        return appointment ? 1 : 0;
     }
 
     public async appointTask(): Promise<Task | null> {
@@ -753,21 +776,27 @@ export class TasksService {
      */
     private filterTasks(tasks: Task[], options: IProcessOptions): Task[] {
         return tasks
-            .filter((task) => options.taskFilters.every(
-                (filter) => {
-                    if (Array.isArray(filter)) {
-                        return filter.some(
-                            (filter) => filter.call(this.tasksFilter, task),
-                        );
-                    }
-                    return filter.call(this.tasksFilter, task);
-                },
-            ))
+            .filter((task) => options.taskFilters?.length
+                ? options.taskFilters.every(
+                    (filter) => {
+                        if (Array.isArray(filter)) {
+                            return filter.some(
+                                (filter) => filter.call(this.tasksFilter, task),
+                            );
+                        }
+                        return filter.call(this.tasksFilter, task);
+                    },
+                )
+                : true)
             .map((task) => this.filterPeriods(task, options))
             .filter((task) => task.periods.length);
     }
 
     private filterPeriods(task: Task, options: IProcessOptions): Task {
+        if (!options.periodFilters?.length) {
+            return task;
+        }
+
         task.periods = this.taskPeriodsService.processTaskPeriods(
             task.periods,
             options,
@@ -858,6 +887,16 @@ export class TasksService {
                 this.periodsFilter.free,
             ],
             taskFilters: [
+                /**
+                 * TODO: if nearest time task can be additional task for dated,
+                 * dated task should be appointed without enoughTime filter with
+                 * additional task.
+                 * 
+                 * [
+                 *   this.tasksFilter.enoughTime(nearestTimeTask),
+                 *   this.tasksFilter.hasAdditional(nearestTimeTask),
+                 * ]
+                 */
                 this.tasksFilter.enoughTime(nearestTimeTask),
                 this.tasksFilter.isNotDeleted,
                 this.tasksFilter.isNotReward,
@@ -929,9 +968,7 @@ export class TasksService {
          */
         const [postponedTask] = this.filterTasks(tasks, {
             periodFilters: [
-                this.periodsFilter.available,
                 this.periodsFilter.postponed,
-                this.periodsFilter.free,
             ],
             taskFilters: [
                 this.tasksFilter.isNotDeleted,
@@ -946,7 +983,15 @@ export class TasksService {
             return null;
         }
 
-        await this.taskAppointmentsService.createTaskAppointment(postponedTask);
+        const appointment = postponedTask?.periods[0]?.appointments?.find(
+            (appointment) => appointment.statusId === Status.POSTPONED,
+        );
+
+        if (!appointment) {
+            return null;
+        }
+
+        await this.taskAppointmentsService.appointPostponed(appointment);
 
         const additionalTasks = await this.appointAdditionalTasks(postponedTask);
 
@@ -959,17 +1004,17 @@ export class TasksService {
 
     private async appointRandomTask(): Promise<Task> {
         const tasks = await this.getAllTasks();
+        const nearestTimeTask = await this.getNearestTimeTask();
 
-        /**
-         * TODO: add filter for nearest time task
-         */
         const randomTasks = this.filterTasks(tasks, {
             periodFilters: [
                 this.periodsFilter.noStartTime,
-                this.periodsFilter.available,
+                this.periodsFilter.notDated,
                 this.periodsFilter.free,
             ],
             taskFilters: [
+                this.tasksFilter.enoughTime(nearestTimeTask),
+                this.tasksFilter.noTimeTaskInChain(tasks),
                 this.tasksFilter.noPreviousTask(tasks),
                 this.tasksFilter.isNotDeleted,
                 this.tasksFilter.isNotReward,
@@ -1170,5 +1215,107 @@ export class TasksService {
         }
 
         return timeTask;
+    }
+
+    /**
+     * Checks if task passes filters
+     */
+    public async checkTask(taskId: number): Promise<boolean> {
+        this.taskLoggerService.init();
+        this.taskLoggerService.collect('Checking task...');
+
+        const task = await this.getTaskById(taskId);
+
+        const periodFilterNames = {
+            timeTask: [
+                'startTime',
+                'available',
+                'inFuture',
+                'free',
+            ],
+            datedTask: [
+                'noStartTime',
+                'available',
+                'dated',
+                'free',
+            ],
+        };
+
+        let areAllFiltersPassed = true;
+
+        for (const periodFilterName of periodFilterNames.datedTask) {
+            // Create a plain object with just the properties we need for filtering
+            const plainTask = Object.assign(new Task(), {
+                ...task.get({ plain: true }),
+                periods: task.periods?.map(period => Object.assign(new TaskPeriod(), period.get({ plain: true }))),
+            });
+
+            const options = {
+                periodFilters: [
+                    this.periodsFilter[periodFilterName],
+                ],
+            };
+
+            const [filterResult] = this.processTasks([plainTask], options);
+
+            if (filterResult?.periods?.length) {
+                this.taskLoggerService.collect(`✔️ ${periodFilterName} period filter is passed.`);
+            } else {
+                this.taskLoggerService.collect(`❌ ${periodFilterName} period filter is not passed.`);
+                areAllFiltersPassed = false;
+            }
+        }
+
+        const nearestTimeTask = await this.getNearestTimeTask();
+
+        const taskFilters = {
+            timeTask: [
+            ],
+            datedTask: [
+                { name: 'enoughTime', params: [nearestTimeTask] },
+                { name: 'isNotDeleted' },
+                { name: 'isNotReward' },
+                { name: 'cooldown' },
+                { name: 'actual' },
+                { name: 'active' },
+            ],
+        };
+
+        for (const taskFilter of taskFilters.datedTask) {
+            // Create a plain object with just the properties we need for filtering
+            const plainTask = Object.assign(new Task(), {
+                ...task.get({ plain: true }),
+                periods: task.periods?.map(period => Object.assign(new TaskPeriod(), period.get({ plain: true }))),
+            });
+
+            let options = {};
+
+            if (taskFilter.params) {
+                options = {
+                    taskFilters: [
+                        this.tasksFilter[taskFilter.name](...taskFilter.params),
+                    ],
+                };
+            } else {
+                options = {
+                    taskFilters: [
+                        this.tasksFilter[taskFilter.name],
+                    ],
+                };
+            }
+
+            const [filterResult] = this.processTasks([plainTask], options);
+
+            if (filterResult) {
+                this.taskLoggerService.collect(`✔️ ${taskFilter.name} task filter is passed.`);
+            } else {
+                this.taskLoggerService.collect(`❌ ${taskFilter.name} task filter is not passed.`);
+                areAllFiltersPassed = false;
+            }
+        }
+
+        this.taskLoggerService.save();
+
+        return areAllFiltersPassed;
     }
 }

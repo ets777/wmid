@@ -123,6 +123,7 @@ export class TaskAppointmentsService {
             },
             where: { 
                 statusId: Status.APPOINTED,
+                isAdditional: false,
             },
         });
 
@@ -156,6 +157,22 @@ export class TaskAppointmentsService {
         const [affectedRows] = await this.taskAppointmentRepository.update(
             {
                 statusId: Status.POSTPONED,
+                startDate: formattedStartDate,
+            },
+            { where: { id: appointment.id } },
+        );
+
+        return affectedRows;
+    }
+
+    async appointPostponed(
+        appointment: TaskAppointment,
+    ): Promise<number> {
+        const startDate = this.dateTimeService.getCurrentDateTime();
+        const formattedStartDate = format(startDate, 'yyyy-MM-dd HH:mm:ss');
+        const [affectedRows] = await this.taskAppointmentRepository.update(
+            {
+                statusId: Status.APPOINTED,
                 startDate: formattedStartDate,
             },
             { where: { id: appointment.id } },

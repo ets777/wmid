@@ -6,10 +6,10 @@ import { TaskPeriod } from './task-periods.model';
 import { TaskPeriodsFilterService } from '@backend/filters/task-periods/task-periods.filter';
 import { TaskAppointmentsService } from '@backend/task-appointments/task-appointments.service';
 import { IncludeService } from '@backend/services/include.service';
+import { CurrentUserService } from '@backend/services/current-user.service';
 
 describe('TaskPeriodsService', () => {
-    let taskPeriodsService: TaskPeriodsService
-    let taskPeriodsRepository: typeof TaskPeriod;
+    let taskPeriodsService: TaskPeriodsService;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -18,6 +18,7 @@ describe('TaskPeriodsService', () => {
                 TaskPeriodsFilterService,
                 IncludeService,
                 DateTimeService,
+                CurrentUserService,
                 {
                     provide: getModelToken(TaskPeriod),
                     useValue: {
@@ -35,7 +36,6 @@ describe('TaskPeriodsService', () => {
         }).compile();
 
         taskPeriodsService = module.get<TaskPeriodsService>(TaskPeriodsService);
-        taskPeriodsRepository = module.get<typeof TaskPeriod>(getModelToken(TaskPeriod));
     });
 
     describe('sortPeriods', () => {
@@ -90,11 +90,11 @@ describe('TaskPeriodsService', () => {
             ];
 
             const filters = [
-                (period: TaskPeriod) => period.id % 2 === 0, 
+                (period: TaskPeriod): boolean => period.id % 2 === 0, 
                 [
-                    (period: TaskPeriod) => period.id <= 3, 
-                    (period: TaskPeriod) => period.id >= 7,
-                ]
+                    (period: TaskPeriod): boolean => period.id <= 3, 
+                    (period: TaskPeriod): boolean => period.id >= 7,
+                ],
             ];
 
             const result = taskPeriodsService.filterPeriods(periods, filters);
