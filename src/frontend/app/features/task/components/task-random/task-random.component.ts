@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { TaskService } from 'app/features/task/services/task.service';
+import { TaskService } from 'app/features/task/api-services/task-api.service';
 import { ToastController } from '@ionic/angular';
 import { TaskAddPageComponent } from 'app/features/task/pages/task-add-page/task-add-page.component';
 import { ITask } from '@backend/tasks/tasks.interface';
