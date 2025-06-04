@@ -48,19 +48,11 @@ describe('AuthController', () => {
                 password: 'Password999!',
                 timezone: '+00:00',
             };
-            const mockResponse = {
-                cookie: jest.fn(),
-            } as unknown as Response;
 
-            const result = await authController.signUp(dto, mockResponse);
+            const result = await authController.signUp(dto);
 
             expect(result).toHaveProperty('user');
             expect(result).toHaveProperty('sessionId');
-            expect(mockResponse.cookie).toHaveBeenCalledWith(
-                'sessionId',
-                result.sessionId,
-                expect.any(Object),
-            );
         });
     });
 
@@ -70,19 +62,11 @@ describe('AuthController', () => {
                 username: testUsername,
                 password: 'Password999!',
             };
-            const mockResponse = {
-                cookie: jest.fn(),
-            } as unknown as Response;
 
-            const result = await authController.signIn(dto, mockResponse);
+            const result = await authController.signIn(dto);
 
             expect(result).toHaveProperty('user');
             expect(result).toHaveProperty('sessionId');
-            expect(mockResponse.cookie).toHaveBeenCalledWith(
-                'sessionId',
-                result.sessionId,
-                expect.any(Object),
-            );
         });
     });
 
@@ -94,14 +78,9 @@ describe('AuthController', () => {
                 },
             } as unknown as Request;
 
-            const mockResponse = {
-                clearCookie: jest.fn(),
-            } as unknown as Response;
-
-            const result = await authController.signOut(mockRequest, mockResponse);
+            const result = await authController.signOut(mockRequest);
 
             expect(result).toBe(true);
-            expect(mockResponse.clearCookie).toHaveBeenCalledWith('sessionId');
         });
     });
 });

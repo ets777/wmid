@@ -18,10 +18,8 @@ export class AuthController {
     @Post('/sign-in')
     public async signIn(
         @Body() userDto: UserCredentialsDto,
-        @Res({ passthrough: true }) res: Response,
     ): Promise<AuthResponseDto> {
         const response = await this.authService.signIn(userDto);
-        this.authService.setSessionCookie(res, response.sessionId);
         return response;
     }
 
@@ -31,11 +29,9 @@ export class AuthController {
     @Get('/sign-out')
     public async signOut(
         @Req() req: Request,
-        @Res({ passthrough: true }) res: Response,
     ): Promise<boolean> {
         const sessionId = req.headers['x-session-id'] as string;
         const result = await this.authService.signOut(sessionId);
-        this.authService.clearSessionCookie(res);
         
         return result;
     }
@@ -46,10 +42,8 @@ export class AuthController {
     @Post('/sign-up')
     public async signUp(
         @Body() userDto: CreateUserDto,
-        @Res({ passthrough: true }) res: Response,
     ): Promise<AuthResponseDto> {
         const response = await this.authService.signUp(userDto);
-        this.authService.setSessionCookie(res, response.sessionId);
         return response;
     }
 

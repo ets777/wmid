@@ -19,6 +19,7 @@ export class AuthService {
         secure: true, 
         sameSite: 'Lax',
         domain: undefined,
+        expires: new Date(new Date().setDate(new Date().getDate() + 14)),
     };
     private httpOptions = { withCredentials: true };
 
@@ -103,7 +104,7 @@ export class AuthService {
         );
     }
 
-    private saveSession(authResponse: AuthResponseDto): void {
+    private saveSession(authResponse: AuthResponseDto): void {        
         this.cookieService.set(
             'session-id', 
             authResponse.sessionId,

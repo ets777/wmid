@@ -9,7 +9,6 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 import { UserCredentialsDto } from '@backend/users/dto/user-credentials.dto';
 import { User } from '@backend/users/users.model';
 import { SessionService } from '@backend/session/session.service';
-import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -71,18 +70,5 @@ export class AuthService {
         }
 
         return user;
-    }
-
-    setSessionCookie(res: Response, sessionId: string): void {
-        res.cookie('sessionId', sessionId, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        });
-    }
-
-    clearSessionCookie(res: Response): void {
-        res.clearCookie('sessionId');
     }
 }

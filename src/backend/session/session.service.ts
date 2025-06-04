@@ -6,7 +6,9 @@ import { Role } from '@backend/roles/roles.model';
 
 @Injectable()
 export class SessionService {
-    public async createSession(user: User, expiresIn: number = 24 * 60 * 60 * 1000): Promise<Session> {
+    public async createSession(user: User): Promise<Session> {
+        const expiresIn = 14 * 24 * 60 * 60 * 1000;
+
         return Session.create({
             sessionId: uuidv4(),
             userId: user.id,

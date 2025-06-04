@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.1
+
+- Bug with session expiration fixed.
+
 ## v0.5.0
 
 - Reward store added.
