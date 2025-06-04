@@ -44,7 +44,7 @@ export class ChainableDate {
     }
 
     toDateTimeString(): string {
-        return format(this.date, 'yyyy-MM-dd hh:mm:ss');
+        return format(this.date, 'yyyy-MM-dd HH:mm:ss');
     }
 
     toDateString(): string {
