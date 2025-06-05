@@ -31,8 +31,8 @@ export class IncludeService {
                                     Sequelize.col('periods.appointments.startDate'),
                                     Op.gt,
                                     this.dateTimeService
-                                        .getChainableCurrentDate()
-                                        .minusDays(1)
+                                        .getUserChainableCurrentDate()
+                                        .setDayToStart()
                                         .toDateTimeString(),
                                 ),
                             ],

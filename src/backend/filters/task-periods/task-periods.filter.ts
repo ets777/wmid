@@ -83,7 +83,7 @@ export class TaskPeriodsFilterService {
     }
 
     overdue(period: TaskPeriod): boolean {
-        const currentDate = this.dateTimeService.getChainableCurrentDate();
+        const currentDate = this.dateTimeService.getUserChainableCurrentDate();
         const currentDay = this.dateTimeService.getUserCurrentDay();
         const currentMonth = this.dateTimeService.getUserCurrentMonth();
         const currentYear = this.dateTimeService.getCurrentYear();

@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { addMinutes, format, startOfDay } from 'date-fns';
 
 export class ChainableDate {
     private date: Date;
@@ -35,6 +35,16 @@ export class ChainableDate {
 
     addDays(days: number): ChainableDate {
         this.date = new Date(this.date.getTime() + days * 24 * 60 * 60 * 1000);
+        return this;
+    }
+
+    addMinutes(minutes: number): ChainableDate {
+        this.date = addMinutes(this.date, minutes);
+        return this;
+    }
+
+    setDayToStart(): ChainableDate {
+        this.date = startOfDay(this.date);
         return this;
     }
 

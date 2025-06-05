@@ -24,8 +24,10 @@ export class DateTimeService {
         return format(new Date(), 'yyyy-MM-dd HH:mm:ss');
     }
 
-    public getChainableCurrentDate(): ChainableDate {
-        return new ChainableDate().setCurrentDate();
+    public getUserChainableCurrentDate(): ChainableDate {
+        const offset = this.getUserTimezoneOffsetInMinutes();
+
+        return new ChainableDate().setCurrentDate().addMinutes(offset);
     }
 
     public getUserCurrentDay(): number {
