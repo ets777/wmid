@@ -74,6 +74,7 @@ describe('TaskService', () => {
                         getUserCurrentDay: jest.fn(),
                         getUserCurrentWeekday: jest.fn(),
                         checkTimeInterval: jest.fn(),
+                        getHoursBetween: jest.fn(),
                     },
                 },
                 {
@@ -501,6 +502,65 @@ describe('TaskService', () => {
             );
 
             expect(appointedTask).toEqual(false);
+        });
+    });
+
+    describe('getMostPriorityTimeTask', () => {
+        it('should return null because array is empty', async () => {
+            const tasks = [];
+            const timeTask = tasksService.getMostPriorityTimeTask(tasks);
+
+            expect(timeTask).toEqual(null);
+        });
+
+        it('should return the task with ID 1 because it is the only task in the array', async () => {
+            const tasks = [{ id: 1 } as Task];
+            const task = tasks[0];
+            const timeTask = tasksService.getMostPriorityTimeTask(tasks);
+
+            expect(timeTask).toEqual(task);
+        });
+
+        it('should return the task with ID 2 because it is important task', async () => {
+            const tasks = [
+                { id: 1, periods: [{ isImportant: false }] } as Task,
+                { id: 2, periods: [{ isImportant: true }] } as Task,
+                { id: 3, periods: [{ isImportant: false }] } as Task,
+            ];
+            const task = tasks[1];
+            const timeTask = tasksService.getMostPriorityTimeTask(tasks);
+
+            expect(timeTask).toEqual(task);
+        });
+
+        it('should return the task with ID 1 because it is the earliest task', async () => {
+            const tasks = [
+                { id: 1, periods: [{ startTime: '09:00:00' }] } as Task,
+                { id: 2, periods: [{ startTime: '10:00:00' }] } as Task,
+            ];
+            const task = tasks[0];
+
+            jest.spyOn(dateTimeService, 'getHoursBetween')
+                .mockReturnValue(1);
+
+            const timeTask = tasksService.getMostPriorityTimeTask(tasks);
+
+            expect(timeTask).toEqual(task);
+        });
+
+        it('should return the task with ID 2 because it is the latest task', async () => {
+            const tasks = [
+                { id: 1, periods: [{ startTime: '09:00:00' }] } as Task,
+                { id: 2, periods: [{ startTime: '22:00:00' }] } as Task,
+            ];
+            const task = tasks[1];
+
+            jest.spyOn(dateTimeService, 'getHoursBetween')
+                .mockReturnValue(13);
+
+            const timeTask = tasksService.getMostPriorityTimeTask(tasks);
+
+            expect(timeTask).toEqual(task);
         });
     });
 });

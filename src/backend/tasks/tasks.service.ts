@@ -700,9 +700,42 @@ export class TasksService {
          * tasks for today, make sure to check the next day as well.
          */
         const timeTasks = this.processTasks(tasks, options);
-        const [nearestTimeTask] = timeTasks;
+        const nearestTimeTask = this.getMostPriorityTimeTask(timeTasks);
 
         return nearestTimeTask ?? null;
+    }
+
+    public getMostPriorityTimeTask(tasks: Task[]): Task {
+        if (!tasks.length) {
+            return null;
+        }
+
+        if (tasks.length == 1) {
+            return tasks[0];
+        }
+
+        const importantTasks = tasks.filter((task) => task.periods[0].isImportant);
+
+        if (importantTasks.length == 1) {
+            return importantTasks[0];
+        }
+
+        if (importantTasks.length > 0) {
+            tasks = importantTasks;
+        }
+
+        const earliestTask = tasks[0];
+        const latestTask = tasks.at(-1);
+        const diffHours = this.dateTimeService.getHoursBetween(
+            earliestTask.periods[0].startTime,
+            latestTask.periods[0].startTime,
+        );
+
+        if (diffHours > 12) {
+            return latestTask;
+        } else {
+            return earliestTask;
+        }
     }
 
     /**

@@ -1,8 +1,9 @@
 import { ChainableDate } from '@backend/classes/ChainableDate';
 import { TaskPeriodType } from '@backend/task-periods/task-periods.enum';
 import { Injectable } from '@nestjs/common';
-import { addDays, addMinutes, addMonths, addWeeks, format, getWeek } from 'date-fns';
+import { addDays, addMinutes, addMonths, addWeeks, format, getWeek, secondsToHours } from 'date-fns';
 import { CurrentUserService } from './current-user.service';
+import { Time } from '@backend/classes/Time';
 
 type AddTimeFunction = (date: string, amount: number) => Date;
 
@@ -73,6 +74,14 @@ export class DateTimeService {
         } else {
             return startTime <= currentTime || endTime > currentTime;
         }
+    }
+
+    public getHoursBetween(startTime: string, endTime: string): number {
+        const diffSeconds = Math.abs(
+            new Time(startTime).valueOf() - new Time(endTime).valueOf(),
+        );
+
+        return secondsToHours(diffSeconds);
     }
 
     public checkTimeInFuture(startTime: string, endTime: string): boolean {
